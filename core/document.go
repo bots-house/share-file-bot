@@ -2,7 +2,10 @@ package core
 
 import (
 	"context"
+	"errors"
 	"time"
+
+	"github.com/volatiletech/null"
 )
 
 // DocumentID it's alias for share id.
@@ -17,13 +20,16 @@ type Document struct {
 	FileID string
 
 	// Telegram Unique File ID
-	UniqueFileID string
+	// UniqueFileID string
 
 	// Caption of file
-	Caption string
+	Caption null.String
 
 	// MIMEType of file
-	MIMEType string
+	MIMEType null.String
+
+	// File size in bytes
+	Size int
 
 	// Reference to user who uploads document.
 	OwnerID UserID
@@ -31,6 +37,8 @@ type Document struct {
 	// Time when Document was created.
 	CreatedAt time.Time
 }
+
+var ErrDocumentNotFound = errors.New("document not found")
 
 // DocumentStore define persistance interface for Document.
 type DocumentStore interface {

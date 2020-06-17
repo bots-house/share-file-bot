@@ -4,7 +4,9 @@
 package dal
 
 var TableNames = struct {
-	User string
+	Document string
+	User     string
 }{
-	User: "user",
+	Document: "document",
+	User:     "user",
 }

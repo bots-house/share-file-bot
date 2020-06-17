@@ -11,7 +11,6 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
-	"github.com/davecgh/go-spew/spew"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 	"github.com/tomasen/realip"
@@ -33,6 +32,8 @@ func New(token string, authSrv *service.Auth) (*Bot, error) {
 		client:  client,
 		authSrv: authSrv,
 	}
+
+	// bot.client.Debug = true
 
 	bot.initHandler()
 
@@ -73,7 +74,23 @@ func (bot *Bot) initHandler() {
 }
 
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
-	spew.Dump(update)
+	// spew.Dump(update)
+
+	if msg := update.Message; msg != nil {
+		// handle command
+		switch msg.Command() {
+		case "start":
+			return bot.onStart(ctx, msg)
+		case "help":
+			return bot.onHelp(ctx, msg)
+		}
+
+		// handle other
+		if msg.Document == nil {
+			return bot.onNotDocument(ctx, msg)
+		}
+	}
+
 	return nil
 }
 
