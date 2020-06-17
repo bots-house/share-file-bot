@@ -17,7 +17,7 @@ type UserStore struct {
 
 func (store *UserStore) toRow(user *core.User) *dal.User {
 	return &dal.User{
-		ID:           user.ID,
+		ID:           int(user.ID),
 		FirstName:    user.FirstName,
 		LastName:     user.LastName,
 		Username:     user.Username,
@@ -30,7 +30,7 @@ func (store *UserStore) toRow(user *core.User) *dal.User {
 
 func (store *UserStore) fromRow(row *dal.User) *core.User {
 	return &core.User{
-		ID:           row.ID,
+		ID:           core.UserID(row.ID),
 		FirstName:    row.FirstName,
 		LastName:     row.LastName,
 		Username:     row.Username,
@@ -59,4 +59,16 @@ func (store *UserStore) Find(ctx context.Context, id core.UserID) (*core.User, e
 	}
 
 	return store.fromRow(acc), nil
+}
+
+func (store *UserStore) Update(ctx context.Context, user *core.User) error {
+	row := store.toRow(user)
+	n, err := row.Update(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer())
+	if err != nil {
+		return errors.Wrap(err, "update query")
+	}
+	if n == 0 {
+		return core.ErrUserNotFound
+	}
+	return nil
 }

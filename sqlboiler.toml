@@ -2,6 +2,7 @@ pkgname = "dal"
 output = "store/postgres/dal"
 no-tests = true
 no-hooks = true
+no-auto-timestamps = true
 
 wipe = true
 
