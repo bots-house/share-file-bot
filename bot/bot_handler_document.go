@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bots-house/share-file-bot/core"
+	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
@@ -52,6 +53,14 @@ func (bot *Bot) renderOwnedDocument(msg *tgbotapi.Message, doc *service.OwnedDoc
 
 func (bot *Bot) onDocument(ctx context.Context, msg *tgbotapi.Message) error {
 	user := getUserCtx(ctx)
+
+	if err := bot.send(ctx, tgbotapi.NewDeleteMessage(
+		msg.Chat.ID,
+		msg.MessageID,
+	)); err != nil {
+		log.Warn(ctx, "can't delete incoming message", "chat_id", msg.Chat.ID, "msg_id", msg.MessageID)
+	}
+
 	// spew.Dump(msg)
 	doc, err := bot.docSrv.AddDocument(ctx, user, &service.InputDocument{
 		FileID:   msg.Document.FileID,
