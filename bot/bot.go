@@ -19,10 +19,11 @@ import (
 type Bot struct {
 	client  *tgbotapi.BotAPI
 	authSrv *service.Auth
+	docSrv  *service.Document
 	handler tg.Handler
 }
 
-func New(token string, authSrv *service.Auth) (*Bot, error) {
+func New(token string, authSrv *service.Auth, docSrv *service.Document) (*Bot, error) {
 	client, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, errors.Wrap(err, "create bot api")
@@ -31,6 +32,7 @@ func New(token string, authSrv *service.Auth) (*Bot, error) {
 	bot := &Bot{
 		client:  client,
 		authSrv: authSrv,
+		docSrv:  docSrv,
 	}
 
 	// bot.client.Debug = true
@@ -77,6 +79,11 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	// spew.Dump(update)
 
 	if msg := update.Message; msg != nil {
+
+		if _, err := bot.client.Send(tgbotapi.NewChatAction(int64(msg.Chat.ID), tgbotapi.ChatTyping)); err != nil {
+			log.Warn(ctx, "cant send typing", "err", err)
+		}
+
 		// handle command
 		switch msg.Command() {
 		case "start":
@@ -86,7 +93,9 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 		}
 
 		// handle other
-		if msg.Document == nil {
+		if msg.Document != nil {
+			return bot.onDocument(ctx, msg)
+		} else {
 			return bot.onNotDocument(ctx, msg)
 		}
 	}

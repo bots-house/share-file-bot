@@ -5,8 +5,10 @@ package dal
 
 var TableNames = struct {
 	Document string
+	Download string
 	User     string
 }{
 	Document: "document",
+	Download: "download",
 	User:     "user",
 }

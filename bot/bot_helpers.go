@@ -2,13 +2,27 @@ package bot
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func (bot *Bot) send(ctx context.Context, msg *tgbotapi.MessageConfig) error {
+func embeddWebPagePreview(txt string, link string) string {
+	return fmt.Sprintf("[‎](%s)%s", link, txt)
+}
+
+func escapeMarkdown(txt string) string {
+	txt = strings.Replace(txt, "_", "\\_", -1)
+	txt = strings.Replace(txt, "*", "\\*", -1)
+	txt = strings.Replace(txt, "[", "\\[", -1)
+	txt = strings.Replace(txt, "`", "\\`", -1)
+	return txt
+}
+
+func (bot *Bot) send(ctx context.Context, s tgbotapi.Chattable) error {
 	// spew.Dump(msg)
-	_, err := bot.client.Send(msg)
+	_, err := bot.client.Send(s)
 	return err
 }
 

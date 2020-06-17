@@ -12,6 +12,7 @@ import (
 
 	"github.com/bots-house/share-file-bot/bot"
 	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/bots-house/share-file-bot/pkg/secretid"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
 	"github.com/kelseyhightower/envconfig"
@@ -24,6 +25,7 @@ type Config struct {
 	Addr          string `default:":8000"`
 	WebhookDomain string `required:"true"`
 	WebhookPath   string `default:"/"`
+	SecretIDSalt  string `default:"-secret-1234-"`
 }
 
 var logger = log.NewLogger(true, true)
@@ -97,8 +99,19 @@ func run(ctx context.Context) error {
 		UserStore: pg.User,
 	}
 
+	secretID, err := secretid.NewHashIDs(cfg.SecretIDSalt)
+	if err != nil {
+		return errors.Wrap(err, "init secret id")
+	}
+
+	docSrv := &service.Document{
+		SecretID:      secretID,
+		DocumentStore: pg.Document,
+		DownloadStore: pg.Download,
+	}
+
 	log.Info(ctx, "init bot")
-	tgBot, err := bot.New(cfg.Token, authSrv)
+	tgBot, err := bot.New(cfg.Token, authSrv, docSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}

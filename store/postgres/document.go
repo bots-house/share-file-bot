@@ -21,6 +21,8 @@ func (store *DocumentStore) toRow(doc *core.Document) *dal.Document {
 		FileID:    doc.FileID,
 		Caption:   doc.Caption,
 		MimeType:  doc.MIMEType,
+		Size:      doc.Size,
+		Name:      doc.Name,
 		OwnerID:   int(doc.OwnerID),
 		CreatedAt: doc.CreatedAt,
 	}
@@ -32,6 +34,8 @@ func (store *DocumentStore) fromRow(row *dal.Document) *core.Document {
 		FileID:    row.FileID,
 		Caption:   row.Caption,
 		MIMEType:  row.MimeType,
+		Size:      row.Size,
+		Name:      row.Name,
 		OwnerID:   core.UserID(row.OwnerID),
 		CreatedAt: row.CreatedAt,
 	}

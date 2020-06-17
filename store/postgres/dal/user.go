@@ -114,13 +114,16 @@ var UserWhere = struct {
 // UserRels is where relationship names are stored.
 var UserRels = struct {
 	OwnerDocuments string
+	Downloads      string
 }{
 	OwnerDocuments: "OwnerDocuments",
+	Downloads:      "Downloads",
 }
 
 // userR is where relationships are stored.
 type userR struct {
 	OwnerDocuments DocumentSlice
+	Downloads      DownloadSlice
 }
 
 // NewStruct creates a new relationship struct
@@ -250,6 +253,27 @@ func (o *User) OwnerDocuments(mods ...qm.QueryMod) documentQuery {
 	return query
 }
 
+// Downloads retrieves all the download's Downloads with an executor.
+func (o *User) Downloads(mods ...qm.QueryMod) downloadQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"download\".\"user_id\"=?", o.ID),
+	)
+
+	query := Downloads(queryMods...)
+	queries.SetFrom(query.Query, "\"download\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"download\".*"})
+	}
+
+	return query
+}
+
 // LoadOwnerDocuments allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (userL) LoadOwnerDocuments(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
@@ -338,6 +362,94 @@ func (userL) LoadOwnerDocuments(ctx context.Context, e boil.ContextExecutor, sin
 	return nil
 }
 
+// LoadDownloads allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (userL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+	var slice []*User
+	var object *User
+
+	if singular {
+		object = maybeUser.(*User)
+	} else {
+		slice = *maybeUser.(*[]*User)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &userR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(qm.From(`download`), qm.WhereIn(`download.user_id in ?`, args...))
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load download")
+	}
+
+	var resultSlice []*Download
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice download")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on download")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for download")
+	}
+
+	if singular {
+		object.R.Downloads = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &downloadR{}
+			}
+			foreign.R.User = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.UserID {
+				local.R.Downloads = append(local.R.Downloads, foreign)
+				if foreign.R == nil {
+					foreign.R = &downloadR{}
+				}
+				foreign.R.User = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // AddOwnerDocuments adds the given related objects to the existing relationships
 // of the user, optionally inserting them as new records.
 // Appends related to o.R.OwnerDocuments.
@@ -386,6 +498,59 @@ func (o *User) AddOwnerDocuments(ctx context.Context, exec boil.ContextExecutor,
 			}
 		} else {
 			rel.R.Owner = o
+		}
+	}
+	return nil
+}
+
+// AddDownloads adds the given related objects to the existing relationships
+// of the user, optionally inserting them as new records.
+// Appends related to o.R.Downloads.
+// Sets related.R.User appropriately.
+func (o *User) AddDownloads(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Download) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.UserID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"download\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
+				strmangle.WhereClause("\"", "\"", 2, downloadPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.UserID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &userR{
+			Downloads: related,
+		}
+	} else {
+		o.R.Downloads = append(o.R.Downloads, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &downloadR{
+				User: o,
+			}
+		} else {
+			rel.R.User = o
 		}
 	}
 	return nil

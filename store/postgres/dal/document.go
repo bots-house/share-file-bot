@@ -28,6 +28,8 @@ type Document struct {
 	FileID    string      `boil:"file_id" json:"file_id" toml:"file_id" yaml:"file_id"`
 	Caption   null.String `boil:"caption" json:"caption,omitempty" toml:"caption" yaml:"caption,omitempty"`
 	MimeType  null.String `boil:"mime_type" json:"mime_type,omitempty" toml:"mime_type" yaml:"mime_type,omitempty"`
+	Size      int         `boil:"size" json:"size" toml:"size" yaml:"size"`
+	Name      string      `boil:"name" json:"name" toml:"name" yaml:"name"`
 	OwnerID   int         `boil:"owner_id" json:"owner_id" toml:"owner_id" yaml:"owner_id"`
 	CreatedAt time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 
@@ -40,6 +42,8 @@ var DocumentColumns = struct {
 	FileID    string
 	Caption   string
 	MimeType  string
+	Size      string
+	Name      string
 	OwnerID   string
 	CreatedAt string
 }{
@@ -47,6 +51,8 @@ var DocumentColumns = struct {
 	FileID:    "file_id",
 	Caption:   "caption",
 	MimeType:  "mime_type",
+	Size:      "size",
+	Name:      "name",
 	OwnerID:   "owner_id",
 	CreatedAt: "created_at",
 }
@@ -134,6 +140,8 @@ var DocumentWhere = struct {
 	FileID    whereHelperstring
 	Caption   whereHelpernull_String
 	MimeType  whereHelpernull_String
+	Size      whereHelperint
+	Name      whereHelperstring
 	OwnerID   whereHelperint
 	CreatedAt whereHelpertime_Time
 }{
@@ -141,20 +149,25 @@ var DocumentWhere = struct {
 	FileID:    whereHelperstring{field: "\"document\".\"file_id\""},
 	Caption:   whereHelpernull_String{field: "\"document\".\"caption\""},
 	MimeType:  whereHelpernull_String{field: "\"document\".\"mime_type\""},
+	Size:      whereHelperint{field: "\"document\".\"size\""},
+	Name:      whereHelperstring{field: "\"document\".\"name\""},
 	OwnerID:   whereHelperint{field: "\"document\".\"owner_id\""},
 	CreatedAt: whereHelpertime_Time{field: "\"document\".\"created_at\""},
 }
 
 // DocumentRels is where relationship names are stored.
 var DocumentRels = struct {
-	Owner string
+	Owner     string
+	Downloads string
 }{
-	Owner: "Owner",
+	Owner:     "Owner",
+	Downloads: "Downloads",
 }
 
 // documentR is where relationships are stored.
 type documentR struct {
-	Owner *User
+	Owner     *User
+	Downloads DownloadSlice
 }
 
 // NewStruct creates a new relationship struct
@@ -166,9 +179,9 @@ func (*documentR) NewStruct() *documentR {
 type documentL struct{}
 
 var (
-	documentAllColumns            = []string{"id", "file_id", "caption", "mime_type", "owner_id", "created_at"}
-	documentColumnsWithoutDefault = []string{"id", "file_id", "caption", "mime_type", "owner_id", "created_at"}
-	documentColumnsWithDefault    = []string{}
+	documentAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at"}
+	documentColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at"}
+	documentColumnsWithDefault    = []string{"id"}
 	documentPrimaryKeyColumns     = []string{"id"}
 )
 
@@ -277,6 +290,27 @@ func (o *Document) Owner(mods ...qm.QueryMod) userQuery {
 	return query
 }
 
+// Downloads retrieves all the download's Downloads with an executor.
+func (o *Document) Downloads(mods ...qm.QueryMod) downloadQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"download\".\"document_id\"=?", o.ID),
+	)
+
+	query := Downloads(queryMods...)
+	queries.SetFrom(query.Query, "\"download\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"download\".*"})
+	}
+
+	return query
+}
+
 // LoadOwner allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (documentL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDocument interface{}, mods queries.Applicator) error {
@@ -370,6 +404,94 @@ func (documentL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular
 	return nil
 }
 
+// LoadDownloads allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (documentL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDocument interface{}, mods queries.Applicator) error {
+	var slice []*Document
+	var object *Document
+
+	if singular {
+		object = maybeDocument.(*Document)
+	} else {
+		slice = *maybeDocument.(*[]*Document)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &documentR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &documentR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(qm.From(`download`), qm.WhereIn(`download.document_id in ?`, args...))
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load download")
+	}
+
+	var resultSlice []*Download
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice download")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on download")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for download")
+	}
+
+	if singular {
+		object.R.Downloads = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &downloadR{}
+			}
+			foreign.R.Document = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.DocumentID {
+				local.R.Downloads = append(local.R.Downloads, foreign)
+				if foreign.R == nil {
+					foreign.R = &downloadR{}
+				}
+				foreign.R.Document = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetOwner of the document to the related item.
 // Sets o.R.Owner to related.
 // Adds o to related.R.OwnerDocuments.
@@ -414,6 +536,59 @@ func (o *Document) SetOwner(ctx context.Context, exec boil.ContextExecutor, inse
 		related.R.OwnerDocuments = append(related.R.OwnerDocuments, o)
 	}
 
+	return nil
+}
+
+// AddDownloads adds the given related objects to the existing relationships
+// of the document, optionally inserting them as new records.
+// Appends related to o.R.Downloads.
+// Sets related.R.Document appropriately.
+func (o *Document) AddDownloads(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Download) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.DocumentID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"download\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"document_id"}),
+				strmangle.WhereClause("\"", "\"", 2, downloadPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.DocumentID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &documentR{
+			Downloads: related,
+		}
+	} else {
+		o.R.Downloads = append(o.R.Downloads, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &downloadR{
+				Document: o,
+			}
+		} else {
+			rel.R.Document = o
+		}
+	}
 	return nil
 }
 

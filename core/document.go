@@ -28,6 +28,9 @@ type Document struct {
 	// MIMEType of file
 	MIMEType null.String
 
+	// File name
+	Name string
+
 	// File size in bytes
 	Size int
 
@@ -36,6 +39,25 @@ type Document struct {
 
 	// Time when Document was created.
 	CreatedAt time.Time
+}
+
+func NewDocument(
+	fileID string,
+	caption string,
+	mimeType string,
+	size int,
+	name string,
+	ownerID UserID,
+) *Document {
+	return &Document{
+		FileID:    fileID,
+		Caption:   null.NewString(caption, caption != ""),
+		MIMEType:  null.NewString(mimeType, mimeType != ""),
+		Size:      size,
+		Name:      name,
+		OwnerID:   ownerID,
+		CreatedAt: time.Now(),
+	}
 }
 
 var ErrDocumentNotFound = errors.New("document not found")
