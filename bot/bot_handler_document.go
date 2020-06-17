@@ -7,7 +7,6 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/service"
-	"github.com/davecgh/go-spew/spew"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 )
@@ -53,7 +52,7 @@ func (bot *Bot) renderOwnedDocument(msg *tgbotapi.Message, doc *service.OwnedDoc
 
 func (bot *Bot) onDocument(ctx context.Context, msg *tgbotapi.Message) error {
 	user := getUserCtx(ctx)
-	spew.Dump(msg)
+	// spew.Dump(msg)
 	doc, err := bot.docSrv.AddDocument(ctx, user, &service.InputDocument{
 		FileID:   msg.Document.FileID,
 		Caption:  msg.Caption,
