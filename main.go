@@ -20,12 +20,15 @@ import (
 )
 
 type Config struct {
-	Database      string `default:"postgres://sfb:sfb@localhost/sfb?sslmode=disable"`
+	Database             string `default:"postgres://sfb:sfb@localhost/sfb?sslmode=disable"`
+	DatabaseMaxOpenConns int    `default:"10" split_words:"true"`
+	DatabaseMaxIdleConns int    `default:"0" split_words:"true"`
+
 	Token         string `required:"true"`
 	Addr          string `default:":8000"`
-	WebhookDomain string `required:"true"`
-	WebhookPath   string `default:"/"`
-	SecretIDSalt  string `default:"-secret-1234-"`
+	WebhookDomain string `required:"true" split_words:"true"`
+	WebhookPath   string `default:"/" split_words:"true"`
+	SecretIDSalt  string `required:"true" split_words:"true"`
 }
 
 var logger = log.NewLogger(true, true)
@@ -65,11 +68,14 @@ func newServer(addr string, bot *bot.Bot) *http.Server {
 	}
 }
 
+const envPrefix = "SFB"
+
 func run(ctx context.Context) error {
 	// parse config
 	var cfg Config
 
-	if err := envconfig.Process("SFB", &cfg); err != nil {
+	if err := envconfig.Process(envPrefix, &cfg); err != nil {
+		envconfig.Usage(envPrefix, &cfg)
 		return errors.Wrap(err, "parse config from env")
 	}
 
@@ -86,6 +92,9 @@ func run(ctx context.Context) error {
 	if err := db.PingContext(ctx); err != nil {
 		return errors.Wrap(err, "ping db")
 	}
+
+	db.SetMaxOpenConns(cfg.DatabaseMaxOpenConns)
+	db.SetMaxIdleConns(cfg.DatabaseMaxIdleConns)
 
 	// create abstraction around db and apply migrations
 	pg := postgres.NewPostgres(db)
