@@ -22,14 +22,28 @@ type Download struct {
 	At time.Time
 }
 
-type DownloadStoreQuery interface {
-	DocumentID(id DocumentID)
+func NewDownload(docID DocumentID, userID UserID) *Download {
+	return &Download{
+		DocumentID: docID,
+		UserID:     userID,
+		At:         time.Now(),
+	}
+}
 
-	All(ctx context.Context) ([]*Document, error)
+type DownloadStats struct {
+	Total  int
+	Unique int
+}
+
+type DownloadStoreQuery interface {
+	DocumentID(id DocumentID) DownloadStoreQuery
+
 	Count(ctx context.Context) (int, error)
 }
 
 type DownloadStore interface {
 	Add(ctx context.Context, download *Download) error
+	GetDownloadStats(ctx context.Context, id DocumentID) (*DownloadStats, error)
+
 	Query() DownloadStoreQuery
 }

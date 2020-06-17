@@ -1,0 +1,18 @@
+pkgname = "dal"
+output = "store/postgres/dal"
+no-tests = true
+no-hooks = true
+no-auto-timestamps = true
+
+wipe = true
+
+[psql]
+  dbname = "sfb"
+  host   = "localhost"
+  port   = 5432
+  user   = "sfb"
+  pass   = "sfb"
+  sslmode = "disable"
+  blacklist = [
+    "schema_migrations"
+  ]

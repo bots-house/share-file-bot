@@ -1,0 +1,19 @@
+version: "3.0"
+
+volumes:
+  postgres:
+
+services:
+  postgres:
+    image: postgres:12
+
+    ports:
+      - "5432:5432"
+
+    environment:
+      POSTGRES_USER: sfb
+      POSTGRES_PASSWORD: sfb
+      POSTGRES_DB: sfb
+
+    volumes:
+      - postgres:/var/lib/postgresql/data
