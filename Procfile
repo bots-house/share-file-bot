@@ -1,1 +1,1 @@
-web: SFB_ADDR=:$PORT bin/share-file-bot
+web: SFB_ADDR=:$PORT SFB_DATABASE=$DATABASE_URL bin/share-file-bot
