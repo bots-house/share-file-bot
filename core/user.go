@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/volatiletech/null"
@@ -27,12 +28,17 @@ type User struct {
 	// Language code of user from Telegram (optional)
 	LanguageCode string
 
+	// True, if user is admin of bot.
+	IsAdmin bool
+
 	// Time of first interaction with bot
 	JoinedAt time.Time
 
 	// Time when user info was updated
-	UpdatedAt time.Time
+	UpdatedAt null.Time
 }
+
+var ErrUserNotFound = errors.New("user not found")
 
 // UserStore define interface for persistance of bot.
 type UserStore interface {

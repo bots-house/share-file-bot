@@ -15,6 +15,8 @@ import (
 type Postgres struct {
 	*sql.DB
 	migrator *migrations.Migrator
+
+	User *UserStore
 }
 
 // NewPostgres create postgres based database with all stores.
@@ -22,6 +24,7 @@ func NewPostgres(db *sql.DB) *Postgres {
 	pg := &Postgres{
 		DB:       db,
 		migrator: migrations.New(db),
+		User:     &UserStore{ContextExecutor: db},
 	}
 
 	return pg
