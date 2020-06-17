@@ -1,3 +1,4 @@
+// +heroku goVersion go1.14.2
 module github.com/bots-house/share-file-bot
 
 go 1.14
