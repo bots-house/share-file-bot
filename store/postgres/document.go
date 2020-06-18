@@ -83,10 +83,34 @@ type documentStoreQuery struct {
 	store *DocumentStore
 }
 
-func (usq *documentStoreQuery) Count(ctx context.Context) (int, error) {
-	executor := shared.GetExecutorOrDefault(ctx, usq.store.ContextExecutor)
+func (dsq *documentStoreQuery) ID(id core.DocumentID) core.DocumentStoreQuery {
+	dsq.mods = append(dsq.mods, dal.DocumentWhere.ID.EQ(int(id)))
+	return dsq
+}
+
+func (dsq *documentStoreQuery) OwnerID(id core.UserID) core.DocumentStoreQuery {
+	dsq.mods = append(dsq.mods, dal.DocumentWhere.OwnerID.EQ(int(id)))
+	return dsq
+}
+
+func (dsq *documentStoreQuery) Delete(ctx context.Context) error {
+	executor := shared.GetExecutorOrDefault(ctx, dsq.store.ContextExecutor)
 	count, err := dal.
-		Documents(usq.mods...).
+		Documents(dsq.mods...).
+		DeleteAll(ctx, executor)
+	if err != nil {
+		return errors.Wrap(err, "delete query")
+	}
+	if count == 0 {
+		return core.ErrDocumentNotFound
+	}
+	return nil
+}
+
+func (dsq *documentStoreQuery) Count(ctx context.Context) (int, error) {
+	executor := shared.GetExecutorOrDefault(ctx, dsq.store.ContextExecutor)
+	count, err := dal.
+		Documents(dsq.mods...).
 		Count(ctx, executor)
 	if err != nil {
 		return 0, errors.Wrap(err, "count query")

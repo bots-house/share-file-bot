@@ -63,6 +63,10 @@ func NewDocument(
 var ErrDocumentNotFound = errors.New("document not found")
 
 type DocumentStoreQuery interface {
+	ID(id DocumentID) DocumentStoreQuery
+	OwnerID(id UserID) DocumentStoreQuery
+
+	Delete(ctx context.Context) error
 	Count(ctx context.Context) (int, error)
 }
 

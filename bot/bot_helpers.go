@@ -36,3 +36,12 @@ func (bot *Bot) newAnswerMsg(ctx context.Context, msg *tgbotapi.Message, text st
 
 	return &result
 }
+
+func (bot *Bot) answerCallbackQuery(ctx context.Context, cbq *tgbotapi.CallbackQuery, text string) error {
+	_, err := bot.client.AnswerCallbackQuery(tgbotapi.NewCallback(
+		cbq.ID,
+		text,
+	))
+
+	return err
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
 	"github.com/bots-house/share-file-bot/store/postgres/shared"
 	"github.com/pkg/errors"
+	"github.com/volatiletech/null"
 	"github.com/volatiletech/sqlboiler/boil"
 	"github.com/volatiletech/sqlboiler/queries/qm"
 )
@@ -18,8 +19,8 @@ type DownloadStore struct {
 func (store *DownloadStore) toRow(dwn *core.Download) *dal.Download {
 	return &dal.Download{
 		ID:         int(dwn.ID),
-		UserID:     int(dwn.UserID),
-		DocumentID: int(dwn.DocumentID),
+		UserID:     null.NewInt(int(dwn.UserID), dwn.UserID != 0),
+		DocumentID: null.NewInt(int(dwn.DocumentID), dwn.DocumentID != 0),
 		At:         dwn.At,
 	}
 }
@@ -27,8 +28,8 @@ func (store *DownloadStore) toRow(dwn *core.Download) *dal.Download {
 func (store *DownloadStore) fromRow(row *dal.Download) *core.Download {
 	return &core.Download{
 		ID:         core.DownloadID(row.ID),
-		UserID:     core.UserID(row.UserID),
-		DocumentID: core.DocumentID(row.DocumentID),
+		UserID:     core.UserID(row.UserID.Int),
+		DocumentID: core.DocumentID(row.DocumentID.Int),
 		At:         row.At,
 	}
 }
@@ -76,7 +77,7 @@ type downloadStoreQuery struct {
 }
 
 func (dsq *downloadStoreQuery) DocumentID(id core.DocumentID) core.DownloadStoreQuery {
-	dsq.mods = append(dsq.mods, dal.DownloadWhere.DocumentID.EQ(int(id)))
+	dsq.mods = append(dsq.mods, dal.DownloadWhere.DocumentID.EQ(null.IntFrom(int(id))))
 	return dsq
 }
 

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/null"
 	"github.com/volatiletech/sqlboiler/boil"
 	"github.com/volatiletech/sqlboiler/queries"
 	"github.com/volatiletech/sqlboiler/queries/qm"
@@ -24,8 +25,8 @@ import (
 // Download is an object representing the database table.
 type Download struct {
 	ID         int       `boil:"id" json:"id" toml:"id" yaml:"id"`
-	DocumentID int       `boil:"document_id" json:"document_id" toml:"document_id" yaml:"document_id"`
-	UserID     int       `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
+	DocumentID null.Int  `boil:"document_id" json:"document_id,omitempty" toml:"document_id" yaml:"document_id,omitempty"`
+	UserID     null.Int  `boil:"user_id" json:"user_id,omitempty" toml:"user_id" yaml:"user_id,omitempty"`
 	At         time.Time `boil:"at" json:"at" toml:"at" yaml:"at"`
 
 	R *downloadR `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -46,15 +47,38 @@ var DownloadColumns = struct {
 
 // Generated where
 
+type whereHelpernull_Int struct{ field string }
+
+func (w whereHelpernull_Int) EQ(x null.Int) qm.QueryMod {
+	return qmhelper.WhereNullEQ(w.field, false, x)
+}
+func (w whereHelpernull_Int) NEQ(x null.Int) qm.QueryMod {
+	return qmhelper.WhereNullEQ(w.field, true, x)
+}
+func (w whereHelpernull_Int) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
+func (w whereHelpernull_Int) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
+func (w whereHelpernull_Int) LT(x null.Int) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.LT, x)
+}
+func (w whereHelpernull_Int) LTE(x null.Int) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.LTE, x)
+}
+func (w whereHelpernull_Int) GT(x null.Int) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.GT, x)
+}
+func (w whereHelpernull_Int) GTE(x null.Int) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.GTE, x)
+}
+
 var DownloadWhere = struct {
 	ID         whereHelperint
-	DocumentID whereHelperint
-	UserID     whereHelperint
+	DocumentID whereHelpernull_Int
+	UserID     whereHelpernull_Int
 	At         whereHelpertime_Time
 }{
 	ID:         whereHelperint{field: "\"download\".\"id\""},
-	DocumentID: whereHelperint{field: "\"download\".\"document_id\""},
-	UserID:     whereHelperint{field: "\"download\".\"user_id\""},
+	DocumentID: whereHelpernull_Int{field: "\"download\".\"document_id\""},
+	UserID:     whereHelpernull_Int{field: "\"download\".\"user_id\""},
 	At:         whereHelpertime_Time{field: "\"download\".\"at\""},
 }
 
@@ -224,7 +248,9 @@ func (downloadL) LoadDocument(ctx context.Context, e boil.ContextExecutor, singu
 		if object.R == nil {
 			object.R = &downloadR{}
 		}
-		args = append(args, object.DocumentID)
+		if !queries.IsNil(object.DocumentID) {
+			args = append(args, object.DocumentID)
+		}
 
 	} else {
 	Outer:
@@ -234,12 +260,14 @@ func (downloadL) LoadDocument(ctx context.Context, e boil.ContextExecutor, singu
 			}
 
 			for _, a := range args {
-				if a == obj.DocumentID {
+				if queries.Equal(a, obj.DocumentID) {
 					continue Outer
 				}
 			}
 
-			args = append(args, obj.DocumentID)
+			if !queries.IsNil(obj.DocumentID) {
+				args = append(args, obj.DocumentID)
+			}
 
 		}
 	}
@@ -286,7 +314,7 @@ func (downloadL) LoadDocument(ctx context.Context, e boil.ContextExecutor, singu
 
 	for _, local := range slice {
 		for _, foreign := range resultSlice {
-			if local.DocumentID == foreign.ID {
+			if queries.Equal(local.DocumentID, foreign.ID) {
 				local.R.Document = foreign
 				if foreign.R == nil {
 					foreign.R = &documentR{}
@@ -317,7 +345,9 @@ func (downloadL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular 
 		if object.R == nil {
 			object.R = &downloadR{}
 		}
-		args = append(args, object.UserID)
+		if !queries.IsNil(object.UserID) {
+			args = append(args, object.UserID)
+		}
 
 	} else {
 	Outer:
@@ -327,12 +357,14 @@ func (downloadL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular 
 			}
 
 			for _, a := range args {
-				if a == obj.UserID {
+				if queries.Equal(a, obj.UserID) {
 					continue Outer
 				}
 			}
 
-			args = append(args, obj.UserID)
+			if !queries.IsNil(obj.UserID) {
+				args = append(args, obj.UserID)
+			}
 
 		}
 	}
@@ -379,7 +411,7 @@ func (downloadL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular 
 
 	for _, local := range slice {
 		for _, foreign := range resultSlice {
-			if local.UserID == foreign.ID {
+			if queries.Equal(local.UserID, foreign.ID) {
 				local.R.User = foreign
 				if foreign.R == nil {
 					foreign.R = &userR{}
@@ -420,7 +452,7 @@ func (o *Download) SetDocument(ctx context.Context, exec boil.ContextExecutor, i
 		return errors.Wrap(err, "failed to update local table")
 	}
 
-	o.DocumentID = related.ID
+	queries.Assign(&o.DocumentID, related.ID)
 	if o.R == nil {
 		o.R = &downloadR{
 			Document: related,
@@ -437,6 +469,37 @@ func (o *Download) SetDocument(ctx context.Context, exec boil.ContextExecutor, i
 		related.R.Downloads = append(related.R.Downloads, o)
 	}
 
+	return nil
+}
+
+// RemoveDocument relationship.
+// Sets o.R.Document to nil.
+// Removes o from all passed in related items' relationships struct (Optional).
+func (o *Download) RemoveDocument(ctx context.Context, exec boil.ContextExecutor, related *Document) error {
+	var err error
+
+	queries.SetScanner(&o.DocumentID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("document_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.R.Document = nil
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.Downloads {
+		if queries.Equal(o.DocumentID, ri.DocumentID) {
+			continue
+		}
+
+		ln := len(related.R.Downloads)
+		if ln > 1 && i < ln-1 {
+			related.R.Downloads[i] = related.R.Downloads[ln-1]
+		}
+		related.R.Downloads = related.R.Downloads[:ln-1]
+		break
+	}
 	return nil
 }
 
@@ -467,7 +530,7 @@ func (o *Download) SetUser(ctx context.Context, exec boil.ContextExecutor, inser
 		return errors.Wrap(err, "failed to update local table")
 	}
 
-	o.UserID = related.ID
+	queries.Assign(&o.UserID, related.ID)
 	if o.R == nil {
 		o.R = &downloadR{
 			User: related,
@@ -484,6 +547,37 @@ func (o *Download) SetUser(ctx context.Context, exec boil.ContextExecutor, inser
 		related.R.Downloads = append(related.R.Downloads, o)
 	}
 
+	return nil
+}
+
+// RemoveUser relationship.
+// Sets o.R.User to nil.
+// Removes o from all passed in related items' relationships struct (Optional).
+func (o *Download) RemoveUser(ctx context.Context, exec boil.ContextExecutor, related *User) error {
+	var err error
+
+	queries.SetScanner(&o.UserID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("user_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.R.User = nil
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.Downloads {
+		if queries.Equal(o.UserID, ri.UserID) {
+			continue
+		}
+
+		ln := len(related.R.Downloads)
+		if ln > 1 && i < ln-1 {
+			related.R.Downloads[i] = related.R.Downloads[ln-1]
+		}
+		related.R.Downloads = related.R.Downloads[:ln-1]
+		break
+	}
 	return nil
 }
 

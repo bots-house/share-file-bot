@@ -112,3 +112,19 @@ func (srv *Document) GetDocumentByHash(
 
 	return srv.GetDocumentByID(ctx, user, core.DocumentID(id))
 }
+
+func (srv *Document) DeleteDocument(
+	ctx context.Context,
+	user *core.User,
+	id core.DocumentID,
+) error {
+	query := srv.DocumentStore.Query().
+		OwnerID(user.ID).
+		ID(id)
+
+	if err := query.Delete(ctx); err != nil {
+		return errors.Wrap(err, "delete in store")
+	}
+
+	return nil
+}

@@ -12,10 +12,10 @@ type Download struct {
 	// ID of download.
 	ID DownloadID
 
-	// Reference to document.
+	// Reference to document. Can be null.
 	DocumentID DocumentID
 
-	// Refernce to user.
+	// Refernce to user. Can be null.
 	UserID UserID
 
 	// At time when download was happen

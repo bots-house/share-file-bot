@@ -388,7 +388,7 @@ func (userL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, singular
 			}
 
 			for _, a := range args {
-				if a == obj.ID {
+				if queries.Equal(a, obj.ID) {
 					continue Outer
 				}
 			}
@@ -436,7 +436,7 @@ func (userL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, singular
 
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
-			if local.ID == foreign.UserID {
+			if queries.Equal(local.ID, foreign.UserID) {
 				local.R.Downloads = append(local.R.Downloads, foreign)
 				if foreign.R == nil {
 					foreign.R = &downloadR{}
@@ -511,7 +511,7 @@ func (o *User) AddDownloads(ctx context.Context, exec boil.ContextExecutor, inse
 	var err error
 	for _, rel := range related {
 		if insert {
-			rel.UserID = o.ID
+			queries.Assign(&rel.UserID, o.ID)
 			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
@@ -532,7 +532,7 @@ func (o *User) AddDownloads(ctx context.Context, exec boil.ContextExecutor, inse
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
-			rel.UserID = o.ID
+			queries.Assign(&rel.UserID, o.ID)
 		}
 	}
 
@@ -553,6 +553,76 @@ func (o *User) AddDownloads(ctx context.Context, exec boil.ContextExecutor, inse
 			rel.R.User = o
 		}
 	}
+	return nil
+}
+
+// SetDownloads removes all previously related items of the
+// user replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.User's Downloads accordingly.
+// Replaces o.R.Downloads with related.
+// Sets related.R.User's Downloads accordingly.
+func (o *User) SetDownloads(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Download) error {
+	query := "update \"download\" set \"user_id\" = null where \"user_id\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.Downloads {
+			queries.SetScanner(&rel.UserID, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.User = nil
+		}
+
+		o.R.Downloads = nil
+	}
+	return o.AddDownloads(ctx, exec, insert, related...)
+}
+
+// RemoveDownloads relationships from objects passed in.
+// Removes related items from R.Downloads (uses pointer comparison, removal does not keep order)
+// Sets related.R.User.
+func (o *User) RemoveDownloads(ctx context.Context, exec boil.ContextExecutor, related ...*Download) error {
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.UserID, nil)
+		if rel.R != nil {
+			rel.R.User = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("user_id")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.Downloads {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.Downloads)
+			if ln > 1 && i < ln-1 {
+				o.R.Downloads[i] = o.R.Downloads[ln-1]
+			}
+			o.R.Downloads = o.R.Downloads[:ln-1]
+			break
+		}
+	}
+
 	return nil
 }
 

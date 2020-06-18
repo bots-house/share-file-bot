@@ -81,7 +81,11 @@ func (bot *Bot) initHandler() {
 	bot.handler = handler
 }
 
-var cbqDocumentRefresh = regexp.MustCompile(`document:(\d+):refresh`)
+var (
+	cbqDocumentRefresh       = regexp.MustCompile(`^document:(\d+):refresh$`)
+	cbqDocumentDelete        = regexp.MustCompile(`^document:(\d+):delete$`)
+	cbqDocumentDeleteConfirm = regexp.MustCompile(`^document:(\d+):delete:confirm$`)
+)
 
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	// spew.Dump(update)
@@ -126,6 +130,25 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onDocumentRefreshCBQ(ctx, cbq, id)
+
+		case len(cbqDocumentDelete.FindStringIndex(data)) > 0:
+			result := cbqDocumentDelete.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onDocumentDeleteCBQ(ctx, cbq, id)
+		case len(cbqDocumentDeleteConfirm.FindStringIndex(data)) > 0:
+			result := cbqDocumentDeleteConfirm.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onDocumentDeleteConfirmCBQ(ctx, cbq, id)
 		}
 	}
 
