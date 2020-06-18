@@ -54,12 +54,14 @@ func (bot *Bot) renderOwnedDocument(msg *tgbotapi.Message, doc *service.OwnedDoc
 func (bot *Bot) onDocument(ctx context.Context, msg *tgbotapi.Message) error {
 	user := getUserCtx(ctx)
 
-	if err := bot.send(ctx, tgbotapi.NewDeleteMessage(
-		msg.Chat.ID,
-		msg.MessageID,
-	)); err != nil {
-		log.Warn(ctx, "can't delete incoming message", "chat_id", msg.Chat.ID, "msg_id", msg.MessageID)
-	}
+	go func() {
+		if err := bot.send(ctx, tgbotapi.NewDeleteMessage(
+			msg.Chat.ID,
+			msg.MessageID,
+		)); err != nil {
+			log.Warn(ctx, "can't delete incoming message", "chat_id", msg.Chat.ID, "msg_id", msg.MessageID)
+		}
+	}()
 
 	// spew.Dump(msg)
 	doc, err := bot.docSrv.AddDocument(ctx, user, &service.InputDocument{
