@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/bots-house/share-file-bot/pkg/log"
@@ -79,9 +81,12 @@ func (bot *Bot) initHandler() {
 	bot.handler = handler
 }
 
+var cbqDocumentRefresh = regexp.MustCompile(`document:(\d+):refresh`)
+
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	// spew.Dump(update)
 
+	// handle message
 	if msg := update.Message; msg != nil {
 
 		go func() {
@@ -105,6 +110,22 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			return bot.onDocument(ctx, msg)
 		} else {
 			return bot.onNotDocument(ctx, msg)
+		}
+	}
+
+	// handle callback queries
+	if cbq := update.CallbackQuery; cbq != nil {
+		data := cbq.Data
+		switch {
+		case len(cbqDocumentRefresh.FindStringIndex(data)) > 0:
+			result := cbqDocumentRefresh.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onDocumentRefreshCBQ(ctx, cbq, id)
 		}
 	}
 

@@ -67,20 +67,12 @@ var (
 	ErrInvalidID = errors.New("invalid document id")
 )
 
-func (srv *Document) DownloadDocument(
+func (srv *Document) GetDocumentByID(
 	ctx context.Context,
 	user *core.User,
-	hash string,
+	id core.DocumentID,
 ) (*DownloadResult, error) {
-	id, err := srv.SecretID.Decode(hash)
-	if err != nil {
-		log.Warn(ctx, "invalid document id", "err", err)
-		return nil, ErrInvalidID
-	}
-
-	docID := core.DocumentID(id)
-
-	doc, err := srv.DocumentStore.Find(ctx, docID)
+	doc, err := srv.DocumentStore.Find(ctx, id)
 	if err != nil {
 		return nil, errors.Wrap(err, "find document")
 	}
@@ -105,4 +97,18 @@ func (srv *Document) DownloadDocument(
 	return &DownloadResult{
 		Document: doc,
 	}, nil
+}
+
+func (srv *Document) GetDocumentByHash(
+	ctx context.Context,
+	user *core.User,
+	hash string,
+) (*DownloadResult, error) {
+	id, err := srv.SecretID.Decode(hash)
+	if err != nil {
+		log.Warn(ctx, "invalid document id", "err", err)
+		return nil, ErrInvalidID
+	}
+
+	return srv.GetDocumentByID(ctx, user, core.DocumentID(id))
 }

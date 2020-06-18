@@ -21,10 +21,7 @@ func (bot *Bot) renderNotOwnedDocument(msg *tgbotapi.Message, doc *core.Document
 	return share
 }
 
-func (bot *Bot) renderOwnedDocument(msg *tgbotapi.Message, doc *service.OwnedDocument) tgbotapi.DocumentConfig {
-	share := tgbotapi.NewDocumentShare(int64(msg.From.ID), doc.FileID)
-	share.ParseMode = tgbotapi.ModeMarkdown
-
+func (bot *Bot) renderOwnedDocumentCaption(doc *service.OwnedDocument) string {
 	rows := []string{}
 
 	if doc.Caption.String != "" {
@@ -46,7 +43,26 @@ func (bot *Bot) renderOwnedDocument(msg *tgbotapi.Message, doc *service.OwnedDoc
 		escapeMarkdown(doc.SecretID),
 	))
 
-	share.Caption = strings.Join(rows, "\n")
+	return strings.Join(rows, "\n")
+}
+
+func (bot *Bot) renderOwnedDocumentReplyMarkup(doc *service.OwnedDocument) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				"Обновить",
+				fmt.Sprintf("document:%d:refresh", doc.ID),
+			),
+		),
+	)
+}
+
+func (bot *Bot) renderOwnedDocument(msg *tgbotapi.Message, doc *service.OwnedDocument) tgbotapi.DocumentConfig {
+	share := tgbotapi.NewDocumentShare(int64(msg.From.ID), doc.FileID)
+
+	share.ParseMode = tgbotapi.ModeMarkdown
+	share.Caption = bot.renderOwnedDocumentCaption(doc)
+	share.ReplyMarkup = bot.renderOwnedDocumentReplyMarkup(doc)
 
 	return share
 }
@@ -79,4 +95,50 @@ func (bot *Bot) onDocument(ctx context.Context, msg *tgbotapi.Message) error {
 	result := bot.renderOwnedDocument(msg, doc)
 
 	return bot.send(ctx, result)
+}
+
+func (bot *Bot) answerCallbackQuery(ctx context.Context, cbq *tgbotapi.CallbackQuery, text string) error {
+	_, err := bot.client.AnswerCallbackQuery(tgbotapi.NewCallback(
+		cbq.ID,
+		text,
+	))
+
+	return err
+}
+
+func (bot *Bot) onDocumentRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuery, id int) error {
+	user := getUserCtx(ctx)
+
+	doc, err := bot.docSrv.GetDocumentByID(ctx, user, core.DocumentID(id))
+	if err != nil {
+		return errors.Wrap(err, "get document by id")
+	}
+
+	// user is not owner of document but try to access
+	if doc.OwnedDocument == nil {
+		return bot.answerCallbackQuery(ctx, cbq, "bad body, what you do?")
+	}
+
+	caption := bot.renderOwnedDocumentCaption(doc.OwnedDocument)
+
+	edit := tgbotapi.NewEditMessageCaption(
+		cbq.Message.Chat.ID,
+		cbq.Message.MessageID,
+		caption,
+	)
+
+	edit.ParseMode = tgbotapi.ModeMarkdown
+	replyMarkup := bot.renderOwnedDocumentReplyMarkup(doc.OwnedDocument)
+	edit.ReplyMarkup = &replyMarkup
+
+	if err := bot.send(ctx, edit); err != nil {
+		if err, ok := err.(tgbotapi.Error); ok {
+			if strings.Contains(err.Message, "message is not modified:") {
+				return bot.answerCallbackQuery(ctx, cbq, "🤷 Ничего не изменилось")
+			}
+		}
+		return errors.Wrap(err, "edit message error")
+	}
+
+	return bot.answerCallbackQuery(ctx, cbq, "Обновлено!")
 }
