@@ -9,81 +9,81 @@ import (
 )
 
 type Admin struct {
-	User core.UserStore
+	User     core.UserStore
 	Document core.DocumentStore
 	Download core.DownloadStore
 }
 
 type AdminSummaryStats struct {
-    Users int
-    Documents int
-    Downloads int
+	Users     int
+	Documents int
+	Downloads int
 }
 
 var ErrUserIsNotAdmin = errors.New("user is not admin")
 
 func (srv *Admin) getStats(ctx context.Context) (*AdminSummaryStats, error) {
-    stats := &AdminSummaryStats{}
+	stats := &AdminSummaryStats{}
 
-    wg, ctx := errgroup.WithContext(ctx)
+	wg, ctx := errgroup.WithContext(ctx)
 
-    wg.Go(func() error {
-        users, err := srv.User.Query().Count(ctx)
-        if err != nil {
-            return errors.Wrap(err, "count users")
-        }
+	wg.Go(func() error {
+		users, err := srv.User.Query().Count(ctx)
+		if err != nil {
+			return errors.Wrap(err, "count users")
+		}
 
-        stats.Users = users
+		stats.Users = users
 
-        return nil
-    })
+		return nil
+	})
 
-    wg.Go(func() error {
-        docs, err := srv.Document.Query().Count(ctx)
-        if err != nil {
-            return errors.Wrap(err, "count docs")
-        }
+	wg.Go(func() error {
+		docs, err := srv.Document.Query().Count(ctx)
+		if err != nil {
+			return errors.Wrap(err, "count docs")
+		}
 
-        stats.Documents = docs
+		stats.Documents = docs
 
-        return nil
-    })
+		return nil
+	})
 
-    wg.Go(func() error {
-        dwns, err := srv.Download.Query().Count(ctx)
-        if err != nil {
-            return  errors.Wrap(err, "count docs")
-        }
+	wg.Go(func() error {
+		dwns, err := srv.Download.Query().Count(ctx)
+		if err != nil {
+			return errors.Wrap(err, "count docs")
+		}
 
-        stats.Downloads = dwns
+		stats.Downloads = dwns
 
-        return nil
-    })
+		return nil
+	})
 
-    if err := wg.Wait(); err != nil {
-        return nil, err
-    }
+	if err := wg.Wait(); err != nil {
+		return nil, err
+	}
 
-    return stats, nil
+	return stats, nil
 }
 
 func (srv *Admin) isHasPermissions(ctx context.Context, user *core.User) error {
-    if !user.IsAdmin {
-        return ErrUserIsNotAdmin
-    }
+	if !user.IsAdmin {
+		return ErrUserIsNotAdmin
+	}
 
-    return nil
+	return nil
 }
 
 func (srv *Admin) SummaryStats(ctx context.Context, user *core.User) (*AdminSummaryStats, error) {
-    if err := srv.isHasPermissions(ctx, user); err != nil {
-        return nil, err
-    }
+	if err := srv.isHasPermissions(ctx, user); err != nil {
+		return nil, err
+	}
 
-    stats, err := srv.getStats(ctx)
-    if err != nil {
-        return nil, errors.Wrap(err, "get stats")
-    }
+	stats, err := srv.getStats(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get stats")
+	}
 
-    return stats, nil
+	return stats, nil
 }
