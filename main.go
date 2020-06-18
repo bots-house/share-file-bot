@@ -119,8 +119,14 @@ func run(ctx context.Context) error {
 		DownloadStore: pg.Download,
 	}
 
+	adminSrv := &service.Admin{
+		User:     pg.User,
+		Document: pg.Document,
+		Download: pg.Download,
+	}
+
 	log.Info(ctx, "init bot")
-	tgBot, err := bot.New(cfg.Token, authSrv, docSrv)
+	tgBot, err := bot.New(cfg.Token, authSrv, docSrv, adminSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}

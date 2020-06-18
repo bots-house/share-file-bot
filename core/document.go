@@ -62,6 +62,10 @@ func NewDocument(
 
 var ErrDocumentNotFound = errors.New("document not found")
 
+type DocumentStoreQuery interface {
+	Count(ctx context.Context) (int, error)
+}
+
 // DocumentStore define persistance interface for Document.
 type DocumentStore interface {
 	// Add Document to store. Update ID.
@@ -69,4 +73,6 @@ type DocumentStore interface {
 
 	// Find Document in store by ID.
 	Find(ctx context.Context, id DocumentID) (*Document, error)
+
+	Query() DocumentStoreQuery
 }

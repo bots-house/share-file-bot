@@ -9,6 +9,7 @@ import (
 	"github.com/bots-house/share-file-bot/store/postgres/shared"
 	"github.com/pkg/errors"
 	"github.com/volatiletech/sqlboiler/boil"
+	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
 type UserStore struct {
@@ -71,4 +72,25 @@ func (store *UserStore) Update(ctx context.Context, user *core.User) error {
 		return core.ErrUserNotFound
 	}
 	return nil
+}
+
+func (store *UserStore) Query() core.UserStoreQuery {
+	return &userStoreQuery{store: store}
+}
+
+type userStoreQuery struct {
+	mods  []qm.QueryMod
+	store *UserStore
+}
+
+func (usq *userStoreQuery) Count(ctx context.Context) (int, error) {
+	executor := shared.GetExecutorOrDefault(ctx, usq.store.ContextExecutor)
+	count, err := dal.
+		Users(usq.mods...).
+		Count(ctx, executor)
+	if err != nil {
+		return 0, errors.Wrap(err, "count query")
+	}
+
+	return int(count), nil
 }

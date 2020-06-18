@@ -9,6 +9,7 @@ import (
 	"github.com/bots-house/share-file-bot/store/postgres/shared"
 	"github.com/pkg/errors"
 	"github.com/volatiletech/sqlboiler/boil"
+	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
 type DocumentStore struct {
@@ -71,4 +72,25 @@ func (store *DocumentStore) Update(ctx context.Context, doc *core.Document) erro
 		return core.ErrDocumentNotFound
 	}
 	return nil
+}
+
+func (store *DocumentStore) Query() core.DocumentStoreQuery {
+	return &documentStoreQuery{store: store}
+}
+
+type documentStoreQuery struct {
+	mods  []qm.QueryMod
+	store *DocumentStore
+}
+
+func (usq *documentStoreQuery) Count(ctx context.Context) (int, error) {
+	executor := shared.GetExecutorOrDefault(ctx, usq.store.ContextExecutor)
+	count, err := dal.
+		Documents(usq.mods...).
+		Count(ctx, executor)
+	if err != nil {
+		return 0, errors.Wrap(err, "count query")
+	}
+
+	return int(count), nil
 }

@@ -55,9 +55,15 @@ func NewUser(
 
 var ErrUserNotFound = errors.New("user not found")
 
+type UserStoreQuery interface {
+	Count(ctx context.Context) (int, error)
+}
+
 // UserStore define interface for persistance of bot.
 type UserStore interface {
 	Add(ctx context.Context, user *User) error
 	Find(ctx context.Context, id UserID) (*User, error)
 	Update(ctx context.Context, user *User) error
+
+	Query() UserStoreQuery
 }
