@@ -41,7 +41,7 @@ func New(token string, authSrv *service.Auth, docSrv *service.Document, adminSrv
 		adminSrv: adminSrv,
 	}
 
-	// bot.client.Debug = true
+	bot.client.Debug = true
 
 	bot.initHandler()
 
@@ -150,6 +150,11 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 			return bot.onDocumentDeleteConfirmCBQ(ctx, cbq, id)
 		}
+	}
+
+	// handle inline query
+	if iq := update.InlineQuery; iq != nil {
+		return bot.onSearch(ctx, iq)
 	}
 
 	return nil

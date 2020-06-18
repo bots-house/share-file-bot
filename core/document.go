@@ -62,12 +62,18 @@ func NewDocument(
 
 var ErrDocumentNotFound = errors.New("document not found")
 
+type DocumentSlice []*Document
+
 type DocumentStoreQuery interface {
 	ID(id DocumentID) DocumentStoreQuery
 	OwnerID(id UserID) DocumentStoreQuery
+	DescCreatedAt() DocumentStoreQuery
+	Limit(n int) DocumentStoreQuery
+	Offset(n int) DocumentStoreQuery
 
 	Delete(ctx context.Context) error
 	Count(ctx context.Context) (int, error)
+	All(ctx context.Context) (DocumentSlice, error)
 }
 
 // DocumentStore define persistance interface for Document.

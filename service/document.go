@@ -128,3 +128,36 @@ func (srv *Document) DeleteDocument(
 
 	return nil
 }
+
+type SearchQuery struct {
+	Query  string
+	Offset int
+}
+
+type SearchResult struct {
+	Items      core.DocumentSlice
+	NextOffset int
+}
+
+func (srv *Document) Search(
+	ctx context.Context,
+	user *core.User,
+	query *SearchQuery,
+) (*SearchResult, error) {
+	q := srv.DocumentStore.Query().OwnerID(user.ID)
+
+	if query.Query == "" {
+		q = q.DescCreatedAt()
+	}
+
+	q = q.Offset(query.Offset)
+
+	docs, err := q.All(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "query all")
+	}
+
+	return &SearchResult{
+		Items: docs,
+	}, nil
+}

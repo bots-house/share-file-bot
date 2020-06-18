@@ -23,6 +23,8 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 				tgUser = update.EditedMessage.From
 			case update.CallbackQuery != nil:
 				tgUser = update.CallbackQuery.From
+			case update.InlineQuery != nil:
+				tgUser = update.InlineQuery.From
 			default:
 				log.Warn(ctx, "unsupported update", "id", update.UpdateID)
 				return nil

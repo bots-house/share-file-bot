@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
@@ -91,6 +92,40 @@ func (dsq *documentStoreQuery) ID(id core.DocumentID) core.DocumentStoreQuery {
 func (dsq *documentStoreQuery) OwnerID(id core.UserID) core.DocumentStoreQuery {
 	dsq.mods = append(dsq.mods, dal.DocumentWhere.OwnerID.EQ(int(id)))
 	return dsq
+}
+
+func (dsq *documentStoreQuery) DescCreatedAt() core.DocumentStoreQuery {
+	clause := fmt.Sprintf("%s DESC", dal.DocumentColumns.CreatedAt)
+	dsq.mods = append(dsq.mods, qm.OrderBy(clause))
+	return dsq
+}
+
+func (dsq *documentStoreQuery) Limit(l int) core.DocumentStoreQuery {
+	dsq.mods = append(dsq.mods, qm.Limit(l))
+	return dsq
+}
+
+func (dsq *documentStoreQuery) Offset(l int) core.DocumentStoreQuery {
+	dsq.mods = append(dsq.mods, qm.Offset(l))
+	return dsq
+}
+
+func (dsq *documentStoreQuery) All(ctx context.Context) (core.DocumentSlice, error) {
+	executor := shared.GetExecutorOrDefault(ctx, dsq.store.ContextExecutor)
+	rows, err := dal.Documents(
+		dsq.mods...,
+	).All(ctx, executor)
+	if err != nil {
+		return nil, errors.Wrap(err, "query all")
+	}
+
+	result := make(core.DocumentSlice, len(rows))
+
+	for i, row := range rows {
+		result[i] = dsq.store.fromRow(row)
+	}
+
+	return result, nil
 }
 
 func (dsq *documentStoreQuery) Delete(ctx context.Context) error {
