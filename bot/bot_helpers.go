@@ -9,7 +9,7 @@ import (
 )
 
 func embeddWebPagePreview(txt string, link string) string {
-	return fmt.Sprintf("[‎](%s)%s", link, txt)
+	return fmt.Sprintf("[\u200e](%s)%s", link, txt)
 }
 
 func escapeMarkdown(txt string) string {

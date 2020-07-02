@@ -32,3 +32,13 @@ linters:
     - prealloc
     - scopelint
     - gocritic
+    - goprintffuncname
+    - maligned
+    - nestif
+    - rowserrcheck
+    - scopelint
+    - stylecheck
+    # - wsl
+    # - interfacer
+    # - gomnd
+    # - goerr113

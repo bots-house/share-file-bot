@@ -12,5 +12,6 @@ func Generate() string {
 	if err != nil {
 		panic("generate secret id")
 	}
+
 	return id
 }
