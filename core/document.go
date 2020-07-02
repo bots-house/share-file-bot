@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/bots-house/share-file-bot/pkg/secretid"
-	"github.com/volatiletech/null"
+	"github.com/volatiletech/null/v8"
 )
 
 // DocumentID it's alias for share id.

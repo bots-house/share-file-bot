@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/volatiletech/null"
+	"github.com/volatiletech/null/v8"
 )
 
 var ErrTooManyAffectedRows = errors.New("too many affected rows")

@@ -7,7 +7,7 @@ import (
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/pkg/errors"
-	"github.com/volatiletech/null"
+	"github.com/volatiletech/null/v8"
 )
 
 type Auth struct {

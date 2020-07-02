@@ -4,7 +4,6 @@ module github.com/bots-house/share-file-bot
 go 1.14
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.4.1 // indirect
 	github.com/friendsofgo/errors v0.9.2
 	github.com/go-kit/kit v0.10.0
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
@@ -16,12 +15,11 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/remind101/migrate v0.0.0-20170729031349-52c1edff7319
 	github.com/speps/go-hashids v2.0.0+incompatible
-	github.com/spf13/cast v1.3.1 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
-	github.com/volatiletech/inflect v0.0.1 // indirect
-	github.com/volatiletech/null v8.0.0+incompatible
-	github.com/volatiletech/sqlboiler v3.7.1+incompatible
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	github.com/volatiletech/null/v8 v8.1.0
+	github.com/volatiletech/sqlboiler/v4 v4.1.2
+	github.com/volatiletech/strmangle v0.0.1
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 )

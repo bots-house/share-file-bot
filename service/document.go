@@ -43,7 +43,6 @@ func (srv *Document) AddDocument(
 	user *core.User,
 	in *InputDocument,
 ) (*OwnedDocument, error) {
-
 	doc := core.NewDocument(in.FileID, in.Caption, in.MIMEType, in.Size, in.Name, user.ID)
 
 	log.Info(ctx, "create document", "name", in.Name, "size", in.Size)

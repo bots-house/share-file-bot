@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/volatiletech/null"
+	"github.com/volatiletech/null/v8"
 )
 
 // UserID it's alias for user identifier
