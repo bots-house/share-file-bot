@@ -27,7 +27,7 @@ jobs:
           POSTGRES_PASSWORD: sfb
           POSTGRES_DB: sfb
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -65,4 +65,4 @@ jobs:
           SFB_TOKEN: ${{ secrets.TEST_BOT_TOKEN }}
           SFB_SECRET_ID_SALT: so-secret-123
           SFB_DRY_RYN: true
-          SFB_DATABASE: postgres://sfb:sfb@postgres:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
+          SFB_DATABASE: postgres://sfb:sfb@localhost:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
