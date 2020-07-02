@@ -64,5 +64,5 @@ jobs:
           SFB_WEBHOOK_DOMAIN: test.com
           SFB_TOKEN: ${{ secrets.TEST_BOT_TOKEN }}
           SFB_SECRET_ID_SALT: so-secret-123
-          SFB_DRY_RYN: true
+          SFB_DRY_RUN: true
           SFB_DATABASE: postgres://sfb:sfb@localhost:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
