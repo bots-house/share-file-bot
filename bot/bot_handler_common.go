@@ -5,7 +5,6 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
-	"github.com/bots-house/share-file-bot/service"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 )
@@ -26,8 +25,9 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 	if args := msg.CommandArguments(); args != "" {
 		user := getUserCtx(ctx)
 
+		log.Debug(ctx, "query document", "public_id", args)
 		result, err := bot.docSrv.GetDocumentByPublicID(ctx, user, args)
-		if errors.Cause(err) == service.ErrInvalidID || errors.Cause(err) == core.ErrDocumentNotFound {
+		if errors.Cause(err) == core.ErrDocumentNotFound {
 			answer := bot.newAnswerMsg(ctx, msg, "😐Ничего не знаю о таком файле, проверь ссылку...")
 			return bot.send(ctx, answer)
 		} else if err != nil {
