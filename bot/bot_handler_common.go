@@ -34,11 +34,12 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 			return errors.Wrap(err, "download document")
 		}
 
-		if result.OwnedDocument != nil {
+		switch {
+		case result.OwnedDocument != nil:
 			return bot.send(ctx, bot.renderOwnedDocument(msg, result.OwnedDocument))
-		} else if result.Document != nil {
+		case result.Document != nil:
 			return bot.send(ctx, bot.renderNotOwnedDocument(msg, result.Document))
-		} else {
+		default:
 			log.Error(ctx, "bad result")
 		}
 	}

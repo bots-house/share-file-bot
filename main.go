@@ -74,7 +74,7 @@ func run(ctx context.Context) error {
 	var cfg Config
 
 	if err := envconfig.Process(envPrefix, &cfg); err != nil {
-		envconfig.Usage(envPrefix, &cfg)
+		_ = envconfig.Usage(envPrefix, &cfg)
 		return errors.Wrap(err, "parse config from env")
 	}
 

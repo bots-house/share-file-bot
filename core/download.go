@@ -15,7 +15,7 @@ type Download struct {
 	// Reference to document. Can be null.
 	DocumentID DocumentID
 
-	// Refernce to user. Can be null.
+	// References to user. Can be null.
 	UserID UserID
 
 	// At time when download was happen

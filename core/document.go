@@ -81,7 +81,7 @@ type DocumentStoreQuery interface {
 	Count(ctx context.Context) (int, error)
 }
 
-// DocumentStore define persistance interface for Document.
+// DocumentStore define persistence interface for Document.
 type DocumentStore interface {
 	// Add Document to store. Update ID.
 	Add(ctx context.Context, Document *Document) error
