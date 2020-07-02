@@ -45,6 +45,10 @@ type Document struct {
 	CreatedAt time.Time
 }
 
+func (doc *Document) RegenPublicID() {
+	doc.PublicID = secretid.Generate()
+}
+
 func NewDocument(
 	fileID string,
 	caption string,
