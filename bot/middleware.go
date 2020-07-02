@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
@@ -26,6 +27,12 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 			default:
 				log.Warn(ctx, "unsupported update", "id", update.UpdateID)
 				return nil
+			}
+
+			if tgUser.UserName != "" {
+				ctx = log.With(ctx, "user", fmt.Sprintf("%s#%d", tgUser.UserName, tgUser.ID))
+			} else {
+				ctx = log.With(ctx, "user", fmt.Sprintf("#%d", tgUser.ID))
 			}
 
 			user, err := srv.Auth(ctx, &service.UserInfo{

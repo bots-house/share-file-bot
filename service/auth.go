@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bots-house/share-file-bot/core"
+	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/volatiletech/null"
 )
@@ -30,6 +31,7 @@ func (srv *Auth) createUser(ctx context.Context, info *UserInfo) (*core.User, er
 		info.LanguageCode,
 	)
 
+	log.Info(ctx, "create new user")
 	if err := srv.UserStore.Add(ctx, user); err != nil {
 		return nil, errors.Wrap(err, "add user to store")
 	}
@@ -61,6 +63,7 @@ func (srv *Auth) updateUserIfNeed(ctx context.Context, user *core.User, info *Us
 
 	user.UpdatedAt = null.TimeFrom(time.Now())
 
+	log.Info(ctx, "update user info")
 	if err := srv.UserStore.Update(ctx, user); err != nil {
 		return nil, errors.Wrap(err, "update user in store")
 	}

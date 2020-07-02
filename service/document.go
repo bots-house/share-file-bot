@@ -5,12 +5,10 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
-	"github.com/bots-house/share-file-bot/pkg/secretid"
 	"github.com/pkg/errors"
 )
 
 type Document struct {
-	SecretID      secretid.SecretID
 	DocumentStore core.DocumentStore
 	DownloadStore core.DownloadStore
 }
@@ -25,13 +23,10 @@ type InputDocument struct {
 
 type OwnedDocument struct {
 	*core.Document
-	SecretID string
-	Stats    *core.DownloadStats
+	Stats *core.DownloadStats
 }
 
 func (srv *Document) newOwnedDocument(ctx context.Context, doc *core.Document) (*OwnedDocument, error) {
-	secretID := srv.SecretID.Encode(int(doc.ID))
-
 	downloadStats, err := srv.DownloadStore.GetDownloadStats(ctx, doc.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "get downloads count")
@@ -39,7 +34,6 @@ func (srv *Document) newOwnedDocument(ctx context.Context, doc *core.Document) (
 
 	return &OwnedDocument{
 		Document: doc,
-		SecretID: secretID,
 		Stats:    downloadStats,
 	}, nil
 }
@@ -49,8 +43,10 @@ func (srv *Document) AddDocument(
 	user *core.User,
 	in *InputDocument,
 ) (*OwnedDocument, error) {
+
 	doc := core.NewDocument(in.FileID, in.Caption, in.MIMEType, in.Size, in.Name, user.ID)
 
+	log.Info(ctx, "create document", "name", in.Name, "size", in.Size)
 	if err := srv.DocumentStore.Add(ctx, doc); err != nil {
 		return nil, errors.Wrap(err, "add document to store")
 	}
@@ -67,16 +63,7 @@ var (
 	ErrInvalidID = errors.New("invalid document id")
 )
 
-func (srv *Document) GetDocumentByID(
-	ctx context.Context,
-	user *core.User,
-	id core.DocumentID,
-) (*DownloadResult, error) {
-	doc, err := srv.DocumentStore.Find(ctx, id)
-	if err != nil {
-		return nil, errors.Wrap(err, "find document")
-	}
-
+func (srv *Document) toDownloadResult(ctx context.Context, user *core.User, doc *core.Document) (*DownloadResult, error) {
 	// if user is owner of this docs we just display it
 	if doc.OwnerID == user.ID {
 		ownedDoc, err := srv.newOwnedDocument(ctx, doc)
@@ -90,6 +77,8 @@ func (srv *Document) GetDocumentByID(
 
 	// register download
 	download := core.NewDownload(doc.ID, user.ID)
+
+	log.Info(ctx, "register download", "document_id", doc.ID)
 	if err := srv.DownloadStore.Add(ctx, download); err != nil {
 		return nil, errors.Wrap(err, "download result")
 	}
@@ -99,18 +88,30 @@ func (srv *Document) GetDocumentByID(
 	}, nil
 }
 
-func (srv *Document) GetDocumentByHash(
+func (srv *Document) GetDocumentByID(
 	ctx context.Context,
 	user *core.User,
-	hash string,
+	id core.DocumentID,
 ) (*DownloadResult, error) {
-	id, err := srv.SecretID.Decode(hash)
+	doc, err := srv.DocumentStore.Query().ID(id).One(ctx)
 	if err != nil {
-		log.Warn(ctx, "invalid document id", "err", err)
-		return nil, ErrInvalidID
+		return nil, errors.Wrap(err, "find document by id")
 	}
 
-	return srv.GetDocumentByID(ctx, user, core.DocumentID(id))
+	return srv.toDownloadResult(ctx, user, doc)
+}
+
+func (srv *Document) GetDocumentByPublicID(
+	ctx context.Context,
+	user *core.User,
+	publicID string,
+) (*DownloadResult, error) {
+	doc, err := srv.DocumentStore.Query().PublicID(publicID).One(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "find document by public id")
+	}
+
+	return srv.toDownloadResult(ctx, user, doc)
 }
 
 func (srv *Document) DeleteDocument(

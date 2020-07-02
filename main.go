@@ -12,7 +12,6 @@ import (
 
 	"github.com/bots-house/share-file-bot/bot"
 	"github.com/bots-house/share-file-bot/pkg/log"
-	"github.com/bots-house/share-file-bot/pkg/secretid"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
 	"github.com/kelseyhightower/envconfig"
@@ -108,13 +107,7 @@ func run(ctx context.Context) error {
 		UserStore: pg.User,
 	}
 
-	secretID, err := secretid.NewHashIDs(cfg.SecretIDSalt)
-	if err != nil {
-		return errors.Wrap(err, "init secret id")
-	}
-
 	docSrv := &service.Document{
-		SecretID:      secretID,
 		DocumentStore: pg.Document,
 		DownloadStore: pg.Download,
 	}
@@ -130,6 +123,7 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}
+	log.Info(ctx, "bot", "username", tgBot.Self().UserName)
 
 	server := newServer(cfg.Addr, tgBot)
 

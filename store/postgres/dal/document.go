@@ -32,6 +32,7 @@ type Document struct {
 	Name      string      `boil:"name" json:"name" toml:"name" yaml:"name"`
 	OwnerID   int         `boil:"owner_id" json:"owner_id" toml:"owner_id" yaml:"owner_id"`
 	CreatedAt time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	PublicID  string      `boil:"public_id" json:"public_id" toml:"public_id" yaml:"public_id"`
 
 	R *documentR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L documentL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -46,6 +47,7 @@ var DocumentColumns = struct {
 	Name      string
 	OwnerID   string
 	CreatedAt string
+	PublicID  string
 }{
 	ID:        "id",
 	FileID:    "file_id",
@@ -55,6 +57,7 @@ var DocumentColumns = struct {
 	Name:      "name",
 	OwnerID:   "owner_id",
 	CreatedAt: "created_at",
+	PublicID:  "public_id",
 }
 
 // Generated where
@@ -144,6 +147,7 @@ var DocumentWhere = struct {
 	Name      whereHelperstring
 	OwnerID   whereHelperint
 	CreatedAt whereHelpertime_Time
+	PublicID  whereHelperstring
 }{
 	ID:        whereHelperint{field: "\"document\".\"id\""},
 	FileID:    whereHelperstring{field: "\"document\".\"file_id\""},
@@ -153,6 +157,7 @@ var DocumentWhere = struct {
 	Name:      whereHelperstring{field: "\"document\".\"name\""},
 	OwnerID:   whereHelperint{field: "\"document\".\"owner_id\""},
 	CreatedAt: whereHelpertime_Time{field: "\"document\".\"created_at\""},
+	PublicID:  whereHelperstring{field: "\"document\".\"public_id\""},
 }
 
 // DocumentRels is where relationship names are stored.
@@ -179,8 +184,8 @@ func (*documentR) NewStruct() *documentR {
 type documentL struct{}
 
 var (
-	documentAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at"}
-	documentColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at"}
+	documentAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id"}
+	documentColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id"}
 	documentColumnsWithDefault    = []string{"id"}
 	documentPrimaryKeyColumns     = []string{"id"}
 )
