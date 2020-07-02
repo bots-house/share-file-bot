@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/bots-house/share-file-bot/core"
+	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/pkg/errors"
 )
 
@@ -42,8 +43,10 @@ func (srv *Document) AddDocument(
 	user *core.User,
 	in *InputDocument,
 ) (*OwnedDocument, error) {
+
 	doc := core.NewDocument(in.FileID, in.Caption, in.MIMEType, in.Size, in.Name, user.ID)
 
+	log.Info(ctx, "create document", "name", in.Name, "size", in.Size)
 	if err := srv.DocumentStore.Add(ctx, doc); err != nil {
 		return nil, errors.Wrap(err, "add document to store")
 	}
@@ -74,6 +77,8 @@ func (srv *Document) toDownloadResult(ctx context.Context, user *core.User, doc 
 
 	// register download
 	download := core.NewDownload(doc.ID, user.ID)
+
+	log.Info(ctx, "register download", "document_id", doc.ID)
 	if err := srv.DownloadStore.Add(ctx, download); err != nil {
 		return nil, errors.Wrap(err, "download result")
 	}
