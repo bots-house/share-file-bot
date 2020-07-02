@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/volatiletech/null"
+	"github.com/volatiletech/null/v8"
 )
 
 // UserID it's alias for user identifier
@@ -43,7 +43,7 @@ func NewUser(
 	firstName, lastName, username, langCode string,
 ) *User {
 	return &User{
-		ID:           UserID(id),
+		ID:           id,
 		FirstName:    firstName,
 		LastName:     null.NewString(lastName, lastName != ""),
 		Username:     null.NewString(username, username != ""),
@@ -59,7 +59,7 @@ type UserStoreQuery interface {
 	Count(ctx context.Context) (int, error)
 }
 
-// UserStore define interface for persistance of bot.
+// UserStore define interface for persistence of bot.
 type UserStore interface {
 	Add(ctx context.Context, user *User) error
 	Find(ctx context.Context, id UserID) (*User, error)

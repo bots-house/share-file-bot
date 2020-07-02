@@ -9,7 +9,7 @@ import (
 )
 
 func embeddWebPagePreview(txt string, link string) string {
-	return fmt.Sprintf("[‎](%s)%s", link, txt)
+	return fmt.Sprintf("[\u200e](%s)%s", link, txt)
 }
 
 func escapeMarkdown(txt string) string {
@@ -20,13 +20,13 @@ func escapeMarkdown(txt string) string {
 	return txt
 }
 
-func (bot *Bot) send(ctx context.Context, s tgbotapi.Chattable) error {
+func (bot *Bot) send(_ context.Context, s tgbotapi.Chattable) error {
 	// spew.Dump(msg)
 	_, err := bot.client.Send(s)
 	return err
 }
 
-func (bot *Bot) newAnswerMsg(ctx context.Context, msg *tgbotapi.Message, text string) *tgbotapi.MessageConfig {
+func (bot *Bot) newAnswerMsg(_ context.Context, msg *tgbotapi.Message, text string) *tgbotapi.MessageConfig {
 	result := tgbotapi.NewMessage(
 		int64(msg.From.ID),
 		text,
@@ -37,7 +37,7 @@ func (bot *Bot) newAnswerMsg(ctx context.Context, msg *tgbotapi.Message, text st
 	return &result
 }
 
-func (bot *Bot) answerCallbackQuery(ctx context.Context, cbq *tgbotapi.CallbackQuery, text string) error {
+func (bot *Bot) answerCallbackQuery(_ context.Context, cbq *tgbotapi.CallbackQuery, text string) error {
 	_, err := bot.client.AnswerCallbackQuery(tgbotapi.NewCallback(
 		cbq.ID,
 		text,

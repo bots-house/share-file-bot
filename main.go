@@ -28,6 +28,8 @@ type Config struct {
 	WebhookDomain string `required:"true" split_words:"true"`
 	WebhookPath   string `default:"/" split_words:"true"`
 	SecretIDSalt  string `required:"true" split_words:"true"`
+
+	DryRun bool `default:"false" split_words:"true"`
 }
 
 var logger = log.NewLogger(true, true)
@@ -74,7 +76,7 @@ func run(ctx context.Context) error {
 	var cfg Config
 
 	if err := envconfig.Process(envPrefix, &cfg); err != nil {
-		envconfig.Usage(envPrefix, &cfg)
+		_ = envconfig.Usage(envPrefix, &cfg)
 		return errors.Wrap(err, "parse config from env")
 	}
 
@@ -141,6 +143,11 @@ func run(ctx context.Context) error {
 
 	if err := tgBot.SetWebhookIfNeed(ctx, cfg.WebhookDomain, cfg.WebhookPath); err != nil {
 		return errors.Wrap(err, "set webhook if need")
+	}
+
+	// if we run in dry run mode, exit without blocking
+	if cfg.DryRun {
+		return nil
 	}
 
 	log.Info(ctx, "start server", "addr", cfg.Addr, "webhook_domain", cfg.WebhookDomain)

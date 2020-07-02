@@ -67,7 +67,7 @@ func (srv *Admin) getStats(ctx context.Context) (*AdminSummaryStats, error) {
 	return stats, nil
 }
 
-func (srv *Admin) isHasPermissions(ctx context.Context, user *core.User) error {
+func (srv *Admin) isHasPermissions(_ context.Context, user *core.User) error {
 	if !user.IsAdmin {
 		return ErrUserIsNotAdmin
 	}

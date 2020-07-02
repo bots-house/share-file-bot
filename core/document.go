@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/bots-house/share-file-bot/pkg/secretid"
-	"github.com/volatiletech/null"
+	"github.com/volatiletech/null/v8"
 )
 
 // DocumentID it's alias for share id.
@@ -81,7 +81,7 @@ type DocumentStoreQuery interface {
 	Count(ctx context.Context) (int, error)
 }
 
-// DocumentStore define persistance interface for Document.
+// DocumentStore define persistence interface for Document.
 type DocumentStore interface {
 	// Add Document to store. Update ID.
 	Add(ctx context.Context, Document *Document) error

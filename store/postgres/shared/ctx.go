@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/volatiletech/sqlboiler/boil"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 type ctxKey string

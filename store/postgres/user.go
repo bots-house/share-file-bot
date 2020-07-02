@@ -8,8 +8,8 @@ import (
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
 	"github.com/bots-house/share-file-bot/store/postgres/shared"
 	"github.com/pkg/errors"
-	"github.com/volatiletech/sqlboiler/boil"
-	"github.com/volatiletech/sqlboiler/queries/qm"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type UserStore struct {

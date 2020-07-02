@@ -112,7 +112,7 @@ func (bot *Bot) getDocumentForOwner(ctx context.Context, cbq *tgbotapi.CallbackQ
 	// user is not owner of document but try to access
 	if doc.OwnedDocument == nil {
 		if cbq != nil {
-			bot.answerCallbackQuery(ctx, cbq, "bad body, what you do?")
+			_ = bot.answerCallbackQuery(ctx, cbq, "bad body, what you do?")
 		}
 		return nil, errors.New("can't manage document")
 	}
@@ -160,7 +160,9 @@ func (bot *Bot) onDocumentDeleteCBQ(
 		return errors.Wrap(err, "get document for owner")
 	}
 
-	go bot.answerCallbackQuery(ctx, cbq, "")
+	go func() {
+		_ = bot.answerCallbackQuery(ctx, cbq, "")
+	}()
 
 	edit := tgbotapi.NewEditMessageCaption(
 		cbq.Message.Chat.ID,

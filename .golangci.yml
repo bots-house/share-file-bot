@@ -1,0 +1,44 @@
+linters-settings:
+  goimports:
+    local-prefixies: github.com/bots-house/share-file-bot
+
+output:
+  format: tab
+
+linters:
+  enable:
+    - misspell
+    - deadcode
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+    - unconvert
+    - megacheck
+    - gas
+    - gocyclo
+    - dupl
+    - unparam
+    - bodyclose
+    - gosec
+    - goconst
+    - gofmt
+    - goimports
+    - prealloc
+    - scopelint
+    - gocritic
+    - goprintffuncname
+    - maligned
+    - nestif
+    - rowserrcheck
+    - scopelint
+    - stylecheck
+    # - wsl
+    # - interfacer
+    # - gomnd
+    # - goerr113
