@@ -26,7 +26,7 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 	if args := msg.CommandArguments(); args != "" {
 		user := getUserCtx(ctx)
 
-		result, err := bot.docSrv.GetDocumentByHash(ctx, user, args)
+		result, err := bot.docSrv.GetDocumentByPublicID(ctx, user, args)
 		if errors.Cause(err) == service.ErrInvalidID || errors.Cause(err) == core.ErrDocumentNotFound {
 			answer := bot.newAnswerMsg(ctx, msg, "😐Ничего не знаю о таком файле, проверь ссылку...")
 			return bot.send(ctx, answer)

@@ -40,7 +40,7 @@ func (bot *Bot) renderOwnedDocumentCaption(doc *service.OwnedDocument) string {
 	rows = append(rows, fmt.Sprintf("*Публичная ссылка*: https://%s/%s?start=%s",
 		tgDomain,
 		escapeMarkdown(bot.client.Self.UserName),
-		escapeMarkdown(doc.SecretID),
+		escapeMarkdown(doc.PublicID),
 	))
 
 	return strings.Join(rows, "\n")

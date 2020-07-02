@@ -20,6 +20,7 @@ func (store *DocumentStore) toRow(doc *core.Document) *dal.Document {
 	return &dal.Document{
 		ID:        int(doc.ID),
 		FileID:    doc.FileID,
+		PublicID:  doc.PublicID,
 		Caption:   doc.Caption,
 		MimeType:  doc.MIMEType,
 		Size:      doc.Size,
@@ -33,6 +34,7 @@ func (store *DocumentStore) fromRow(row *dal.Document) *core.Document {
 	return &core.Document{
 		ID:        core.DocumentID(row.ID),
 		FileID:    row.FileID,
+		PublicID:  row.PublicID,
 		Caption:   row.Caption,
 		MIMEType:  row.MimeType,
 		Size:      row.Size,
@@ -49,17 +51,6 @@ func (store *DocumentStore) Add(ctx context.Context, doc *core.Document) error {
 	}
 	*doc = *store.fromRow(row)
 	return nil
-}
-
-func (store *DocumentStore) Find(ctx context.Context, id core.DocumentID) (*core.Document, error) {
-	doc, err := dal.FindDocument(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), int(id))
-	if err == sql.ErrNoRows {
-		return nil, core.ErrDocumentNotFound
-	} else if err != nil {
-		return nil, err
-	}
-
-	return store.fromRow(doc), nil
 }
 
 func (store *DocumentStore) Update(ctx context.Context, doc *core.Document) error {
@@ -88,9 +79,27 @@ func (dsq *documentStoreQuery) ID(id core.DocumentID) core.DocumentStoreQuery {
 	return dsq
 }
 
+func (dsq *documentStoreQuery) PublicID(id string) core.DocumentStoreQuery {
+	dsq.mods = append(dsq.mods, dal.DocumentWhere.PublicID.EQ(id))
+	return dsq
+}
+
 func (dsq *documentStoreQuery) OwnerID(id core.UserID) core.DocumentStoreQuery {
 	dsq.mods = append(dsq.mods, dal.DocumentWhere.OwnerID.EQ(int(id)))
 	return dsq
+}
+
+func (dsq *documentStoreQuery) One(ctx context.Context) (*core.Document, error) {
+	executor := shared.GetExecutorOrDefault(ctx, dsq.store.ContextExecutor)
+
+	doc, err := dal.Documents(dsq.mods...).One(ctx, executor)
+	if err == sql.ErrNoRows {
+		return nil, core.ErrDocumentNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	return dsq.store.fromRow(doc), nil
 }
 
 func (dsq *documentStoreQuery) Delete(ctx context.Context) error {

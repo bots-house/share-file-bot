@@ -28,6 +28,10 @@ type Bot struct {
 	handler tg.Handler
 }
 
+func (bot *Bot) Self() tgbotapi.User {
+	return bot.client.Self
+}
+
 func New(token string, authSrv *service.Auth, docSrv *service.Document, adminSrv *service.Admin) (*Bot, error) {
 	client, err := tgbotapi.NewBotAPI(token)
 	if err != nil {

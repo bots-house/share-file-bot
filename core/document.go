@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/bots-house/share-file-bot/pkg/secretid"
 	"github.com/volatiletech/null"
 )
 
@@ -18,6 +19,9 @@ type Document struct {
 
 	// Telegram File ID
 	FileID string
+
+	// Public File ID
+	PublicID string
 
 	// Telegram Unique File ID
 	// UniqueFileID string
@@ -51,6 +55,7 @@ func NewDocument(
 ) *Document {
 	return &Document{
 		FileID:    fileID,
+		PublicID:  secretid.Generate(),
 		Caption:   null.NewString(caption, caption != ""),
 		MIMEType:  null.NewString(mimeType, mimeType != ""),
 		Size:      size,
@@ -65,7 +70,9 @@ var ErrDocumentNotFound = errors.New("document not found")
 type DocumentStoreQuery interface {
 	ID(id DocumentID) DocumentStoreQuery
 	OwnerID(id UserID) DocumentStoreQuery
+	PublicID(id string) DocumentStoreQuery
 
+	One(ctx context.Context) (*Document, error)
 	Delete(ctx context.Context) error
 	Count(ctx context.Context) (int, error)
 }
@@ -74,9 +81,6 @@ type DocumentStoreQuery interface {
 type DocumentStore interface {
 	// Add Document to store. Update ID.
 	Add(ctx context.Context, Document *Document) error
-
-	// Find Document in store by ID.
-	Find(ctx context.Context, id DocumentID) (*Document, error)
 
 	Query() DocumentStoreQuery
 }
