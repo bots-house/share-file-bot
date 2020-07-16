@@ -180,7 +180,6 @@ func (bot *Bot) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// handle update
 	if err := bot.handler.HandleUpdate(ctx, update); err != nil {
 		log.Error(ctx, "handle update failed", "update_id", update.UpdateID, "err", err)
-		http.Error(w, fmt.Sprintf("handle error: %s", err), http.StatusInternalServerError)
 		return
 	}
 }
