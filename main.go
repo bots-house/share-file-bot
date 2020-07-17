@@ -105,7 +105,6 @@ func newSentry(ctx context.Context, cfg Config) error {
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:         cfg.SentryDSN,
-		Debug:       true,
 		Environment: cfg.Env,
 	}); err != nil {
 		return errors.Wrap(err, "init sentry")
