@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,11 +15,22 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
+	"github.com/getsentry/sentry-go"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
 )
 
+const (
+	EnvLocal      = "local"
+	EnvStaging    = "staging"
+	EnvProduction = "production"
+)
+
 type Config struct {
+	Env string `split_words:"true" default:"local"`
+
+	SentryDSN string `split_words:"true"`
+
 	Database             string `default:"postgres://sfb:sfb@localhost/sfb?sslmode=disable"`
 	DatabaseMaxOpenConns int    `default:"10" split_words:"true"`
 	DatabaseMaxIdleConns int    `default:"0" split_words:"true"`
@@ -30,6 +42,15 @@ type Config struct {
 	SecretIDSalt  string `required:"true" split_words:"true"`
 
 	DryRun bool `default:"false" split_words:"true"`
+}
+
+func (cfg Config) getEnv() string {
+	for _, v := range []string{EnvLocal, EnvProduction, EnvStaging} {
+		if v == strings.ToLower(cfg.Env) {
+			return v
+		}
+	}
+	return EnvLocal
 }
 
 var logger = log.NewLogger(true, true)
@@ -69,6 +90,30 @@ func newServer(addr string, bot *bot.Bot) *http.Server {
 	}
 }
 
+func newSentry(ctx context.Context, cfg Config) error {
+	env := cfg.getEnv()
+
+	if env == EnvLocal {
+		log.Debug(ctx, "sentry is not available in this env", "env", env)
+		return nil
+	}
+
+	if cfg.SentryDSN == "" {
+		log.Warn(ctx, "sentry dsn is not provided", "env", env)
+		return nil
+	}
+
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:         cfg.SentryDSN,
+		Debug:       true,
+		Environment: cfg.Env,
+	}); err != nil {
+		return errors.Wrap(err, "init sentry")
+	}
+
+	return nil
+}
+
 const envPrefix = "SFB"
 
 func run(ctx context.Context) error {
@@ -78,6 +123,10 @@ func run(ctx context.Context) error {
 	if err := envconfig.Process(envPrefix, &cfg); err != nil {
 		_ = envconfig.Usage(envPrefix, &cfg)
 		return errors.Wrap(err, "parse config from env")
+	}
+
+	if err := newSentry(ctx, cfg); err != nil {
+		return errors.Wrap(err, "init sentry")
 	}
 
 	log.Info(ctx, "open db", "dsn", cfg.Database)
