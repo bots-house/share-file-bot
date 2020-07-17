@@ -21,7 +21,7 @@ require (
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	github.com/volatiletech/null/v8 v8.1.0
-	github.com/volatiletech/sqlboiler/v4 v4.1.2
+	github.com/volatiletech/sqlboiler/v4 v4.2.0
 	github.com/volatiletech/strmangle v0.0.1
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 )
