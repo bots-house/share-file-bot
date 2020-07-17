@@ -99,12 +99,6 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	// handle message
 	if msg := update.Message; msg != nil {
 
-		go func() {
-			if _, err := bot.client.Send(tgbotapi.NewChatAction(msg.Chat.ID, tgbotapi.ChatTyping)); err != nil {
-				log.Warn(ctx, "cant send typing", "err", err)
-			}
-		}()
-
 		// handle command
 		switch msg.Command() {
 		case "start":
