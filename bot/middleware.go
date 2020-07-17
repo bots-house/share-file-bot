@@ -3,7 +3,10 @@ package bot
 import (
 	"context"
 	"fmt"
+	"strconv"
 
+	"github.com/fatih/structs"
+	"github.com/getsentry/sentry-go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 
@@ -47,7 +50,20 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 				return errors.Wrap(err, "auth service")
 			}
 
+			sentry.AddBreadcrumb(&sentry.Breadcrumb{
+				Message: "Authenticated",
+				Level:   sentry.LevelInfo,
+				Data:    structs.Map(user),
+			})
+
 			ctx = withUser(ctx, user)
+
+			sentry.ConfigureScope(func(scope *sentry.Scope) {
+				scope.SetUser(sentry.User{
+					ID:       strconv.Itoa(int(user.ID)),
+					Username: user.Username.String,
+				})
+			})
 
 			return next.HandleUpdate(ctx, update)
 		})

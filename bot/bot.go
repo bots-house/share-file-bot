@@ -13,6 +13,8 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
+	"github.com/fatih/structs"
+	"github.com/getsentry/sentry-go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 	"github.com/tomasen/realip"
@@ -179,7 +181,20 @@ func (bot *Bot) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// handle update
 	if err := bot.handler.HandleUpdate(ctx, update); err != nil {
-		log.Error(ctx, "handle update failed", "update_id", update.UpdateID, "err", err)
+		bot.onError(ctx, update, err)
 		return
 	}
+}
+
+func (bot *Bot) onError(ctx context.Context, update *tgbotapi.Update, er error) {
+	log.Error(ctx, "handle update failed", "update_id", update.UpdateID, "err", er)
+
+	sentry.AddBreadcrumb(&sentry.Breadcrumb{
+		Message:  "Update",
+		Level:    sentry.LevelInfo,
+		Data:     structs.Map(update),
+		Category: "bot",
+	})
+
+	sentry.CaptureException(er)
 }
