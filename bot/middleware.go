@@ -18,6 +18,10 @@ import (
 func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 	return func(next tg.Handler) tg.Handler {
 		return tg.HandlerFunc(func(ctx context.Context, update *tgbotapi.Update) error {
+			if !update.Message.Chat.IsPrivate() {
+				return nil
+			}
+
 			var tgUser *tgbotapi.User
 
 			switch {
