@@ -16,6 +16,7 @@ import (
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
 	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
 )
@@ -81,9 +82,13 @@ func newServer(addr string, bot *bot.Bot) *http.Server {
 	baseCtx := context.Background()
 	baseCtx = log.WithLogger(baseCtx, logger)
 
+	sentryMiddleware := sentryhttp.New(sentryhttp.Options{
+		Repanic: true,
+	})
+
 	return &http.Server{
 		Addr:    addr,
-		Handler: bot,
+		Handler: sentryMiddleware.Handle(bot),
 		BaseContext: func(_ net.Listener) context.Context {
 			return baseCtx
 		},

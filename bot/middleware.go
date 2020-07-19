@@ -18,21 +18,26 @@ import (
 func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 	return func(next tg.Handler) tg.Handler {
 		return tg.HandlerFunc(func(ctx context.Context, update *tgbotapi.Update) error {
-			if !update.Message.Chat.IsPrivate() {
-				return nil
-			}
-
-			var tgUser *tgbotapi.User
+			var (
+				tgUser *tgbotapi.User
+				tgChat *tgbotapi.Chat
+			)
 
 			switch {
 			case update.Message != nil:
 				tgUser = update.Message.From
+				tgChat = update.Message.Chat
 			case update.EditedMessage != nil:
 				tgUser = update.EditedMessage.From
+				tgChat = update.EditedMessage.Chat
 			case update.CallbackQuery != nil:
 				tgUser = update.CallbackQuery.From
 			default:
 				log.Warn(ctx, "unsupported update", "id", update.UpdateID)
+				return nil
+			}
+
+			if tgChat != nil && !tgChat.IsPrivate() {
 				return nil
 			}
 
