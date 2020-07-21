@@ -28,5 +28,5 @@ func (bot *Bot) onAdmin(ctx context.Context, msg *tgbotapi.Message) error {
 		fmt.Sprintf("*Загрузки*: `%d`", stats.Downloads),
 	}, "\n")
 
-	return bot.send(ctx, bot.newAnswerMsg(ctx, msg, text))
+	return bot.send(ctx, bot.newAnswerMsg(msg, text))
 }

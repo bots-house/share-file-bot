@@ -26,7 +26,7 @@ func (bot *Bot) send(_ context.Context, s tgbotapi.Chattable) error {
 	return err
 }
 
-func (bot *Bot) newAnswerMsg(_ context.Context, msg *tgbotapi.Message, text string) *tgbotapi.MessageConfig {
+func (bot *Bot) newAnswerMsg(msg *tgbotapi.Message, text string) *tgbotapi.MessageConfig {
 	result := tgbotapi.NewMessage(
 		int64(msg.From.ID),
 		text,

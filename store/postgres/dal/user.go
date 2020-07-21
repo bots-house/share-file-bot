@@ -19,6 +19,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"github.com/volatiletech/sqlboiler/v4/queries/qmhelper"
+	"github.com/volatiletech/sqlboiler/v4/types"
 	"github.com/volatiletech/strmangle"
 )
 
@@ -32,6 +33,7 @@ type User struct {
 	IsAdmin      bool        `boil:"is_admin" json:"is_admin" toml:"is_admin" yaml:"is_admin"`
 	JoinedAt     time.Time   `boil:"joined_at" json:"joined_at" toml:"joined_at" yaml:"joined_at"`
 	UpdatedAt    null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+	Settings     types.JSON  `boil:"settings" json:"settings" toml:"settings" yaml:"settings"`
 
 	R *userR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L userL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -46,6 +48,7 @@ var UserColumns = struct {
 	IsAdmin      string
 	JoinedAt     string
 	UpdatedAt    string
+	Settings     string
 }{
 	ID:           "id",
 	FirstName:    "first_name",
@@ -55,6 +58,7 @@ var UserColumns = struct {
 	IsAdmin:      "is_admin",
 	JoinedAt:     "joined_at",
 	UpdatedAt:    "updated_at",
+	Settings:     "settings",
 }
 
 // Generated where
@@ -91,6 +95,27 @@ func (w whereHelpernull_Time) GTE(x null.Time) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.GTE, x)
 }
 
+type whereHelpertypes_JSON struct{ field string }
+
+func (w whereHelpertypes_JSON) EQ(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.EQ, x)
+}
+func (w whereHelpertypes_JSON) NEQ(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.NEQ, x)
+}
+func (w whereHelpertypes_JSON) LT(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.LT, x)
+}
+func (w whereHelpertypes_JSON) LTE(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.LTE, x)
+}
+func (w whereHelpertypes_JSON) GT(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.GT, x)
+}
+func (w whereHelpertypes_JSON) GTE(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.GTE, x)
+}
+
 var UserWhere = struct {
 	ID           whereHelperint
 	FirstName    whereHelperstring
@@ -100,6 +125,7 @@ var UserWhere = struct {
 	IsAdmin      whereHelperbool
 	JoinedAt     whereHelpertime_Time
 	UpdatedAt    whereHelpernull_Time
+	Settings     whereHelpertypes_JSON
 }{
 	ID:           whereHelperint{field: "\"user\".\"id\""},
 	FirstName:    whereHelperstring{field: "\"user\".\"first_name\""},
@@ -109,6 +135,7 @@ var UserWhere = struct {
 	IsAdmin:      whereHelperbool{field: "\"user\".\"is_admin\""},
 	JoinedAt:     whereHelpertime_Time{field: "\"user\".\"joined_at\""},
 	UpdatedAt:    whereHelpernull_Time{field: "\"user\".\"updated_at\""},
+	Settings:     whereHelpertypes_JSON{field: "\"user\".\"settings\""},
 }
 
 // UserRels is where relationship names are stored.
@@ -135,9 +162,9 @@ func (*userR) NewStruct() *userR {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "first_name", "last_name", "username", "language_code", "is_admin", "joined_at", "updated_at"}
+	userAllColumns            = []string{"id", "first_name", "last_name", "username", "language_code", "is_admin", "joined_at", "updated_at", "settings"}
 	userColumnsWithoutDefault = []string{"id", "first_name", "last_name", "username", "language_code", "is_admin", "joined_at", "updated_at"}
-	userColumnsWithDefault    = []string{}
+	userColumnsWithDefault    = []string{"settings"}
 	userPrimaryKeyColumns     = []string{"id"}
 )
 
