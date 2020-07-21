@@ -31,6 +31,9 @@ type User struct {
 	// True, if user is admin of bot.
 	IsAdmin bool
 
+	// Settings of user
+	Settings UserSettings
+
 	// Time of first interaction with bot
 	JoinedAt time.Time
 

@@ -46,7 +46,7 @@ type Document struct {
 }
 
 func (doc *Document) RegenPublicID() {
-	doc.PublicID = secretid.Generate()
+	doc.PublicID = secretid.Generate(secretid.IsLong(doc.PublicID))
 }
 
 func NewDocument(
@@ -56,10 +56,11 @@ func NewDocument(
 	size int,
 	name string,
 	ownerID UserID,
+	longID bool,
 ) *Document {
 	return &Document{
 		FileID:    fileID,
-		PublicID:  secretid.Generate(),
+		PublicID:  secretid.Generate(longID),
 		Caption:   null.NewString(caption, caption != ""),
 		MIMEType:  null.NewString(mimeType, mimeType != ""),
 		Size:      size,

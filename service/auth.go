@@ -92,3 +92,16 @@ func (srv *Auth) Auth(ctx context.Context, info *UserInfo) (*core.User, error) {
 
 	return user, nil
 }
+
+func (srv *Auth) SettingsToggleLongIDs(ctx context.Context, user *core.User) (bool, error) {
+	settings := user.Settings
+	settings.LongIDs = !settings.LongIDs
+
+	user.Settings.Update(settings)
+
+	if err := srv.UserStore.Update(ctx, user); err != nil {
+		return false, errors.Wrap(err, "update user")
+	}
+
+	return user.Settings.LongIDs, nil
+}

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
@@ -16,7 +17,12 @@ type UserStore struct {
 	boil.ContextExecutor
 }
 
-func (store *UserStore) toRow(user *core.User) *dal.User {
+func (store *UserStore) toRow(user *core.User) (*dal.User, error) {
+	settings, err := json.Marshal(user.Settings)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal settings")
+	}
+
 	return &dal.User{
 		ID:           int(user.ID),
 		FirstName:    user.FirstName,
@@ -24,12 +30,19 @@ func (store *UserStore) toRow(user *core.User) *dal.User {
 		Username:     user.Username,
 		LanguageCode: user.LanguageCode,
 		IsAdmin:      user.IsAdmin,
+		Settings:     settings,
 		JoinedAt:     user.JoinedAt,
 		UpdatedAt:    user.UpdatedAt,
-	}
+	}, nil
 }
 
-func (store *UserStore) fromRow(row *dal.User) *core.User {
+func (store *UserStore) fromRow(row *dal.User) (*core.User, error) {
+	var settings core.UserSettings
+
+	if err := json.Unmarshal(row.Settings, &settings); err != nil {
+		return nil, errors.Wrap(err, "ummarshal settings")
+	}
+
 	return &core.User{
 		ID:           core.UserID(row.ID),
 		FirstName:    row.FirstName,
@@ -37,17 +50,32 @@ func (store *UserStore) fromRow(row *dal.User) *core.User {
 		Username:     row.Username,
 		LanguageCode: row.LanguageCode,
 		IsAdmin:      row.IsAdmin,
+		Settings:     settings,
 		JoinedAt:     row.JoinedAt,
 		UpdatedAt:    row.UpdatedAt,
-	}
+	}, nil
 }
 
 func (store *UserStore) Add(ctx context.Context, user *core.User) error {
-	row := store.toRow(user)
+	// to row
+	row, err := store.toRow(user)
+	if err != nil {
+		return errors.Wrap(err, "to row")
+	}
+
+	// insert
 	if err := row.Insert(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer()); err != nil {
 		return errors.Wrap(err, "insert query")
 	}
-	*user = *store.fromRow(row)
+
+	// copy back
+	user2, err := store.fromRow(row)
+	if err != nil {
+		return errors.Wrap(err, "from row")
+	}
+
+	*user = *user2
+
 	return nil
 }
 
@@ -59,11 +87,14 @@ func (store *UserStore) Find(ctx context.Context, id core.UserID) (*core.User, e
 		return nil, err
 	}
 
-	return store.fromRow(acc), nil
+	return store.fromRow(acc)
 }
 
 func (store *UserStore) Update(ctx context.Context, user *core.User) error {
-	row := store.toRow(user)
+	row, err := store.toRow(user)
+	if err != nil {
+		return errors.Wrap(err, "to row")
+	}
 	n, err := row.Update(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer())
 	if err != nil {
 		return errors.Wrap(err, "update query")

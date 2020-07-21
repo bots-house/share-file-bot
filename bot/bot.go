@@ -91,6 +91,7 @@ var (
 	cbqDocumentRefresh       = regexp.MustCompile(`^document:(\d+):refresh$`)
 	cbqDocumentDelete        = regexp.MustCompile(`^document:(\d+):delete$`)
 	cbqDocumentDeleteConfirm = regexp.MustCompile(`^document:(\d+):delete:confirm$`)
+	cbqSettingsToggleLongIDs = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
 )
 
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
@@ -107,6 +108,8 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			return bot.onHelp(ctx, msg)
 		case "admin":
 			return bot.onAdmin(ctx, msg)
+		case "settings":
+			return bot.onSettings(ctx, msg)
 		}
 
 		// handle other
@@ -149,6 +152,8 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onDocumentDeleteConfirmCBQ(ctx, cbq, id)
+		case len(cbqSettingsToggleLongIDs.FindStringIndex(data)) > 0:
+			return bot.onSettingsToggleLongIDsCBQ(ctx, cbq)
 		}
 	}
 

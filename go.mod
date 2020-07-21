@@ -12,6 +12,7 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.7.0
+	github.com/lithammer/dedent v1.1.0
 	github.com/matoous/go-nanoid v1.4.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/pkg/errors v0.9.1
