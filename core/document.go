@@ -49,11 +49,6 @@ func (doc *Document) RegenPublicID() {
 	doc.PublicID = secretid.Generate(secretid.IsLong(doc.PublicID))
 }
 
-const (
-	publicIDLength     = 5
-	PublicIDLongLength = 50
-)
-
 func NewDocument(
 	fileID string,
 	caption string,
