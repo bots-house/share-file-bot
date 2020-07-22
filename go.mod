@@ -6,7 +6,7 @@ go 1.14
 require (
 	github.com/fatih/structs v1.1.0
 	github.com/friendsofgo/errors v0.9.2
-	github.com/getsentry/sentry-go v0.6.1
+	github.com/getsentry/sentry-go v0.7.0
 	github.com/go-kit/kit v0.10.0
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
