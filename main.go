@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"net"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/bots-house/share-file-bot/bot"
+	"github.com/bots-house/share-file-bot/pkg/health"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
@@ -19,6 +21,7 @@ import (
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
+	"github.com/subosito/gotenv"
 )
 
 const (
@@ -56,6 +59,8 @@ func (cfg Config) getEnv() string {
 
 var logger = log.NewLogger(true, true)
 
+var revision string
+
 func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -78,7 +83,7 @@ func main() {
 	}
 }
 
-func newServer(addr string, bot *bot.Bot) *http.Server {
+func newServer(addr string, bot *bot.Bot, db *sql.DB) *http.Server {
 	baseCtx := context.Background()
 	baseCtx = log.WithLogger(baseCtx, logger)
 
@@ -88,11 +93,21 @@ func newServer(addr string, bot *bot.Bot) *http.Server {
 
 	return &http.Server{
 		Addr:    addr,
-		Handler: sentryMiddleware.Handle(bot),
+		Handler: sentryMiddleware.Handle(newMux(bot, db)),
 		BaseContext: func(_ net.Listener) context.Context {
 			return baseCtx
 		},
 	}
+}
+
+func newMux(bot *bot.Bot, db *sql.DB) *http.ServeMux {
+	mux := http.NewServeMux()
+
+	mux.Handle("/health", health.NewHandler(db))
+
+	mux.Handle("/", bot)
+
+	return mux
 }
 
 func newSentry(ctx context.Context, cfg Config) error {
@@ -124,10 +139,28 @@ func run(ctx context.Context) error {
 	// parse config
 	var cfg Config
 
-	if err := envconfig.Process(envPrefix, &cfg); err != nil {
-		_ = envconfig.Usage(envPrefix, &cfg)
-		return errors.Wrap(err, "parse config from env")
+	// parse flags
+	var (
+		flagHealth bool
+		flagConfig string
+	)
+
+	flag.BoolVar(&flagHealth, "health", false, "run health check")
+	flag.StringVar(&flagConfig, "config", "", "load env from file")
+
+	flag.Parse()
+
+	// parse config
+	cfg, err := parseConfig(flagConfig)
+	if err != nil {
+		return errors.Wrap(err, "parse config")
 	}
+
+	if flagHealth {
+		return health.Check(ctx, cfg.Addr)
+	}
+
+	log.Info(ctx, "start", "revision", revision)
 
 	if err := newSentry(ctx, cfg); err != nil {
 		return errors.Wrap(err, "init sentry")
@@ -180,7 +213,7 @@ func run(ctx context.Context) error {
 	}
 	log.Info(ctx, "bot", "username", tgBot.Self().UserName)
 
-	server := newServer(cfg.Addr, tgBot)
+	server := newServer(cfg.Addr, tgBot, db)
 
 	go func() {
 		<-ctx.Done()
@@ -209,4 +242,22 @@ func run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func parseConfig(config string) (Config, error) {
+	var cfg Config
+
+	// load envs
+	if config != "" {
+		if err := gotenv.Load(config); err != nil {
+			return cfg, errors.Wrap(err, "load env")
+		}
+	}
+
+	if err := envconfig.Process(envPrefix, &cfg); err != nil {
+		_ = envconfig.Usage(envPrefix, &cfg)
+		return cfg, err
+	}
+
+	return cfg, nil
 }

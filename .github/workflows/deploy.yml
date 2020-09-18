@@ -1,0 +1,37 @@
+name: Deploy Production
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login to docker.pkg.github.com
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+      - name: Pull latest Docker image for cache
+        run: |
+          docker pull docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest || true
+
+      - name: Build the Docker image
+        run: |
+          docker build \
+            --build-arg REVISION=${GITHUB_REF##*/} \
+            --cache-from docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:${GITHUB_REF##*/} \
+            .
+
+      - name: Push image to GitHub Packages
+        run: |
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:${GITHUB_REF##*/}
+
+      # - name: Call Deploy Hooks
+      #   run: |
+      #     .github/deploy.sh ${{ secrets.DEPLOY_HOOKS }}
