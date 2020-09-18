@@ -39,11 +39,10 @@ type Config struct {
 	DatabaseMaxOpenConns int    `default:"10" split_words:"true"`
 	DatabaseMaxIdleConns int    `default:"0" split_words:"true"`
 
-	Token         string `required:"true"`
-	Addr          string `default:":8000"`
-	WebhookDomain string `required:"true" split_words:"true"`
-	WebhookPath   string `default:"/" split_words:"true"`
-	SecretIDSalt  string `required:"true" split_words:"true"`
+	Token        string `required:"true"`
+	Addr         string `default:":8000"`
+	WebhookURL   string `default:"/" split_words:"true"`
+	SecretIDSalt string `required:"true" split_words:"true"`
 
 	DryRun bool `default:"false" split_words:"true"`
 }
@@ -227,7 +226,7 @@ func run(ctx context.Context) error {
 		}
 	}()
 
-	if err := tgBot.SetWebhookIfNeed(ctx, cfg.WebhookDomain, cfg.WebhookPath); err != nil {
+	if err := tgBot.SetWebhookIfNeed(ctx, cfg.WebhookURL); err != nil {
 		return errors.Wrap(err, "set webhook if need")
 	}
 
@@ -236,7 +235,7 @@ func run(ctx context.Context) error {
 		return nil
 	}
 
-	log.Info(ctx, "start server", "addr", cfg.Addr, "webhook_domain", cfg.WebhookDomain)
+	log.Info(ctx, "start server", "addr", cfg.Addr, "webhook_domain", cfg.WebhookURL)
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
 		return errors.Wrap(err, "listen and serve")
 	}

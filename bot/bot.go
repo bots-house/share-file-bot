@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
@@ -54,15 +53,14 @@ func New(token string, authSrv *service.Auth, docSrv *service.Document, adminSrv
 	return bot, nil
 }
 
-func (bot *Bot) SetWebhookIfNeed(ctx context.Context, domain string, path string) error {
+func (bot *Bot) SetWebhookIfNeed(ctx context.Context, u string) error {
 	webhook, err := bot.client.GetWebhookInfo()
 	if err != nil {
 		return errors.Wrap(err, "get webhook info")
 	}
-	endpoint := strings.Join([]string{domain, path}, "/")
 
-	if webhook.URL != endpoint {
-		u, err := url.Parse(endpoint)
+	if webhook.URL != u {
+		u, err := url.Parse(u)
 		if err != nil {
 			return errors.Wrap(err, "invalid provided webhook url")
 		}
