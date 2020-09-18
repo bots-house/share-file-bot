@@ -14,6 +14,10 @@ import (
 
 func Check(ctx context.Context, addr string) error {
 	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return errors.Wrap(err, "split host and port")
+	}
+
 	if host == "" {
 		host = "localhost"
 	}
@@ -47,7 +51,7 @@ func NewHandler(db *sql.DB) http.Handler {
 			http.Error(w, "💩", http.StatusInternalServerError)
 			log.Error(ctx, "healthcheck fail", "err", err)
 		} else {
-			io.WriteString(w, "👌")
+			_, _ = io.WriteString(w, "👌")
 		}
 	})
 }
