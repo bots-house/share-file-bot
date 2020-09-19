@@ -17,7 +17,7 @@ jobs:
 
       - name: Get Revision
         run: |
-          echo ::set-env name=REVISION::${GITHUB_REF}-${GITHUB_SHA::7}-$(date +'%Y%m%d%H%M')
+          echo ::set-env name=REVISION::${GITHUB_REF##*/}-${GITHUB_SHA::7}-$(date +'%Y%m%d%H%M')
 
       # In this step, this action saves a list of existing images,
       # the cache is created without them in the post run.
