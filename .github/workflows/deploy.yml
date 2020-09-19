@@ -5,9 +5,8 @@ on:
 
 jobs:
   build:
+    name: Build, Push, Deploy
     runs-on: ubuntu-latest
-    env:
-      REVISION: ${GITHUB_REF}-${GITHUB_SHA::7}
     steps:
       - uses: actions/checkout@v2
 

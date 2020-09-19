@@ -18,22 +18,6 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:12
-
-        env:
-          POSTGRES_USER: sfb
-          POSTGRES_PASSWORD: sfb
-          POSTGRES_DB: sfb
-        ports:
-          - 5432/tcp
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v2
 
@@ -57,12 +41,3 @@ jobs:
 
       - name: Try to build
         run: go build
-
-      - name: Try to run
-        run: ./share-file-bot
-        env:
-          SFB_WEBHOOK_DOMAIN: test.com
-          SFB_TOKEN: ${{ secrets.TEST_BOT_TOKEN }}
-          SFB_SECRET_ID_SALT: so-secret-123
-          SFB_DRY_RUN: true
-          SFB_DATABASE: postgres://sfb:sfb@localhost:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
