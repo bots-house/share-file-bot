@@ -1,0 +1,12 @@
+# ignore everything 
+**
+
+# allow only following files
+!/go.mod
+!/go.sum 
+!/bot
+!/core
+!/pkg
+!/service
+!/store
+!/main*.go
