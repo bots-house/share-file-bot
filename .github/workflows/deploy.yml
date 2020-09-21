@@ -1,0 +1,44 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: 
+      - master
+
+jobs:
+  build:
+    name: Build, Push, Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login to docker.pkg.github.com
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+      - name: Get Revision
+        run: |
+          echo ::set-env name=REVISION::${GITHUB_REF##*/}-${GITHUB_SHA::7}-$(date +'%Y%m%d%H%M')
+
+      # In this step, this action saves a list of existing images,
+      # the cache is created without them in the post run.
+      # It also restores the cache if it exists.
+      - uses: satackey/action-docker-layer-caching@v0.0.8
+        continue-on-error: true
+
+      - name: Build the Docker image
+        run: |
+          docker build \
+            --build-arg REVISION=${REVISION} \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:${REVISION} \
+            .
+
+      - name: Push image to GitHub Packages
+        run: |
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:${REVISION}
+
+      - name: Call Deploy Hooks
+        run: |
+          curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
