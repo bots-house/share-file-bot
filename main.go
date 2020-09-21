@@ -109,7 +109,7 @@ func newMux(bot *bot.Bot, db *sql.DB) *http.ServeMux {
 	return mux
 }
 
-func newSentry(ctx context.Context, cfg Config) error {
+func newSentry(ctx context.Context, cfg Config, release string) error {
 	env := cfg.getEnv()
 
 	if env == EnvLocal {
@@ -125,6 +125,7 @@ func newSentry(ctx context.Context, cfg Config) error {
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:         cfg.SentryDSN,
 		Environment: cfg.Env,
+		Release:     release,
 	}); err != nil {
 		return errors.Wrap(err, "init sentry")
 	}
@@ -161,7 +162,7 @@ func run(ctx context.Context) error {
 
 	log.Info(ctx, "start", "revision", revision)
 
-	if err := newSentry(ctx, cfg); err != nil {
+	if err := newSentry(ctx, cfg, revision); err != nil {
 		return errors.Wrap(err, "init sentry")
 	}
 
