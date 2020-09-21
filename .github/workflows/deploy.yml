@@ -2,6 +2,8 @@ name: Deploy Production
 
 on:
   push:
+    branches: 
+      - master
 
 jobs:
   build:
@@ -37,6 +39,6 @@ jobs:
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:${REVISION}
 
-      # - name: Call Deploy Hooks
-      #   run: |
-      #     .github/deploy.sh ${{ secrets.DEPLOY_HOOKS }}
+      - name: Call Deploy Hooks
+        run: |
+          curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
