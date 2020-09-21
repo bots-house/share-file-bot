@@ -42,3 +42,9 @@ jobs:
       - name: Call Deploy Hooks
         run: |
           curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
+
+      - name: Delete old images
+        uses: actions/delete-package-versions@v1
+        with:
+          package-name: share-file-bot
+          num-old-versions-to-delete: 1
