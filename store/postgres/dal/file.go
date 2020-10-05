@@ -22,8 +22,8 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-// Document is an object representing the database table.
-type Document struct {
+// File is an object representing the database table.
+type File struct {
 	ID        int         `boil:"id" json:"id" toml:"id" yaml:"id"`
 	FileID    string      `boil:"file_id" json:"file_id" toml:"file_id" yaml:"file_id"`
 	Caption   null.String `boil:"caption" json:"caption,omitempty" toml:"caption" yaml:"caption,omitempty"`
@@ -34,11 +34,11 @@ type Document struct {
 	CreatedAt time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	PublicID  string      `boil:"public_id" json:"public_id" toml:"public_id" yaml:"public_id"`
 
-	R *documentR `boil:"-" json:"-" toml:"-" yaml:"-"`
-	L documentL  `boil:"-" json:"-" toml:"-" yaml:"-"`
+	R *fileR `boil:"-" json:"-" toml:"-" yaml:"-"`
+	L fileL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
-var DocumentColumns = struct {
+var FileColumns = struct {
 	ID        string
 	FileID    string
 	Caption   string
@@ -61,29 +61,6 @@ var DocumentColumns = struct {
 }
 
 // Generated where
-
-type whereHelperint struct{ field string }
-
-func (w whereHelperint) EQ(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperint) NEQ(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperint) LT(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperint) LTE(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperint) GT(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperint) GTE(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-func (w whereHelperint) IN(slice []int) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelperint) NIN(slice []int) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
 
 type whereHelperstring struct{ field string }
 
@@ -131,28 +108,7 @@ func (w whereHelpernull_String) GTE(x null.String) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.GTE, x)
 }
 
-type whereHelpertime_Time struct{ field string }
-
-func (w whereHelpertime_Time) EQ(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.EQ, x)
-}
-func (w whereHelpertime_Time) NEQ(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.NEQ, x)
-}
-func (w whereHelpertime_Time) LT(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpertime_Time) LTE(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpertime_Time) GT(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpertime_Time) GTE(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
-var DocumentWhere = struct {
+var FileWhere = struct {
 	ID        whereHelperint
 	FileID    whereHelperstring
 	Caption   whereHelpernull_String
@@ -163,19 +119,19 @@ var DocumentWhere = struct {
 	CreatedAt whereHelpertime_Time
 	PublicID  whereHelperstring
 }{
-	ID:        whereHelperint{field: "\"document\".\"id\""},
-	FileID:    whereHelperstring{field: "\"document\".\"file_id\""},
-	Caption:   whereHelpernull_String{field: "\"document\".\"caption\""},
-	MimeType:  whereHelpernull_String{field: "\"document\".\"mime_type\""},
-	Size:      whereHelperint{field: "\"document\".\"size\""},
-	Name:      whereHelperstring{field: "\"document\".\"name\""},
-	OwnerID:   whereHelperint{field: "\"document\".\"owner_id\""},
-	CreatedAt: whereHelpertime_Time{field: "\"document\".\"created_at\""},
-	PublicID:  whereHelperstring{field: "\"document\".\"public_id\""},
+	ID:        whereHelperint{field: "\"file\".\"id\""},
+	FileID:    whereHelperstring{field: "\"file\".\"file_id\""},
+	Caption:   whereHelpernull_String{field: "\"file\".\"caption\""},
+	MimeType:  whereHelpernull_String{field: "\"file\".\"mime_type\""},
+	Size:      whereHelperint{field: "\"file\".\"size\""},
+	Name:      whereHelperstring{field: "\"file\".\"name\""},
+	OwnerID:   whereHelperint{field: "\"file\".\"owner_id\""},
+	CreatedAt: whereHelpertime_Time{field: "\"file\".\"created_at\""},
+	PublicID:  whereHelperstring{field: "\"file\".\"public_id\""},
 }
 
-// DocumentRels is where relationship names are stored.
-var DocumentRels = struct {
+// FileRels is where relationship names are stored.
+var FileRels = struct {
 	Owner     string
 	Downloads string
 }{
@@ -183,48 +139,48 @@ var DocumentRels = struct {
 	Downloads: "Downloads",
 }
 
-// documentR is where relationships are stored.
-type documentR struct {
+// fileR is where relationships are stored.
+type fileR struct {
 	Owner     *User         `boil:"Owner" json:"Owner" toml:"Owner" yaml:"Owner"`
 	Downloads DownloadSlice `boil:"Downloads" json:"Downloads" toml:"Downloads" yaml:"Downloads"`
 }
 
 // NewStruct creates a new relationship struct
-func (*documentR) NewStruct() *documentR {
-	return &documentR{}
+func (*fileR) NewStruct() *fileR {
+	return &fileR{}
 }
 
-// documentL is where Load methods for each relationship are stored.
-type documentL struct{}
+// fileL is where Load methods for each relationship are stored.
+type fileL struct{}
 
 var (
-	documentAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id"}
-	documentColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id"}
-	documentColumnsWithDefault    = []string{"id"}
-	documentPrimaryKeyColumns     = []string{"id"}
+	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id"}
+	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id"}
+	fileColumnsWithDefault    = []string{"id"}
+	filePrimaryKeyColumns     = []string{"id"}
 )
 
 type (
-	// DocumentSlice is an alias for a slice of pointers to Document.
-	// This should generally be used opposed to []Document.
-	DocumentSlice []*Document
+	// FileSlice is an alias for a slice of pointers to File.
+	// This should generally be used opposed to []File.
+	FileSlice []*File
 
-	documentQuery struct {
+	fileQuery struct {
 		*queries.Query
 	}
 )
 
 // Cache for insert, update and upsert
 var (
-	documentType                 = reflect.TypeOf(&Document{})
-	documentMapping              = queries.MakeStructMapping(documentType)
-	documentPrimaryKeyMapping, _ = queries.BindMapping(documentType, documentMapping, documentPrimaryKeyColumns)
-	documentInsertCacheMut       sync.RWMutex
-	documentInsertCache          = make(map[string]insertCache)
-	documentUpdateCacheMut       sync.RWMutex
-	documentUpdateCache          = make(map[string]updateCache)
-	documentUpsertCacheMut       sync.RWMutex
-	documentUpsertCache          = make(map[string]insertCache)
+	fileType                 = reflect.TypeOf(&File{})
+	fileMapping              = queries.MakeStructMapping(fileType)
+	filePrimaryKeyMapping, _ = queries.BindMapping(fileType, fileMapping, filePrimaryKeyColumns)
+	fileInsertCacheMut       sync.RWMutex
+	fileInsertCache          = make(map[string]insertCache)
+	fileUpdateCacheMut       sync.RWMutex
+	fileUpdateCache          = make(map[string]updateCache)
+	fileUpsertCacheMut       sync.RWMutex
+	fileUpsertCache          = make(map[string]insertCache)
 )
 
 var (
@@ -235,9 +191,9 @@ var (
 	_ = qmhelper.Where
 )
 
-// One returns a single document record from the query.
-func (q documentQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Document, error) {
-	o := &Document{}
+// One returns a single file record from the query.
+func (q fileQuery) One(ctx context.Context, exec boil.ContextExecutor) (*File, error) {
+	o := &File{}
 
 	queries.SetLimit(q.Query, 1)
 
@@ -246,26 +202,26 @@ func (q documentQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Doc
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "dal: failed to execute a one query for document")
+		return nil, errors.Wrap(err, "dal: failed to execute a one query for file")
 	}
 
 	return o, nil
 }
 
-// All returns all Document records from the query.
-func (q documentQuery) All(ctx context.Context, exec boil.ContextExecutor) (DocumentSlice, error) {
-	var o []*Document
+// All returns all File records from the query.
+func (q fileQuery) All(ctx context.Context, exec boil.ContextExecutor) (FileSlice, error) {
+	var o []*File
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "dal: failed to assign all query results to Document slice")
+		return nil, errors.Wrap(err, "dal: failed to assign all query results to File slice")
 	}
 
 	return o, nil
 }
 
-// Count returns the count of all Document records in the query.
-func (q documentQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+// Count returns the count of all File records in the query.
+func (q fileQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
@@ -273,14 +229,14 @@ func (q documentQuery) Count(ctx context.Context, exec boil.ContextExecutor) (in
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: failed to count document rows")
+		return 0, errors.Wrap(err, "dal: failed to count file rows")
 	}
 
 	return count, nil
 }
 
 // Exists checks if the row exists in the table.
-func (q documentQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q fileQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
@@ -289,14 +245,14 @@ func (q documentQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (b
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "dal: failed to check if document exists")
+		return false, errors.Wrap(err, "dal: failed to check if file exists")
 	}
 
 	return count > 0, nil
 }
 
 // Owner pointed to by the foreign key.
-func (o *Document) Owner(mods ...qm.QueryMod) userQuery {
+func (o *File) Owner(mods ...qm.QueryMod) userQuery {
 	queryMods := []qm.QueryMod{
 		qm.Where("\"id\" = ?", o.OwnerID),
 	}
@@ -310,14 +266,14 @@ func (o *Document) Owner(mods ...qm.QueryMod) userQuery {
 }
 
 // Downloads retrieves all the download's Downloads with an executor.
-func (o *Document) Downloads(mods ...qm.QueryMod) downloadQuery {
+func (o *File) Downloads(mods ...qm.QueryMod) downloadQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"download\".\"document_id\"=?", o.ID),
+		qm.Where("\"download\".\"file_id\"=?", o.ID),
 	)
 
 	query := Downloads(queryMods...)
@@ -332,20 +288,20 @@ func (o *Document) Downloads(mods ...qm.QueryMod) downloadQuery {
 
 // LoadOwner allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (documentL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDocument interface{}, mods queries.Applicator) error {
-	var slice []*Document
-	var object *Document
+func (fileL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular bool, maybeFile interface{}, mods queries.Applicator) error {
+	var slice []*File
+	var object *File
 
 	if singular {
-		object = maybeDocument.(*Document)
+		object = maybeFile.(*File)
 	} else {
-		slice = *maybeDocument.(*[]*Document)
+		slice = *maybeFile.(*[]*File)
 	}
 
 	args := make([]interface{}, 0, 1)
 	if singular {
 		if object.R == nil {
-			object.R = &documentR{}
+			object.R = &fileR{}
 		}
 		args = append(args, object.OwnerID)
 
@@ -353,7 +309,7 @@ func (documentL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular
 	Outer:
 		for _, obj := range slice {
 			if obj.R == nil {
-				obj.R = &documentR{}
+				obj.R = &fileR{}
 			}
 
 			for _, a := range args {
@@ -406,7 +362,7 @@ func (documentL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular
 		if foreign.R == nil {
 			foreign.R = &userR{}
 		}
-		foreign.R.OwnerDocuments = append(foreign.R.OwnerDocuments, object)
+		foreign.R.OwnerFiles = append(foreign.R.OwnerFiles, object)
 		return nil
 	}
 
@@ -417,7 +373,7 @@ func (documentL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular
 				if foreign.R == nil {
 					foreign.R = &userR{}
 				}
-				foreign.R.OwnerDocuments = append(foreign.R.OwnerDocuments, local)
+				foreign.R.OwnerFiles = append(foreign.R.OwnerFiles, local)
 				break
 			}
 		}
@@ -428,27 +384,27 @@ func (documentL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular
 
 // LoadDownloads allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (documentL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDocument interface{}, mods queries.Applicator) error {
-	var slice []*Document
-	var object *Document
+func (fileL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, singular bool, maybeFile interface{}, mods queries.Applicator) error {
+	var slice []*File
+	var object *File
 
 	if singular {
-		object = maybeDocument.(*Document)
+		object = maybeFile.(*File)
 	} else {
-		slice = *maybeDocument.(*[]*Document)
+		slice = *maybeFile.(*[]*File)
 	}
 
 	args := make([]interface{}, 0, 1)
 	if singular {
 		if object.R == nil {
-			object.R = &documentR{}
+			object.R = &fileR{}
 		}
 		args = append(args, object.ID)
 	} else {
 	Outer:
 		for _, obj := range slice {
 			if obj.R == nil {
-				obj.R = &documentR{}
+				obj.R = &fileR{}
 			}
 
 			for _, a := range args {
@@ -467,7 +423,7 @@ func (documentL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, sing
 
 	query := NewQuery(
 		qm.From(`download`),
-		qm.WhereIn(`download.document_id in ?`, args...),
+		qm.WhereIn(`download.file_id in ?`, args...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -496,19 +452,19 @@ func (documentL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, sing
 			if foreign.R == nil {
 				foreign.R = &downloadR{}
 			}
-			foreign.R.Document = object
+			foreign.R.File = object
 		}
 		return nil
 	}
 
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
-			if queries.Equal(local.ID, foreign.DocumentID) {
+			if queries.Equal(local.ID, foreign.FileID) {
 				local.R.Downloads = append(local.R.Downloads, foreign)
 				if foreign.R == nil {
 					foreign.R = &downloadR{}
 				}
-				foreign.R.Document = local
+				foreign.R.File = local
 				break
 			}
 		}
@@ -517,10 +473,10 @@ func (documentL) LoadDownloads(ctx context.Context, e boil.ContextExecutor, sing
 	return nil
 }
 
-// SetOwner of the document to the related item.
+// SetOwner of the file to the related item.
 // Sets o.R.Owner to related.
-// Adds o to related.R.OwnerDocuments.
-func (o *Document) SetOwner(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+// Adds o to related.R.OwnerFiles.
+func (o *File) SetOwner(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
 	var err error
 	if insert {
 		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
@@ -529,9 +485,9 @@ func (o *Document) SetOwner(ctx context.Context, exec boil.ContextExecutor, inse
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE \"document\" SET %s WHERE %s",
+		"UPDATE \"file\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, []string{"owner_id"}),
-		strmangle.WhereClause("\"", "\"", 2, documentPrimaryKeyColumns),
+		strmangle.WhereClause("\"", "\"", 2, filePrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -546,7 +502,7 @@ func (o *Document) SetOwner(ctx context.Context, exec boil.ContextExecutor, inse
 
 	o.OwnerID = related.ID
 	if o.R == nil {
-		o.R = &documentR{
+		o.R = &fileR{
 			Owner: related,
 		}
 	} else {
@@ -555,31 +511,31 @@ func (o *Document) SetOwner(ctx context.Context, exec boil.ContextExecutor, inse
 
 	if related.R == nil {
 		related.R = &userR{
-			OwnerDocuments: DocumentSlice{o},
+			OwnerFiles: FileSlice{o},
 		}
 	} else {
-		related.R.OwnerDocuments = append(related.R.OwnerDocuments, o)
+		related.R.OwnerFiles = append(related.R.OwnerFiles, o)
 	}
 
 	return nil
 }
 
 // AddDownloads adds the given related objects to the existing relationships
-// of the document, optionally inserting them as new records.
+// of the file, optionally inserting them as new records.
 // Appends related to o.R.Downloads.
-// Sets related.R.Document appropriately.
-func (o *Document) AddDownloads(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Download) error {
+// Sets related.R.File appropriately.
+func (o *File) AddDownloads(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Download) error {
 	var err error
 	for _, rel := range related {
 		if insert {
-			queries.Assign(&rel.DocumentID, o.ID)
+			queries.Assign(&rel.FileID, o.ID)
 			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
 				"UPDATE \"download\" SET %s WHERE %s",
-				strmangle.SetParamNames("\"", "\"", 1, []string{"document_id"}),
+				strmangle.SetParamNames("\"", "\"", 1, []string{"file_id"}),
 				strmangle.WhereClause("\"", "\"", 2, downloadPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
@@ -593,12 +549,12 @@ func (o *Document) AddDownloads(ctx context.Context, exec boil.ContextExecutor, 
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
-			queries.Assign(&rel.DocumentID, o.ID)
+			queries.Assign(&rel.FileID, o.ID)
 		}
 	}
 
 	if o.R == nil {
-		o.R = &documentR{
+		o.R = &fileR{
 			Downloads: related,
 		}
 	} else {
@@ -608,23 +564,23 @@ func (o *Document) AddDownloads(ctx context.Context, exec boil.ContextExecutor, 
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &downloadR{
-				Document: o,
+				File: o,
 			}
 		} else {
-			rel.R.Document = o
+			rel.R.File = o
 		}
 	}
 	return nil
 }
 
 // SetDownloads removes all previously related items of the
-// document replacing them completely with the passed
+// file replacing them completely with the passed
 // in related items, optionally inserting them as new records.
-// Sets o.R.Document's Downloads accordingly.
+// Sets o.R.File's Downloads accordingly.
 // Replaces o.R.Downloads with related.
-// Sets related.R.Document's Downloads accordingly.
-func (o *Document) SetDownloads(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Download) error {
-	query := "update \"download\" set \"document_id\" = null where \"document_id\" = $1"
+// Sets related.R.File's Downloads accordingly.
+func (o *File) SetDownloads(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Download) error {
+	query := "update \"download\" set \"file_id\" = null where \"file_id\" = $1"
 	values := []interface{}{o.ID}
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -638,12 +594,12 @@ func (o *Document) SetDownloads(ctx context.Context, exec boil.ContextExecutor, 
 
 	if o.R != nil {
 		for _, rel := range o.R.Downloads {
-			queries.SetScanner(&rel.DocumentID, nil)
+			queries.SetScanner(&rel.FileID, nil)
 			if rel.R == nil {
 				continue
 			}
 
-			rel.R.Document = nil
+			rel.R.File = nil
 		}
 
 		o.R.Downloads = nil
@@ -653,15 +609,15 @@ func (o *Document) SetDownloads(ctx context.Context, exec boil.ContextExecutor, 
 
 // RemoveDownloads relationships from objects passed in.
 // Removes related items from R.Downloads (uses pointer comparison, removal does not keep order)
-// Sets related.R.Document.
-func (o *Document) RemoveDownloads(ctx context.Context, exec boil.ContextExecutor, related ...*Download) error {
+// Sets related.R.File.
+func (o *File) RemoveDownloads(ctx context.Context, exec boil.ContextExecutor, related ...*Download) error {
 	var err error
 	for _, rel := range related {
-		queries.SetScanner(&rel.DocumentID, nil)
+		queries.SetScanner(&rel.FileID, nil)
 		if rel.R != nil {
-			rel.R.Document = nil
+			rel.R.File = nil
 		}
-		if _, err = rel.Update(ctx, exec, boil.Whitelist("document_id")); err != nil {
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("file_id")); err != nil {
 			return err
 		}
 	}
@@ -687,74 +643,74 @@ func (o *Document) RemoveDownloads(ctx context.Context, exec boil.ContextExecuto
 	return nil
 }
 
-// Documents retrieves all the records using an executor.
-func Documents(mods ...qm.QueryMod) documentQuery {
-	mods = append(mods, qm.From("\"document\""))
-	return documentQuery{NewQuery(mods...)}
+// Files retrieves all the records using an executor.
+func Files(mods ...qm.QueryMod) fileQuery {
+	mods = append(mods, qm.From("\"file\""))
+	return fileQuery{NewQuery(mods...)}
 }
 
-// FindDocument retrieves a single record by ID with an executor.
+// FindFile retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindDocument(ctx context.Context, exec boil.ContextExecutor, iD int, selectCols ...string) (*Document, error) {
-	documentObj := &Document{}
+func FindFile(ctx context.Context, exec boil.ContextExecutor, iD int, selectCols ...string) (*File, error) {
+	fileObj := &File{}
 
 	sel := "*"
 	if len(selectCols) > 0 {
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"document\" where \"id\"=$1", sel,
+		"select %s from \"file\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, documentObj)
+	err := q.Bind(ctx, exec, fileObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "dal: unable to select from document")
+		return nil, errors.Wrap(err, "dal: unable to select from file")
 	}
 
-	return documentObj, nil
+	return fileObj, nil
 }
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *Document) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *File) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("dal: no document provided for insertion")
+		return errors.New("dal: no file provided for insertion")
 	}
 
 	var err error
 
-	nzDefaults := queries.NonZeroDefaultSet(documentColumnsWithDefault, o)
+	nzDefaults := queries.NonZeroDefaultSet(fileColumnsWithDefault, o)
 
 	key := makeCacheKey(columns, nzDefaults)
-	documentInsertCacheMut.RLock()
-	cache, cached := documentInsertCache[key]
-	documentInsertCacheMut.RUnlock()
+	fileInsertCacheMut.RLock()
+	cache, cached := fileInsertCache[key]
+	fileInsertCacheMut.RUnlock()
 
 	if !cached {
 		wl, returnColumns := columns.InsertColumnSet(
-			documentAllColumns,
-			documentColumnsWithDefault,
-			documentColumnsWithoutDefault,
+			fileAllColumns,
+			fileColumnsWithDefault,
+			fileColumnsWithoutDefault,
 			nzDefaults,
 		)
 
-		cache.valueMapping, err = queries.BindMapping(documentType, documentMapping, wl)
+		cache.valueMapping, err = queries.BindMapping(fileType, fileMapping, wl)
 		if err != nil {
 			return err
 		}
-		cache.retMapping, err = queries.BindMapping(documentType, documentMapping, returnColumns)
+		cache.retMapping, err = queries.BindMapping(fileType, fileMapping, returnColumns)
 		if err != nil {
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO \"document\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"file\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO \"document\" %sDEFAULT VALUES%s"
+			cache.query = "INSERT INTO \"file\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
@@ -782,43 +738,43 @@ func (o *Document) Insert(ctx context.Context, exec boil.ContextExecutor, column
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "dal: unable to insert into document")
+		return errors.Wrap(err, "dal: unable to insert into file")
 	}
 
 	if !cached {
-		documentInsertCacheMut.Lock()
-		documentInsertCache[key] = cache
-		documentInsertCacheMut.Unlock()
+		fileInsertCacheMut.Lock()
+		fileInsertCache[key] = cache
+		fileInsertCacheMut.Unlock()
 	}
 
 	return nil
 }
 
-// Update uses an executor to update the Document.
+// Update uses an executor to update the File.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *Document) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *File) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
-	documentUpdateCacheMut.RLock()
-	cache, cached := documentUpdateCache[key]
-	documentUpdateCacheMut.RUnlock()
+	fileUpdateCacheMut.RLock()
+	cache, cached := fileUpdateCache[key]
+	fileUpdateCacheMut.RUnlock()
 
 	if !cached {
 		wl := columns.UpdateColumnSet(
-			documentAllColumns,
-			documentPrimaryKeyColumns,
+			fileAllColumns,
+			filePrimaryKeyColumns,
 		)
 
 		if len(wl) == 0 {
-			return 0, errors.New("dal: unable to update document, could not build whitelist")
+			return 0, errors.New("dal: unable to update file, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE \"document\" SET %s WHERE %s",
+		cache.query = fmt.Sprintf("UPDATE \"file\" SET %s WHERE %s",
 			strmangle.SetParamNames("\"", "\"", 1, wl),
-			strmangle.WhereClause("\"", "\"", len(wl)+1, documentPrimaryKeyColumns),
+			strmangle.WhereClause("\"", "\"", len(wl)+1, filePrimaryKeyColumns),
 		)
-		cache.valueMapping, err = queries.BindMapping(documentType, documentMapping, append(wl, documentPrimaryKeyColumns...))
+		cache.valueMapping, err = queries.BindMapping(fileType, fileMapping, append(wl, filePrimaryKeyColumns...))
 		if err != nil {
 			return 0, err
 		}
@@ -834,42 +790,42 @@ func (o *Document) Update(ctx context.Context, exec boil.ContextExecutor, column
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: unable to update document row")
+		return 0, errors.Wrap(err, "dal: unable to update file row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: failed to get rows affected by update for document")
+		return 0, errors.Wrap(err, "dal: failed to get rows affected by update for file")
 	}
 
 	if !cached {
-		documentUpdateCacheMut.Lock()
-		documentUpdateCache[key] = cache
-		documentUpdateCacheMut.Unlock()
+		fileUpdateCacheMut.Lock()
+		fileUpdateCache[key] = cache
+		fileUpdateCacheMut.Unlock()
 	}
 
 	return rowsAff, nil
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q documentQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q fileQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: unable to update all for document")
+		return 0, errors.Wrap(err, "dal: unable to update all for file")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: unable to retrieve rows affected for document")
+		return 0, errors.Wrap(err, "dal: unable to retrieve rows affected for file")
 	}
 
 	return rowsAff, nil
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o DocumentSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o FileSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -891,13 +847,13 @@ func (o DocumentSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor,
 
 	// Append all of the primary key values for each column
 	for _, obj := range o {
-		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), documentPrimaryKeyMapping)
+		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), filePrimaryKeyMapping)
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE \"document\" SET %s WHERE %s",
+	sql := fmt.Sprintf("UPDATE \"file\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, documentPrimaryKeyColumns, len(o)))
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, filePrimaryKeyColumns, len(o)))
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -906,24 +862,24 @@ func (o DocumentSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor,
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: unable to update all in document slice")
+		return 0, errors.Wrap(err, "dal: unable to update all in file slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: unable to retrieve rows affected all in update all document")
+		return 0, errors.Wrap(err, "dal: unable to retrieve rows affected all in update all file")
 	}
 	return rowsAff, nil
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Document) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *File) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
-		return errors.New("dal: no document provided for upsert")
+		return errors.New("dal: no file provided for upsert")
 	}
 
-	nzDefaults := queries.NonZeroDefaultSet(documentColumnsWithDefault, o)
+	nzDefaults := queries.NonZeroDefaultSet(fileColumnsWithDefault, o)
 
 	// Build cache key in-line uglily - mysql vs psql problems
 	buf := strmangle.GetBuffer()
@@ -953,41 +909,41 @@ func (o *Document) Upsert(ctx context.Context, exec boil.ContextExecutor, update
 	key := buf.String()
 	strmangle.PutBuffer(buf)
 
-	documentUpsertCacheMut.RLock()
-	cache, cached := documentUpsertCache[key]
-	documentUpsertCacheMut.RUnlock()
+	fileUpsertCacheMut.RLock()
+	cache, cached := fileUpsertCache[key]
+	fileUpsertCacheMut.RUnlock()
 
 	var err error
 
 	if !cached {
 		insert, ret := insertColumns.InsertColumnSet(
-			documentAllColumns,
-			documentColumnsWithDefault,
-			documentColumnsWithoutDefault,
+			fileAllColumns,
+			fileColumnsWithDefault,
+			fileColumnsWithoutDefault,
 			nzDefaults,
 		)
 		update := updateColumns.UpdateColumnSet(
-			documentAllColumns,
-			documentPrimaryKeyColumns,
+			fileAllColumns,
+			filePrimaryKeyColumns,
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("dal: unable to upsert document, could not build update column list")
+			return errors.New("dal: unable to upsert file, could not build update column list")
 		}
 
 		conflict := conflictColumns
 		if len(conflict) == 0 {
-			conflict = make([]string, len(documentPrimaryKeyColumns))
-			copy(conflict, documentPrimaryKeyColumns)
+			conflict = make([]string, len(filePrimaryKeyColumns))
+			copy(conflict, filePrimaryKeyColumns)
 		}
-		cache.query = buildUpsertQueryPostgres(dialect, "\"document\"", updateOnConflict, ret, update, conflict, insert)
+		cache.query = buildUpsertQueryPostgres(dialect, "\"file\"", updateOnConflict, ret, update, conflict, insert)
 
-		cache.valueMapping, err = queries.BindMapping(documentType, documentMapping, insert)
+		cache.valueMapping, err = queries.BindMapping(fileType, fileMapping, insert)
 		if err != nil {
 			return err
 		}
 		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(documentType, documentMapping, ret)
+			cache.retMapping, err = queries.BindMapping(fileType, fileMapping, ret)
 			if err != nil {
 				return err
 			}
@@ -1015,27 +971,27 @@ func (o *Document) Upsert(ctx context.Context, exec boil.ContextExecutor, update
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "dal: unable to upsert document")
+		return errors.Wrap(err, "dal: unable to upsert file")
 	}
 
 	if !cached {
-		documentUpsertCacheMut.Lock()
-		documentUpsertCache[key] = cache
-		documentUpsertCacheMut.Unlock()
+		fileUpsertCacheMut.Lock()
+		fileUpsertCache[key] = cache
+		fileUpsertCacheMut.Unlock()
 	}
 
 	return nil
 }
 
-// Delete deletes a single Document record with an executor.
+// Delete deletes a single File record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *Document) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *File) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("dal: no Document provided for delete")
+		return 0, errors.New("dal: no File provided for delete")
 	}
 
-	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), documentPrimaryKeyMapping)
-	sql := "DELETE FROM \"document\" WHERE \"id\"=$1"
+	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), filePrimaryKeyMapping)
+	sql := "DELETE FROM \"file\" WHERE \"id\"=$1"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1044,52 +1000,52 @@ func (o *Document) Delete(ctx context.Context, exec boil.ContextExecutor) (int64
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: unable to delete from document")
+		return 0, errors.Wrap(err, "dal: unable to delete from file")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: failed to get rows affected by delete for document")
+		return 0, errors.Wrap(err, "dal: failed to get rows affected by delete for file")
 	}
 
 	return rowsAff, nil
 }
 
 // DeleteAll deletes all matching rows.
-func (q documentQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q fileQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("dal: no documentQuery provided for delete all")
+		return 0, errors.New("dal: no fileQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: unable to delete all from document")
+		return 0, errors.Wrap(err, "dal: unable to delete all from file")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: failed to get rows affected by deleteall for document")
+		return 0, errors.Wrap(err, "dal: failed to get rows affected by deleteall for file")
 	}
 
 	return rowsAff, nil
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o DocumentSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o FileSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
 
 	var args []interface{}
 	for _, obj := range o {
-		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), documentPrimaryKeyMapping)
+		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), filePrimaryKeyMapping)
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM \"document\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, documentPrimaryKeyColumns, len(o))
+	sql := "DELETE FROM \"file\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, filePrimaryKeyColumns, len(o))
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1098,12 +1054,12 @@ func (o DocumentSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor)
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: unable to delete all from document slice")
+		return 0, errors.Wrap(err, "dal: unable to delete all from file slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "dal: failed to get rows affected by deleteall for document")
+		return 0, errors.Wrap(err, "dal: failed to get rows affected by deleteall for file")
 	}
 
 	return rowsAff, nil
@@ -1111,8 +1067,8 @@ func (o DocumentSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor)
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *Document) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindDocument(ctx, exec, o.ID)
+func (o *File) Reload(ctx context.Context, exec boil.ContextExecutor) error {
+	ret, err := FindFile(ctx, exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -1123,26 +1079,26 @@ func (o *Document) Reload(ctx context.Context, exec boil.ContextExecutor) error 
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *DocumentSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *FileSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
 
-	slice := DocumentSlice{}
+	slice := FileSlice{}
 	var args []interface{}
 	for _, obj := range *o {
-		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), documentPrimaryKeyMapping)
+		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), filePrimaryKeyMapping)
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT \"document\".* FROM \"document\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, documentPrimaryKeyColumns, len(*o))
+	sql := "SELECT \"file\".* FROM \"file\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, filePrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "dal: unable to reload all in DocumentSlice")
+		return errors.Wrap(err, "dal: unable to reload all in FileSlice")
 	}
 
 	*o = slice
@@ -1150,10 +1106,10 @@ func (o *DocumentSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor
 	return nil
 }
 
-// DocumentExists checks if the Document row exists.
-func DocumentExists(ctx context.Context, exec boil.ContextExecutor, iD int) (bool, error) {
+// FileExists checks if the File row exists.
+func FileExists(ctx context.Context, exec boil.ContextExecutor, iD int) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"document\" where \"id\"=$1 limit 1)"
+	sql := "select exists(select 1 from \"file\" where \"id\"=$1 limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1164,7 +1120,7 @@ func DocumentExists(ctx context.Context, exec boil.ContextExecutor, iD int) (boo
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "dal: unable to check if document exists")
+		return false, errors.Wrap(err, "dal: unable to check if file exists")
 	}
 
 	return exists, nil

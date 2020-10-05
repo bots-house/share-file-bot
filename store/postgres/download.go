@@ -18,10 +18,10 @@ type DownloadStore struct {
 
 func (store *DownloadStore) toRow(dwn *core.Download) *dal.Download {
 	return &dal.Download{
-		ID:         int(dwn.ID),
-		UserID:     null.NewInt(int(dwn.UserID), dwn.UserID != 0),
-		DocumentID: null.NewInt(int(dwn.FileID), dwn.FileID != 0),
-		At:         dwn.At,
+		ID:     int(dwn.ID),
+		UserID: null.NewInt(int(dwn.UserID), dwn.UserID != 0),
+		FileID: null.NewInt(int(dwn.FileID), dwn.FileID != 0),
+		At:     dwn.At,
 	}
 }
 
@@ -29,7 +29,7 @@ func (store *DownloadStore) fromRow(row *dal.Download) *core.Download {
 	return &core.Download{
 		ID:     core.DownloadID(row.ID),
 		UserID: core.UserID(row.UserID.Int),
-		FileID: core.FileID(row.DocumentID.Int),
+		FileID: core.FileID(row.FileID.Int),
 		At:     row.At,
 	}
 }
@@ -56,12 +56,14 @@ func (store *DownloadStore) GetDownloadStats(ctx context.Context, id core.FileID
         from
             download
         where
-            document_id = $1
+            file_id = $1
     `
 
 	result := &core.DownloadStats{}
 
-	if err := store.QueryRow(query, id).Scan(
+	executor := shared.GetExecutorOrDefault(ctx, store.ContextExecutor)
+
+	if err := executor.QueryRowContext(ctx, query, id).Scan(
 		&result.Total,
 		&result.Unique,
 	); err != nil {
@@ -77,7 +79,7 @@ type downloadStoreQuery struct {
 }
 
 func (dsq *downloadStoreQuery) FileID(id core.FileID) core.DownloadStoreQuery {
-	dsq.mods = append(dsq.mods, dal.DownloadWhere.DocumentID.EQ(null.IntFrom(int(id))))
+	dsq.mods = append(dsq.mods, dal.DownloadWhere.FileID.EQ(null.IntFrom(int(id))))
 	return dsq
 }
 
