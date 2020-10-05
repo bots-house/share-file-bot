@@ -20,17 +20,17 @@ func (store *DownloadStore) toRow(dwn *core.Download) *dal.Download {
 	return &dal.Download{
 		ID:         int(dwn.ID),
 		UserID:     null.NewInt(int(dwn.UserID), dwn.UserID != 0),
-		DocumentID: null.NewInt(int(dwn.DocumentID), dwn.DocumentID != 0),
+		DocumentID: null.NewInt(int(dwn.FileID), dwn.FileID != 0),
 		At:         dwn.At,
 	}
 }
 
 func (store *DownloadStore) fromRow(row *dal.Download) *core.Download {
 	return &core.Download{
-		ID:         core.DownloadID(row.ID),
-		UserID:     core.UserID(row.UserID.Int),
-		DocumentID: core.DocumentID(row.DocumentID.Int),
-		At:         row.At,
+		ID:     core.DownloadID(row.ID),
+		UserID: core.UserID(row.UserID.Int),
+		FileID: core.FileID(row.DocumentID.Int),
+		At:     row.At,
 	}
 }
 
@@ -49,7 +49,7 @@ func (store *DownloadStore) Query() core.DownloadStoreQuery {
 	}
 }
 
-func (store *DownloadStore) GetDownloadStats(ctx context.Context, id core.DocumentID) (*core.DownloadStats, error) {
+func (store *DownloadStore) GetDownloadStats(ctx context.Context, id core.FileID) (*core.DownloadStats, error) {
 	const query = `
         select
             count(*) as total, count(distinct user_id) as unique
@@ -76,7 +76,7 @@ type downloadStoreQuery struct {
 	store *DownloadStore
 }
 
-func (dsq *downloadStoreQuery) DocumentID(id core.DocumentID) core.DownloadStoreQuery {
+func (dsq *downloadStoreQuery) FileID(id core.FileID) core.DownloadStoreQuery {
 	dsq.mods = append(dsq.mods, dal.DownloadWhere.DocumentID.EQ(null.IntFrom(int(id))))
 	return dsq
 }

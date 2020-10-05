@@ -4,7 +4,7 @@ sqlboiler_download_url = https://api.github.com/repos/volatiletech/sqlboiler/tar
 golangci_lint_version = 1.27.0
 
 run:
-	go run main.go
+	go run main.go -config .env.local
 
 lint: .bin/golangci-lint
 	.bin/golangci-lint run --config .golangci.yml
@@ -26,3 +26,10 @@ generate-dal: .bin/sqlboiler .bin/sqlboiler-psql
 	cd .bin/sqlboiler-src && go build -o ../sqlboiler
 	cd .bin/sqlboiler-src/drivers/sqlboiler-psql && go build -o ${CURDIR}/.bin/sqlboiler-psql
 	rm -r .bin/sqlboiler-src
+
+psql:
+	docker-compose exec postgres psql -U sfb
+
+psql-recreate-db:
+	docker-compose exec postgres dropdb --username sfb sfb
+	docker-compose exec postgres createdb --username sfb sfb 

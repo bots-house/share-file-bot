@@ -8,12 +8,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Document struct {
-	DocumentStore core.DocumentStore
+type File struct {
+	FileStore     core.FileStore
 	DownloadStore core.DownloadStore
 }
 
-type InputDocument struct {
+type InputFile struct {
 	FileID   string
 	Caption  string
 	MIMEType string
@@ -21,29 +21,29 @@ type InputDocument struct {
 	Size     int
 }
 
-type OwnedDocument struct {
-	*core.Document
+type OwnedFile struct {
+	*core.File
 	Stats *core.DownloadStats
 }
 
-func (srv *Document) newOwnedDocument(ctx context.Context, doc *core.Document) (*OwnedDocument, error) {
+func (srv *File) newOwnedFile(ctx context.Context, doc *core.File) (*OwnedFile, error) {
 	downloadStats, err := srv.DownloadStore.GetDownloadStats(ctx, doc.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "get downloads count")
 	}
 
-	return &OwnedDocument{
-		Document: doc,
-		Stats:    downloadStats,
+	return &OwnedFile{
+		File:  doc,
+		Stats: downloadStats,
 	}, nil
 }
 
-func (srv *Document) AddDocument(
+func (srv *File) AddFile(
 	ctx context.Context,
 	user *core.User,
-	in *InputDocument,
-) (*OwnedDocument, error) {
-	doc := core.NewDocument(
+	in *InputFile,
+) (*OwnedFile, error) {
+	doc := core.NewFile(
 		in.FileID,
 		in.Caption,
 		in.MIMEType,
@@ -53,80 +53,80 @@ func (srv *Document) AddDocument(
 		user.Settings.LongIDs,
 	)
 
-	log.Info(ctx, "create document", "name", in.Name, "size", in.Size)
-	if err := srv.DocumentStore.Add(ctx, doc); err != nil {
-		return nil, errors.Wrap(err, "add document to store")
+	log.Info(ctx, "create file", "name", in.Name, "size", in.Size)
+	if err := srv.FileStore.Add(ctx, doc); err != nil {
+		return nil, errors.Wrap(err, "add file to store")
 	}
 
-	return srv.newOwnedDocument(ctx, doc)
+	return srv.newOwnedFile(ctx, doc)
 }
 
 type DownloadResult struct {
-	Document      *core.Document
-	OwnedDocument *OwnedDocument
+	File      *core.File
+	OwnedFile *OwnedFile
 }
 
 var (
-	ErrInvalidID = errors.New("invalid document id")
+	ErrInvalidID = errors.New("invalid file id")
 )
 
-func (srv *Document) toDownloadResult(ctx context.Context, user *core.User, doc *core.Document) (*DownloadResult, error) {
+func (srv *File) toDownloadResult(ctx context.Context, user *core.User, file *core.File) (*DownloadResult, error) {
 	// if user is owner of this docs we just display it
-	if doc.OwnerID == user.ID {
-		ownedDoc, err := srv.newOwnedDocument(ctx, doc)
+	if file.OwnerID == user.ID {
+		ownedFile, err := srv.newOwnedFile(ctx, file)
 		if err != nil {
 			return nil, errors.Wrap(err, "get owned doc")
 		}
 		return &DownloadResult{
-			OwnedDocument: ownedDoc,
+			OwnedFile: ownedFile,
 		}, nil
 	}
 
 	// register download
-	download := core.NewDownload(doc.ID, user.ID)
+	download := core.NewDownload(file.ID, user.ID)
 
-	log.Info(ctx, "register download", "document_id", doc.ID)
+	log.Info(ctx, "register download", "file_id", file.ID)
 	if err := srv.DownloadStore.Add(ctx, download); err != nil {
 		return nil, errors.Wrap(err, "download result")
 	}
 
 	return &DownloadResult{
-		Document: doc,
+		File: file,
 	}, nil
 }
 
-func (srv *Document) GetDocumentByID(
+func (srv *File) GetFileByID(
 	ctx context.Context,
 	user *core.User,
-	id core.DocumentID,
+	id core.FileID,
 ) (*DownloadResult, error) {
-	doc, err := srv.DocumentStore.Query().ID(id).One(ctx)
+	doc, err := srv.FileStore.Query().ID(id).One(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "find document by id")
+		return nil, errors.Wrap(err, "find file by id")
 	}
 
 	return srv.toDownloadResult(ctx, user, doc)
 }
 
-func (srv *Document) GetDocumentByPublicID(
+func (srv *File) GetFileByPublicID(
 	ctx context.Context,
 	user *core.User,
 	publicID string,
 ) (*DownloadResult, error) {
-	doc, err := srv.DocumentStore.Query().PublicID(publicID).One(ctx)
+	doc, err := srv.FileStore.Query().PublicID(publicID).One(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "find document by public id")
+		return nil, errors.Wrap(err, "find file by public id")
 	}
 
 	return srv.toDownloadResult(ctx, user, doc)
 }
 
-func (srv *Document) DeleteDocument(
+func (srv *File) DeleteFile(
 	ctx context.Context,
 	user *core.User,
-	id core.DocumentID,
+	id core.FileID,
 ) error {
-	query := srv.DocumentStore.Query().
+	query := srv.FileStore.Query().
 		OwnerID(user.ID).
 		ID(id)
 

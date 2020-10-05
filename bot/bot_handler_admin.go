@@ -24,7 +24,7 @@ func (bot *Bot) onAdmin(ctx context.Context, msg *tgbotapi.Message) error {
 		"*#cтатистика*",
 		"",
 		fmt.Sprintf("*Пользователи*: `%d`", stats.Users),
-		fmt.Sprintf("*Документы*: `%d`", stats.Documents),
+		fmt.Sprintf("*Файлы*: `%d`", stats.Files),
 		fmt.Sprintf("*Загрузки*: `%d`", stats.Downloads),
 	}, "\n")
 

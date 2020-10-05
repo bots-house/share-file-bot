@@ -14,14 +14,14 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-type DocumentStore struct {
+type FileStore struct {
 	boil.ContextExecutor
 }
 
-func (store *DocumentStore) toRow(doc *core.Document) *dal.Document {
+func (store *FileStore) toRow(doc *core.File) *dal.Document {
 	return &dal.Document{
 		ID:        int(doc.ID),
-		FileID:    doc.FileID,
+		FileID:    doc.TelegramID,
 		PublicID:  doc.PublicID,
 		Caption:   doc.Caption,
 		MimeType:  doc.MIMEType,
@@ -32,24 +32,24 @@ func (store *DocumentStore) toRow(doc *core.Document) *dal.Document {
 	}
 }
 
-func (store *DocumentStore) fromRow(row *dal.Document) *core.Document {
-	return &core.Document{
-		ID:        core.DocumentID(row.ID),
-		FileID:    row.FileID,
-		PublicID:  row.PublicID,
-		Caption:   row.Caption,
-		MIMEType:  row.MimeType,
-		Size:      row.Size,
-		Name:      row.Name,
-		OwnerID:   core.UserID(row.OwnerID),
-		CreatedAt: row.CreatedAt,
+func (store *FileStore) fromRow(row *dal.Document) *core.File {
+	return &core.File{
+		ID:         core.FileID(row.ID),
+		TelegramID: row.FileID,
+		PublicID:   row.PublicID,
+		Caption:    row.Caption,
+		MIMEType:   row.MimeType,
+		Size:       row.Size,
+		Name:       row.Name,
+		OwnerID:    core.UserID(row.OwnerID),
+		CreatedAt:  row.CreatedAt,
 	}
 }
 
-func (store *DocumentStore) Add(ctx context.Context, doc *core.Document) error {
+func (store *FileStore) Add(ctx context.Context, doc *core.File) error {
 	for {
 		if err := store.add(ctx, doc); err != nil {
-			if isDocumentPublicIDCollision(err) {
+			if isFilePublicIDCollision(err) {
 				currID := doc.PublicID
 				doc.RegenPublicID()
 				log.Warn(ctx, "collison when insert doc", "curr_id", currID, "next_id", doc.PublicID)
@@ -63,12 +63,12 @@ func (store *DocumentStore) Add(ctx context.Context, doc *core.Document) error {
 	}
 }
 
-func isDocumentPublicIDCollision(err error) bool {
+func isFilePublicIDCollision(err error) bool {
 	err2, ok := errors.Cause(err).(*pq.Error)
 	return ok && err2.Constraint == "document_public_id_key"
 }
 
-func (store *DocumentStore) add(ctx context.Context, doc *core.Document) error {
+func (store *FileStore) add(ctx context.Context, doc *core.File) error {
 	row := store.toRow(doc)
 	if err := row.Insert(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer()); err != nil {
 		return errors.Wrap(err, "insert query")
@@ -77,48 +77,48 @@ func (store *DocumentStore) add(ctx context.Context, doc *core.Document) error {
 	return nil
 }
 
-func (store *DocumentStore) Update(ctx context.Context, doc *core.Document) error {
+func (store *FileStore) Update(ctx context.Context, doc *core.File) error {
 	row := store.toRow(doc)
 	n, err := row.Update(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer())
 	if err != nil {
 		return errors.Wrap(err, "update query")
 	}
 	if n == 0 {
-		return core.ErrDocumentNotFound
+		return core.ErrFileNotFound
 	}
 	return nil
 }
 
-func (store *DocumentStore) Query() core.DocumentStoreQuery {
-	return &documentStoreQuery{store: store}
+func (store *FileStore) Query() core.FileStoreQuery {
+	return &fileStoreQuery{store: store}
 }
 
-type documentStoreQuery struct {
+type fileStoreQuery struct {
 	mods  []qm.QueryMod
-	store *DocumentStore
+	store *FileStore
 }
 
-func (dsq *documentStoreQuery) ID(id core.DocumentID) core.DocumentStoreQuery {
+func (dsq *fileStoreQuery) ID(id core.FileID) core.FileStoreQuery {
 	dsq.mods = append(dsq.mods, dal.DocumentWhere.ID.EQ(int(id)))
 	return dsq
 }
 
-func (dsq *documentStoreQuery) PublicID(id string) core.DocumentStoreQuery {
+func (dsq *fileStoreQuery) PublicID(id string) core.FileStoreQuery {
 	dsq.mods = append(dsq.mods, dal.DocumentWhere.PublicID.EQ(id))
 	return dsq
 }
 
-func (dsq *documentStoreQuery) OwnerID(id core.UserID) core.DocumentStoreQuery {
+func (dsq *fileStoreQuery) OwnerID(id core.UserID) core.FileStoreQuery {
 	dsq.mods = append(dsq.mods, dal.DocumentWhere.OwnerID.EQ(int(id)))
 	return dsq
 }
 
-func (dsq *documentStoreQuery) One(ctx context.Context) (*core.Document, error) {
+func (dsq *fileStoreQuery) One(ctx context.Context) (*core.File, error) {
 	executor := shared.GetExecutorOrDefault(ctx, dsq.store.ContextExecutor)
 
 	doc, err := dal.Documents(dsq.mods...).One(ctx, executor)
 	if err == sql.ErrNoRows {
-		return nil, core.ErrDocumentNotFound
+		return nil, core.ErrFileNotFound
 	} else if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (dsq *documentStoreQuery) One(ctx context.Context) (*core.Document, error) 
 	return dsq.store.fromRow(doc), nil
 }
 
-func (dsq *documentStoreQuery) Delete(ctx context.Context) error {
+func (dsq *fileStoreQuery) Delete(ctx context.Context) error {
 	executor := shared.GetExecutorOrDefault(ctx, dsq.store.ContextExecutor)
 	count, err := dal.
 		Documents(dsq.mods...).
@@ -135,12 +135,12 @@ func (dsq *documentStoreQuery) Delete(ctx context.Context) error {
 		return errors.Wrap(err, "delete query")
 	}
 	if count == 0 {
-		return core.ErrDocumentNotFound
+		return core.ErrFileNotFound
 	}
 	return nil
 }
 
-func (dsq *documentStoreQuery) Count(ctx context.Context) (int, error) {
+func (dsq *fileStoreQuery) Count(ctx context.Context) (int, error) {
 	executor := shared.GetExecutorOrDefault(ctx, dsq.store.ContextExecutor)
 	count, err := dal.
 		Documents(dsq.mods...).

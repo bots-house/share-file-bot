@@ -195,23 +195,23 @@ func run(ctx context.Context) error {
 		UserStore: pg.User,
 	}
 
-	docSrv := &service.Document{
-		DocumentStore: pg.Document,
+	fileSrv := &service.File{
+		FileStore:     pg.File,
 		DownloadStore: pg.Download,
 	}
 
 	adminSrv := &service.Admin{
 		User:     pg.User,
-		Document: pg.Document,
+		File:     pg.File,
 		Download: pg.Download,
 	}
 
 	log.Info(ctx, "init bot")
-	tgBot, err := bot.New(cfg.Token, authSrv, docSrv, adminSrv)
+	tgBot, err := bot.New(cfg.Token, authSrv, fileSrv, adminSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}
-	log.Info(ctx, "bot", "username", tgBot.Self().UserName)
+	log.Info(ctx, "bot is alive", "link", "https://t.me/"+tgBot.Self().UserName)
 
 	server := newServer(cfg.Addr, tgBot, db)
 

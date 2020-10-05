@@ -13,7 +13,7 @@ const (
 	imageHowToUpload = "https://telegra.ph/file/2de4c3f11a14eeb0adcfb.png"
 	textHelp         = "Я помогу тебе поделится любым *документом* с подписчиками твоего канала. Отправь мне любой файл, а я в ответ дам тебе ссылку. Так же рекомендую указать подпись к файлу, чтобы человек не забыл кто ему этот файл пошарил 🤗.\n\n /settings - для более тонкой настройки"
 	textStart        = "Привет! 👋\n\n" + textHelp
-	textNotDocument  = "На данный момент я работаю только с *документами* (*файлами*). Выбери нужный вариант при загрузке 👇"
+	textNotFile      = "На данный момент я работаю только с *документами* (*файлами*). Выбери нужный вариант при загрузке 👇"
 )
 
 func (bot *Bot) onHelp(ctx context.Context, msg *tgbotapi.Message) error {
@@ -25,20 +25,20 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 	if args := msg.CommandArguments(); args != "" {
 		user := getUserCtx(ctx)
 
-		log.Debug(ctx, "query document", "public_id", args)
-		result, err := bot.docSrv.GetDocumentByPublicID(ctx, user, args)
-		if errors.Cause(err) == core.ErrDocumentNotFound {
+		log.Debug(ctx, "query file", "public_id", args)
+		result, err := bot.fileSrv.GetFileByPublicID(ctx, user, args)
+		if errors.Cause(err) == core.ErrFileNotFound {
 			answer := bot.newAnswerMsg(msg, "😐Ничего не знаю о таком файле, проверь ссылку...")
 			return bot.send(ctx, answer)
 		} else if err != nil {
-			return errors.Wrap(err, "download document")
+			return errors.Wrap(err, "download file")
 		}
 
 		switch {
-		case result.OwnedDocument != nil:
-			return bot.send(ctx, bot.renderOwnedDocument(msg, result.OwnedDocument))
-		case result.Document != nil:
-			return bot.send(ctx, bot.renderNotOwnedDocument(msg, result.Document))
+		case result.OwnedFile != nil:
+			return bot.send(ctx, bot.renderOwnedFile(msg, result.OwnedFile))
+		case result.File != nil:
+			return bot.send(ctx, bot.renderNotOwnedFile(msg, result.File))
 		default:
 			log.Error(ctx, "bad result")
 		}
@@ -48,8 +48,8 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 	return bot.send(ctx, answer)
 }
 
-func (bot *Bot) onNotDocument(ctx context.Context, msg *tgbotapi.Message) error {
-	txt := embeddWebPagePreview(textNotDocument, imageHowToUpload)
+func (bot *Bot) onNotFile(ctx context.Context, msg *tgbotapi.Message) error {
+	txt := embeddWebPagePreview(textNotFile, imageHowToUpload)
 	answer := bot.newAnswerMsg(msg, txt)
 	return bot.send(ctx, answer)
 }

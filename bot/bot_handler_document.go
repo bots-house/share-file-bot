@@ -14,64 +14,64 @@ import (
 
 const tgDomain = "t.me"
 
-func (bot *Bot) renderNotOwnedDocument(msg *tgbotapi.Message, doc *core.Document) tgbotapi.DocumentConfig {
-	share := tgbotapi.NewDocumentShare(int64(msg.From.ID), doc.FileID)
+func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, doc *core.File) tgbotapi.DocumentConfig {
+	share := tgbotapi.NewDocumentShare(int64(msg.From.ID), doc.TelegramID)
 	share.ParseMode = tgbotapi.ModeMarkdown
 	share.Caption = escapeMarkdown(doc.Caption.String)
 	return share
 }
 
-func (bot *Bot) renderOwnedDocumentCaption(doc *service.OwnedDocument) string {
+func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 	rows := []string{}
 
-	if doc.Caption.String != "" {
+	if file.Caption.String != "" {
 		rows = append(rows,
-			fmt.Sprintf("*Описание*: %s", escapeMarkdown(doc.Caption.String)),
+			fmt.Sprintf("*Описание*: %s", escapeMarkdown(file.Caption.String)),
 			"",
 		)
 	}
 
 	rows = append(rows,
-		fmt.Sprintf("*Кол-во загрузок*: `%d`", doc.Stats.Total),
-		fmt.Sprintf("*Кол-во уникальных загрузок*: `%d`", doc.Stats.Unique),
+		fmt.Sprintf("*Кол-во загрузок*: `%d`", file.Stats.Total),
+		fmt.Sprintf("*Кол-во уникальных загрузок*: `%d`", file.Stats.Unique),
 		"",
 	)
 
 	rows = append(rows, fmt.Sprintf("*Публичная ссылка*: https://%s/%s?start=%s",
 		tgDomain,
 		escapeMarkdown(bot.client.Self.UserName),
-		escapeMarkdown(doc.PublicID),
+		escapeMarkdown(file.PublicID),
 	))
 
 	return strings.Join(rows, "\n")
 }
 
-func (bot *Bot) renderOwnedDocumentReplyMarkup(doc *service.OwnedDocument) tgbotapi.InlineKeyboardMarkup {
+func (bot *Bot) renderOwnedFileReplyMarkup(file *service.OwnedFile) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(
 				"Обновить",
-				fmt.Sprintf("document:%d:refresh", doc.ID),
+				fmt.Sprintf("file:%d:refresh", file.ID),
 			),
 			tgbotapi.NewInlineKeyboardButtonData(
 				"Удалить",
-				fmt.Sprintf("document:%d:delete", doc.ID),
+				fmt.Sprintf("file:%d:delete", file.ID),
 			),
 		),
 	)
 }
 
-func (bot *Bot) renderOwnedDocument(msg *tgbotapi.Message, doc *service.OwnedDocument) tgbotapi.DocumentConfig {
-	share := tgbotapi.NewDocumentShare(int64(msg.From.ID), doc.FileID)
+func (bot *Bot) renderOwnedFile(msg *tgbotapi.Message, doc *service.OwnedFile) tgbotapi.DocumentConfig {
+	share := tgbotapi.NewDocumentShare(int64(msg.From.ID), doc.TelegramID)
 
 	share.ParseMode = tgbotapi.ModeMarkdown
-	share.Caption = bot.renderOwnedDocumentCaption(doc)
-	share.ReplyMarkup = bot.renderOwnedDocumentReplyMarkup(doc)
+	share.Caption = bot.renderOwnedFileCaption(doc)
+	share.ReplyMarkup = bot.renderOwnedFileReplyMarkup(doc)
 
 	return share
 }
 
-func (bot *Bot) onDocument(ctx context.Context, msg *tgbotapi.Message) error {
+func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message) error {
 	user := getUserCtx(ctx)
 
 	go func() {
@@ -84,7 +84,7 @@ func (bot *Bot) onDocument(ctx context.Context, msg *tgbotapi.Message) error {
 	}()
 
 	// spew.Dump(msg)
-	doc, err := bot.docSrv.AddDocument(ctx, user, &service.InputDocument{
+	doc, err := bot.fileSrv.AddFile(ctx, user, &service.InputFile{
 		FileID:   msg.Document.FileID,
 		Caption:  msg.Caption,
 		MIMEType: msg.Document.MimeType,
@@ -93,40 +93,40 @@ func (bot *Bot) onDocument(ctx context.Context, msg *tgbotapi.Message) error {
 	})
 
 	if err != nil {
-		return errors.Wrap(err, "service add document")
+		return errors.Wrap(err, "service add file")
 	}
 
-	result := bot.renderOwnedDocument(msg, doc)
+	result := bot.renderOwnedFile(msg, doc)
 
 	return bot.send(ctx, result)
 }
 
-func (bot *Bot) getDocumentForOwner(ctx context.Context, cbq *tgbotapi.CallbackQuery, id int) (*service.OwnedDocument, error) {
+func (bot *Bot) getFileForOwner(ctx context.Context, cbq *tgbotapi.CallbackQuery, id int) (*service.OwnedFile, error) {
 	user := getUserCtx(ctx)
 
-	doc, err := bot.docSrv.GetDocumentByID(ctx, user, core.DocumentID(id))
+	doc, err := bot.fileSrv.GetFileByID(ctx, user, core.FileID(id))
 	if err != nil {
-		return nil, errors.Wrap(err, "get document by id")
+		return nil, errors.Wrap(err, "get file by id")
 	}
 
-	// user is not owner of document but try to access
-	if doc.OwnedDocument == nil {
+	// user is not owner of file but try to access
+	if doc.OwnedFile == nil {
 		if cbq != nil {
 			_ = bot.answerCallbackQuery(ctx, cbq, "bad body, what you do?")
 		}
-		return nil, errors.New("can't manage document")
+		return nil, errors.New("can't manage file")
 	}
 
-	return doc.OwnedDocument, nil
+	return doc.OwnedFile, nil
 }
 
-func (bot *Bot) onDocumentRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuery, id int) error {
-	doc, err := bot.getDocumentForOwner(ctx, cbq, id)
+func (bot *Bot) onFileRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuery, id int) error {
+	doc, err := bot.getFileForOwner(ctx, cbq, id)
 	if err != nil {
-		return errors.Wrap(err, "get document for owner")
+		return errors.Wrap(err, "get file for owner")
 	}
 
-	caption := bot.renderOwnedDocumentCaption(doc)
+	caption := bot.renderOwnedFileCaption(doc)
 
 	edit := tgbotapi.NewEditMessageCaption(
 		cbq.Message.Chat.ID,
@@ -135,7 +135,7 @@ func (bot *Bot) onDocumentRefreshCBQ(ctx context.Context, cbq *tgbotapi.Callback
 	)
 
 	edit.ParseMode = tgbotapi.ModeMarkdown
-	replyMarkup := bot.renderOwnedDocumentReplyMarkup(doc)
+	replyMarkup := bot.renderOwnedFileReplyMarkup(doc)
 	edit.ReplyMarkup = &replyMarkup
 
 	if err := bot.send(ctx, edit); err != nil {
@@ -150,14 +150,14 @@ func (bot *Bot) onDocumentRefreshCBQ(ctx context.Context, cbq *tgbotapi.Callback
 	return bot.answerCallbackQuery(ctx, cbq, "")
 }
 
-func (bot *Bot) onDocumentDeleteCBQ(
+func (bot *Bot) onFileDeleteCBQ(
 	ctx context.Context,
 	cbq *tgbotapi.CallbackQuery,
 	id int,
 ) error {
-	doc, err := bot.getDocumentForOwner(ctx, cbq, id)
+	file, err := bot.getFileForOwner(ctx, cbq, id)
 	if err != nil {
-		return errors.Wrap(err, "get document for owner")
+		return errors.Wrap(err, "get file for owner")
 	}
 
 	go func() {
@@ -180,11 +180,11 @@ func (bot *Bot) onDocumentDeleteCBQ(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(
 				"Да, уверен",
-				fmt.Sprintf("document:%d:delete:confirm", doc.ID),
+				fmt.Sprintf("file:%d:delete:confirm", file.ID),
 			),
 			tgbotapi.NewInlineKeyboardButtonData(
 				"Нет",
-				fmt.Sprintf("document:%d:refresh", doc.ID),
+				fmt.Sprintf("file:%d:refresh", file.ID),
 			),
 		),
 	)
@@ -194,18 +194,18 @@ func (bot *Bot) onDocumentDeleteCBQ(
 	return bot.send(ctx, edit)
 }
 
-func (bot *Bot) onDocumentDeleteConfirmCBQ(
+func (bot *Bot) onFileDeleteConfirmCBQ(
 	ctx context.Context,
 	cbq *tgbotapi.CallbackQuery,
 	id int,
 ) error {
 	user := getUserCtx(ctx)
-	docID := core.DocumentID(id)
+	docID := core.FileID(id)
 
-	if err := bot.docSrv.DeleteDocument(ctx, user, docID); err == core.ErrDocumentNotFound {
+	if err := bot.fileSrv.DeleteFile(ctx, user, docID); err == core.ErrFileNotFound {
 		return bot.answerCallbackQuery(ctx, cbq, "Файл не найден")
 	} else if err != nil {
-		return errors.Wrap(err, "service delete document")
+		return errors.Wrap(err, "service delete file")
 	}
 
 	if err := bot.send(ctx, tgbotapi.NewDeleteMessage(
