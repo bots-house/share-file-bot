@@ -1,7 +1,7 @@
 // +heroku goVersion go1.14.2
 module github.com/bots-house/share-file-bot
 
-go 1.15.2
+go 1.15
 
 require (
 	github.com/fatih/structs v1.1.0
