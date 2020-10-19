@@ -51,3 +51,8 @@ func (bot *Bot) onUnsupportedFileKind(ctx context.Context, msg *tgbotapi.Message
 	answer := bot.newReplyMsg(msg, textUnsupportedFileKind)
 	return bot.send(ctx, answer)
 }
+
+func (bot *Bot) onVersion(ctx context.Context, msg *tgbotapi.Message) error {
+	answer := bot.newReplyMsg(msg, "`"+bot.revision+"`")
+	return bot.send(ctx, answer)
+}

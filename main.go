@@ -58,7 +58,7 @@ func (cfg Config) getEnv() string {
 
 var logger = log.NewLogger(true, true)
 
-var revision string
+var revision = "unknown"
 
 func main() {
 	ctx := context.Background()
@@ -207,7 +207,7 @@ func run(ctx context.Context) error {
 	}
 
 	log.Info(ctx, "init bot")
-	tgBot, err := bot.New(cfg.Token, authSrv, fileSrv, adminSrv)
+	tgBot, err := bot.New(revision, cfg.Token, authSrv, fileSrv, adminSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}

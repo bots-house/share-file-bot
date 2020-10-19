@@ -21,7 +21,8 @@ import (
 )
 
 type Bot struct {
-	client *tgbotapi.BotAPI
+	revision string
+	client   *tgbotapi.BotAPI
 
 	authSrv  *service.Auth
 	fileSrv  *service.File
@@ -34,13 +35,14 @@ func (bot *Bot) Self() tgbotapi.User {
 	return bot.client.Self
 }
 
-func New(token string, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin) (*Bot, error) {
+func New(revision string, token string, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin) (*Bot, error) {
 	client, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, errors.Wrap(err, "create bot api")
 	}
 
 	bot := &Bot{
+		revision: revision,
 		client:   client,
 		authSrv:  authSrv,
 		fileSrv:  docSrv,
@@ -107,6 +109,8 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			return bot.onAdmin(ctx, msg)
 		case "settings":
 			return bot.onSettings(ctx, msg)
+		case "version":
+			return bot.onVersion(ctx, msg)
 		}
 
 		// handle other
