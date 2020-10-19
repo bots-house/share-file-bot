@@ -10,13 +10,13 @@ import (
 
 type Admin struct {
 	User     core.UserStore
-	Document core.DocumentStore
+	File     core.FileStore
 	Download core.DownloadStore
 }
 
 type AdminSummaryStats struct {
 	Users     int
-	Documents int
+	Files     int
 	Downloads int
 }
 
@@ -39,12 +39,12 @@ func (srv *Admin) getStats(ctx context.Context) (*AdminSummaryStats, error) {
 	})
 
 	wg.Go(func() error {
-		docs, err := srv.Document.Query().Count(ctx)
+		docs, err := srv.File.Query().Count(ctx)
 		if err != nil {
 			return errors.Wrap(err, "count docs")
 		}
 
-		stats.Documents = docs
+		stats.Files = docs
 
 		return nil
 	})

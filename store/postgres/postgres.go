@@ -17,7 +17,7 @@ type Postgres struct {
 	migrator *migrations.Migrator
 
 	User     *UserStore
-	Document *DocumentStore
+	File     *FileStore
 	Download *DownloadStore
 }
 
@@ -27,7 +27,7 @@ func NewPostgres(db *sql.DB) *Postgres {
 		DB:       db,
 		migrator: migrations.New(db),
 		User:     &UserStore{ContextExecutor: db},
-		Document: &DocumentStore{ContextExecutor: db},
+		File:     &FileStore{ContextExecutor: db},
 		Download: &DownloadStore{ContextExecutor: db},
 	}
 

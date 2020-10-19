@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
@@ -20,10 +21,11 @@ import (
 )
 
 type Bot struct {
-	client *tgbotapi.BotAPI
+	revision string
+	client   *tgbotapi.BotAPI
 
 	authSrv  *service.Auth
-	docSrv   *service.Document
+	fileSrv  *service.File
 	adminSrv *service.Admin
 
 	handler tg.Handler
@@ -33,16 +35,17 @@ func (bot *Bot) Self() tgbotapi.User {
 	return bot.client.Self
 }
 
-func New(token string, authSrv *service.Auth, docSrv *service.Document, adminSrv *service.Admin) (*Bot, error) {
+func New(revision string, token string, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin) (*Bot, error) {
 	client, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, errors.Wrap(err, "create bot api")
 	}
 
 	bot := &Bot{
+		revision: revision,
 		client:   client,
 		authSrv:  authSrv,
-		docSrv:   docSrv,
+		fileSrv:  docSrv,
 		adminSrv: adminSrv,
 	}
 
@@ -86,15 +89,13 @@ func (bot *Bot) initHandler() {
 }
 
 var (
-	cbqDocumentRefresh       = regexp.MustCompile(`^document:(\d+):refresh$`)
-	cbqDocumentDelete        = regexp.MustCompile(`^document:(\d+):delete$`)
-	cbqDocumentDeleteConfirm = regexp.MustCompile(`^document:(\d+):delete:confirm$`)
+	cbqFileRefresh           = regexp.MustCompile(`^file:(\d+):refresh$`)
+	cbqFileDelete            = regexp.MustCompile(`^file:(\d+):delete$`)
+	cbqFileDeleteConfirm     = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
 	cbqSettingsToggleLongIDs = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
 )
 
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
-	// spew.Dump(update)
-
 	// handle message
 	if msg := update.Message; msg != nil {
 
@@ -108,48 +109,50 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			return bot.onAdmin(ctx, msg)
 		case "settings":
 			return bot.onSettings(ctx, msg)
+		case "version":
+			return bot.onVersion(ctx, msg)
 		}
 
 		// handle other
-		if msg.Document != nil {
-			return bot.onDocument(ctx, msg)
-		} else {
-			return bot.onNotDocument(ctx, msg)
+		if kind := bot.detectKind(msg); kind != core.KindUnknown {
+			return bot.onFile(ctx, msg)
 		}
+
+		return bot.onUnsupportedFileKind(ctx, msg)
 	}
 
 	// handle callback queries
 	if cbq := update.CallbackQuery; cbq != nil {
 		data := cbq.Data
 		switch {
-		case len(cbqDocumentRefresh.FindStringIndex(data)) > 0:
-			result := cbqDocumentRefresh.FindStringSubmatch(data)
+		case len(cbqFileRefresh.FindStringIndex(data)) > 0:
+			result := cbqFileRefresh.FindStringSubmatch(data)
 
 			id, err := strconv.Atoi(result[1])
 			if err != nil {
 				return errors.Wrap(err, "parse cbq data")
 			}
 
-			return bot.onDocumentRefreshCBQ(ctx, cbq, id)
+			return bot.onFileRefreshCBQ(ctx, cbq, id)
 
-		case len(cbqDocumentDelete.FindStringIndex(data)) > 0:
-			result := cbqDocumentDelete.FindStringSubmatch(data)
-
-			id, err := strconv.Atoi(result[1])
-			if err != nil {
-				return errors.Wrap(err, "parse cbq data")
-			}
-
-			return bot.onDocumentDeleteCBQ(ctx, cbq, id)
-		case len(cbqDocumentDeleteConfirm.FindStringIndex(data)) > 0:
-			result := cbqDocumentDeleteConfirm.FindStringSubmatch(data)
+		case len(cbqFileDelete.FindStringIndex(data)) > 0:
+			result := cbqFileDelete.FindStringSubmatch(data)
 
 			id, err := strconv.Atoi(result[1])
 			if err != nil {
 				return errors.Wrap(err, "parse cbq data")
 			}
 
-			return bot.onDocumentDeleteConfirmCBQ(ctx, cbq, id)
+			return bot.onFileDeleteCBQ(ctx, cbq, id)
+		case len(cbqFileDeleteConfirm.FindStringIndex(data)) > 0:
+			result := cbqFileDeleteConfirm.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onFileDeleteConfirmCBQ(ctx, cbq, id)
 		case len(cbqSettingsToggleLongIDs.FindStringIndex(data)) > 0:
 			return bot.onSettingsToggleLongIDsCBQ(ctx, cbq)
 		}

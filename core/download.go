@@ -12,8 +12,8 @@ type Download struct {
 	// ID of download.
 	ID DownloadID
 
-	// Reference to document. Can be null.
-	DocumentID DocumentID
+	// Reference to file. Can be null.
+	FileID FileID
 
 	// References to user. Can be null.
 	UserID UserID
@@ -22,11 +22,11 @@ type Download struct {
 	At time.Time
 }
 
-func NewDownload(docID DocumentID, userID UserID) *Download {
+func NewDownload(fileID FileID, userID UserID) *Download {
 	return &Download{
-		DocumentID: docID,
-		UserID:     userID,
-		At:         time.Now(),
+		FileID: fileID,
+		UserID: userID,
+		At:     time.Now(),
 	}
 }
 
@@ -36,14 +36,14 @@ type DownloadStats struct {
 }
 
 type DownloadStoreQuery interface {
-	DocumentID(id DocumentID) DownloadStoreQuery
+	FileID(id FileID) DownloadStoreQuery
 
 	Count(ctx context.Context) (int, error)
 }
 
 type DownloadStore interface {
 	Add(ctx context.Context, download *Download) error
-	GetDownloadStats(ctx context.Context, id DocumentID) (*DownloadStats, error)
+	GetDownloadStats(ctx context.Context, id FileID) (*DownloadStats, error)
 
 	Query() DownloadStoreQuery
 }

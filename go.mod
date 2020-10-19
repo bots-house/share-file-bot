@@ -1,7 +1,7 @@
 // +heroku goVersion go1.14.2
 module github.com/bots-house/share-file-bot
 
-go 1.14
+go 1.15
 
 require (
 	github.com/fatih/structs v1.1.0
@@ -26,4 +26,5 @@ require (
 	github.com/volatiletech/sqlboiler/v4 v4.2.0
 	github.com/volatiletech/strmangle v0.0.1
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
