@@ -14,11 +14,15 @@ import (
 
 const tgDomain = "t.me"
 
-func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, doc *core.File) tgbotapi.DocumentConfig {
-	share := tgbotapi.NewDocumentShare(int64(msg.From.ID), doc.TelegramID)
-	share.ParseMode = tgbotapi.ModeMarkdown
-	share.Caption = escapeMarkdown(doc.Caption.String)
-	return share
+func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, file *core.File) tgbotapi.Chattable {
+	return bot.renderGenericFile(
+		msg.Chat.ID,
+		file.Kind,
+		file.TelegramID,
+		escapeMarkdown(file.Caption.String),
+		tgbotapi.ModeMarkdown,
+		nil,
+	)
 }
 
 func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
@@ -61,42 +65,108 @@ func (bot *Bot) renderOwnedFileReplyMarkup(file *service.OwnedFile) tgbotapi.Inl
 	)
 }
 
-func (bot *Bot) renderOwnedFile(msg *tgbotapi.Message, doc *service.OwnedFile) tgbotapi.DocumentConfig {
-	share := tgbotapi.NewDocumentShare(int64(msg.From.ID), doc.TelegramID)
-
-	share.ParseMode = tgbotapi.ModeMarkdown
-	share.Caption = bot.renderOwnedFileCaption(doc)
-	share.ReplyMarkup = bot.renderOwnedFileReplyMarkup(doc)
-
-	return share
+func (bot *Bot) renderGenericFile(
+	chatID int64,
+	fileKind core.Kind,
+	fileID string,
+	caption string,
+	parseMode string,
+	replyMarkup interface{},
+) tgbotapi.Chattable {
+	switch fileKind {
+	case core.KindDocument:
+		share := tgbotapi.NewDocumentShare(chatID, fileID)
+		share.Caption = caption
+		share.ReplyMarkup = replyMarkup
+		share.ParseMode = parseMode
+		return share
+	case core.KindAnimation:
+		share := tgbotapi.NewAnimationShare(chatID, fileID)
+		share.Caption = caption
+		share.ReplyMarkup = replyMarkup
+		share.ParseMode = parseMode
+		return share
+	case core.KindAudio:
+		share := tgbotapi.NewAudioShare(chatID, fileID)
+		share.Caption = caption
+		share.ReplyMarkup = replyMarkup
+		share.ParseMode = parseMode
+		return share
+	case core.KindPhoto:
+		share := tgbotapi.NewPhotoShare(chatID, fileID)
+		share.Caption = caption
+		share.ReplyMarkup = replyMarkup
+		share.ParseMode = parseMode
+		return share
+	case core.KindVideo:
+		share := tgbotapi.NewVideoShare(chatID, fileID)
+		share.Caption = caption
+		share.ReplyMarkup = replyMarkup
+		share.ParseMode = parseMode
+		return share
+	case core.KindVoice:
+		share := tgbotapi.NewVoiceShare(chatID, fileID)
+		share.Caption = caption
+		share.ReplyMarkup = replyMarkup
+		share.ParseMode = parseMode
+		return share
+	default:
+		return nil
+	}
 }
 
-func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message) error {
+func (bot *Bot) renderOwnedFile(msg *tgbotapi.Message, file *service.OwnedFile) tgbotapi.Chattable {
+	return bot.renderGenericFile(
+		int64(msg.Chat.ID),
+		file.Kind,
+		file.TelegramID,
+		bot.renderOwnedFileCaption(file),
+		tgbotapi.ModeMarkdown,
+		bot.renderOwnedFileReplyMarkup(file),
+	)
+}
+
+func (bot *Bot) deleteMessage(ctx context.Context, msg *tgbotapi.Message) error {
+	if err := bot.send(ctx, tgbotapi.NewDeleteMessage(
+		msg.Chat.ID,
+		msg.MessageID,
+	)); err != nil {
+		log.Warn(ctx, "can't delete incoming message", "chat_id", msg.Chat.ID, "msg_id", msg.MessageID)
+		return err
+	}
+
+	return nil
+}
+
+func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message, kind core.Kind) error {
 	user := getUserCtx(ctx)
 
-	go func() {
-		if err := bot.send(ctx, tgbotapi.NewDeleteMessage(
-			msg.Chat.ID,
-			msg.MessageID,
-		)); err != nil {
-			log.Warn(ctx, "can't delete incoming message", "chat_id", msg.Chat.ID, "msg_id", msg.MessageID)
-		}
-	}()
+	inputFile := bot.extractInputFileFromMessage(msg)
 
-	// spew.Dump(msg)
-	doc, err := bot.fileSrv.AddFile(ctx, user, &service.InputFile{
-		FileID:   msg.Document.FileID,
-		Caption:  msg.Caption,
-		MIMEType: msg.Document.MimeType,
-		Size:     msg.Document.FileSize,
-		Name:     msg.Document.FileName,
-	})
+	if inputFile == nil {
+		bot.sendText(ctx,
+			user.ID,
+			"⚠️ Упс, я не могу добавить этот файл, так как не поддерживаю его",
+		)
+
+		return core.ErrInvalidKind
+	}
+
+	// delete user message for avoid trash in history
+	go bot.deleteMessage(ctx, msg)
+
+	file, err := bot.fileSrv.AddFile(ctx, user, inputFile)
 
 	if err != nil {
+		bot.sendText(ctx,
+			user.ID,
+			"⚠️ Что-то пошло не так при добавлении файла",
+		)
+
 		return errors.Wrap(err, "service add file")
 	}
 
-	result := bot.renderOwnedFile(msg, doc)
+	result := bot.renderOwnedFile(msg, file)
 
 	return bot.send(ctx, result)
 }
@@ -208,12 +278,7 @@ func (bot *Bot) onFileDeleteConfirmCBQ(
 		return errors.Wrap(err, "service delete file")
 	}
 
-	if err := bot.send(ctx, tgbotapi.NewDeleteMessage(
-		cbq.Message.Chat.ID,
-		cbq.Message.MessageID,
-	)); err != nil {
-		log.Warn(ctx, "can't delete message")
-	}
+	go bot.deleteMessage(ctx, cbq.Message)
 
 	return bot.answerCallbackQuery(ctx, cbq, "✅ Документ удален")
 }

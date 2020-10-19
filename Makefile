@@ -14,6 +14,12 @@ generate:  generate-dal
 generate-dal: .bin/sqlboiler .bin/sqlboiler-psql
 	.bin/sqlboiler .bin/sqlboiler-psql
 
+generate-domain: core/kind_string.go
+
+
+core/kind_string.go: core/kind.go
+	cd core && stringer -type Kind -trimprefix Kind
+
 .bin/golangci-lint:
 	mkdir -p .bin
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b .bin v$(golangci_lint_version)

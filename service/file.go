@@ -16,9 +16,12 @@ type File struct {
 type InputFile struct {
 	FileID   string
 	Caption  string
+	Kind     core.Kind
 	MIMEType string
 	Name     string
 	Size     int
+
+	Metadata core.Metadata
 }
 
 type OwnedFile struct {
@@ -46,14 +49,20 @@ func (srv *File) AddFile(
 	doc := core.NewFile(
 		in.FileID,
 		in.Caption,
+		in.Kind,
 		in.MIMEType,
 		in.Size,
 		in.Name,
 		user.ID,
 		user.Settings.LongIDs,
+		in.Metadata,
 	)
 
-	log.Info(ctx, "create file", "name", in.Name, "size", in.Size)
+	log.Info(ctx, "create file",
+		"name", in.Name,
+		"size", in.Size,
+		"kind", in.Kind.String(),
+	)
 	if err := srv.FileStore.Add(ctx, doc); err != nil {
 		return nil, errors.Wrap(err, "add file to store")
 	}

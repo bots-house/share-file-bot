@@ -15,7 +15,22 @@ func init() {
 		alter table download rename column document_id to file_id; 
 		alter index idx_download_document_id rename to download_file_id_idx;
 		alter table download rename constraint download_document_id_fkey to download_file_id_fkey;
-		-- rename in related user
+
+		create type file_kind as enum(
+			'Document', 
+			'Animation', 
+			'Audio', 
+			'Sticker',
+			'Video', 
+			'VideoNote', 
+			'Voice',
+			'Photo'
+		);
+
+		alter table file add column kind file_kind not null default('Document');
+		alter table file alter column kind drop default;
+
+		alter table file add column metadata jsonb not null default('{}');
     `), query(`
         alter tabel "user" drop column settings;
     `))

@@ -19,6 +19,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"github.com/volatiletech/sqlboiler/v4/queries/qmhelper"
+	"github.com/volatiletech/sqlboiler/v4/types"
 	"github.com/volatiletech/strmangle"
 )
 
@@ -33,6 +34,8 @@ type File struct {
 	OwnerID   int         `boil:"owner_id" json:"owner_id" toml:"owner_id" yaml:"owner_id"`
 	CreatedAt time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	PublicID  string      `boil:"public_id" json:"public_id" toml:"public_id" yaml:"public_id"`
+	Kind      string      `boil:"kind" json:"kind" toml:"kind" yaml:"kind"`
+	Metadata  types.JSON  `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
 
 	R *fileR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L fileL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -48,6 +51,8 @@ var FileColumns = struct {
 	OwnerID   string
 	CreatedAt string
 	PublicID  string
+	Kind      string
+	Metadata  string
 }{
 	ID:        "id",
 	FileID:    "file_id",
@@ -58,6 +63,8 @@ var FileColumns = struct {
 	OwnerID:   "owner_id",
 	CreatedAt: "created_at",
 	PublicID:  "public_id",
+	Kind:      "kind",
+	Metadata:  "metadata",
 }
 
 // Generated where
@@ -108,6 +115,27 @@ func (w whereHelpernull_String) GTE(x null.String) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.GTE, x)
 }
 
+type whereHelpertypes_JSON struct{ field string }
+
+func (w whereHelpertypes_JSON) EQ(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.EQ, x)
+}
+func (w whereHelpertypes_JSON) NEQ(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.NEQ, x)
+}
+func (w whereHelpertypes_JSON) LT(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.LT, x)
+}
+func (w whereHelpertypes_JSON) LTE(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.LTE, x)
+}
+func (w whereHelpertypes_JSON) GT(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.GT, x)
+}
+func (w whereHelpertypes_JSON) GTE(x types.JSON) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.GTE, x)
+}
+
 var FileWhere = struct {
 	ID        whereHelperint
 	FileID    whereHelperstring
@@ -118,6 +146,8 @@ var FileWhere = struct {
 	OwnerID   whereHelperint
 	CreatedAt whereHelpertime_Time
 	PublicID  whereHelperstring
+	Kind      whereHelperstring
+	Metadata  whereHelpertypes_JSON
 }{
 	ID:        whereHelperint{field: "\"file\".\"id\""},
 	FileID:    whereHelperstring{field: "\"file\".\"file_id\""},
@@ -128,6 +158,8 @@ var FileWhere = struct {
 	OwnerID:   whereHelperint{field: "\"file\".\"owner_id\""},
 	CreatedAt: whereHelpertime_Time{field: "\"file\".\"created_at\""},
 	PublicID:  whereHelperstring{field: "\"file\".\"public_id\""},
+	Kind:      whereHelperstring{field: "\"file\".\"kind\""},
+	Metadata:  whereHelpertypes_JSON{field: "\"file\".\"metadata\""},
 }
 
 // FileRels is where relationship names are stored.
@@ -154,9 +186,9 @@ func (*fileR) NewStruct() *fileR {
 type fileL struct{}
 
 var (
-	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id"}
-	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id"}
-	fileColumnsWithDefault    = []string{"id"}
+	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "metadata"}
+	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind"}
+	fileColumnsWithDefault    = []string{"id", "metadata"}
 	filePrimaryKeyColumns     = []string{"id"}
 )
 

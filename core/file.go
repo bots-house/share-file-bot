@@ -29,6 +29,9 @@ type File struct {
 	// Caption of file
 	Caption null.String
 
+	// Kind of file
+	Kind Kind
+
 	// MIMEType of file
 	MIMEType null.String
 
@@ -38,6 +41,9 @@ type File struct {
 	// File size in bytes
 	Size int
 
+	// Metadata contains metadata of file depends by kind.
+	Metadata Metadata
+
 	// Reference to user who uploads file.
 	OwnerID UserID
 
@@ -45,23 +51,27 @@ type File struct {
 	CreatedAt time.Time
 }
 
-func (doc *File) RegenPublicID() {
-	doc.PublicID = secretid.Generate(secretid.IsLong(doc.PublicID))
+func (file *File) RegenPublicID() {
+	file.PublicID = secretid.Generate(secretid.IsLong(file.PublicID))
 }
 
 func NewFile(
 	fileID string,
 	caption string,
+	kind Kind,
 	mimeType string,
 	size int,
 	name string,
 	ownerID UserID,
 	longID bool,
+	md Metadata,
 ) *File {
 	return &File{
 		TelegramID: fileID,
 		PublicID:   secretid.Generate(longID),
 		Caption:    null.NewString(caption, caption != ""),
+		Kind:       kind,
+		Metadata:   md,
 		MIMEType:   null.NewString(mimeType, mimeType != ""),
 		Size:       size,
 		Name:       name,

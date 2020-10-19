@@ -50,3 +50,15 @@ func makeCacheKey(cols boil.Columns, nzDefaults []string) string {
 	strmangle.PutBuffer(buf)
 	return str
 }
+
+// Enum values for file_kind
+const (
+	FileKindDocument  = "Document"
+	FileKindAnimation = "Animation"
+	FileKindAudio     = "Audio"
+	FileKindSticker   = "Sticker"
+	FileKindVideo     = "Video"
+	FileKindVideoNote = "VideoNote"
+	FileKindVoice     = "Voice"
+	FileKindPhoto     = "Photo"
+)

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
@@ -17,32 +18,52 @@ type FileStore struct {
 	boil.ContextExecutor
 }
 
-func (store *FileStore) toRow(file *core.File) *dal.File {
+func (store *FileStore) toRow(file *core.File) (*dal.File, error) {
+	metadata, err := json.Marshal(file.Metadata)
+	if err != nil {
+		return nil, errors.Wrap(err, "unmarshal metadata")
+	}
+
 	return &dal.File{
 		ID:        int(file.ID),
 		FileID:    file.TelegramID,
 		PublicID:  file.PublicID,
 		Caption:   file.Caption,
 		MimeType:  file.MIMEType,
+		Kind:      file.Kind.String(),
+		Metadata:  metadata,
 		Size:      file.Size,
 		Name:      file.Name,
 		OwnerID:   int(file.OwnerID),
 		CreatedAt: file.CreatedAt,
-	}
+	}, nil
 }
 
-func (store *FileStore) fromRow(row *dal.File) *core.File {
+func (store *FileStore) fromRow(row *dal.File) (*core.File, error) {
+	kind, err := core.ParseKind(row.Kind)
+	if err != nil {
+		return nil, err
+	}
+
+	var metadata core.Metadata
+
+	if err := row.Metadata.Unmarshal(&metadata); err != nil {
+		return nil, errors.Wrap(err, "unmarshal metadata")
+	}
+
 	return &core.File{
 		ID:         core.FileID(row.ID),
 		TelegramID: row.FileID,
 		PublicID:   row.PublicID,
 		Caption:    row.Caption,
+		Kind:       kind,
+		Metadata:   metadata,
 		MIMEType:   row.MimeType,
 		Size:       row.Size,
 		Name:       row.Name,
 		OwnerID:    core.UserID(row.OwnerID),
 		CreatedAt:  row.CreatedAt,
-	}
+	}, nil
 }
 
 func (store *FileStore) Add(ctx context.Context, doc *core.File) error {
@@ -63,16 +84,31 @@ func (store *FileStore) Add(ctx context.Context, doc *core.File) error {
 }
 
 func (store *FileStore) add(ctx context.Context, file *core.File) error {
-	row := store.toRow(file)
+	row, err := store.toRow(file)
+	if err != nil {
+		return errors.Wrap(err, "to row")
+	}
+
 	if err := row.Insert(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer()); err != nil {
 		return errors.Wrap(err, "insert query")
 	}
-	*file = *store.fromRow(row)
+
+	newFile, err := store.fromRow(row)
+	if err != nil {
+		return errors.Wrap(err, "from row")
+	}
+
+	*file = *newFile
+
 	return nil
 }
 
 func (store *FileStore) Update(ctx context.Context, file *core.File) error {
-	row := store.toRow(file)
+	row, err := store.toRow(file)
+	if err != nil {
+		return errors.Wrap(err, "to row")
+	}
+
 	n, err := row.Update(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer())
 	if err != nil {
 		return errors.Wrap(err, "update query")
@@ -117,7 +153,7 @@ func (fsq *fileStoreQuery) One(ctx context.Context) (*core.File, error) {
 		return nil, err
 	}
 
-	return fsq.store.fromRow(doc), nil
+	return fsq.store.fromRow(doc)
 }
 
 func (fsq *fileStoreQuery) Delete(ctx context.Context) error {

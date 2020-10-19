@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
@@ -109,11 +110,11 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 		}
 
 		// handle other
-		if msg.Document != nil {
-			return bot.onFile(ctx, msg)
+		if kind := bot.detectKind(msg); kind != core.KindUnknown {
+			return bot.onFile(ctx, msg, kind)
 		}
 
-		return bot.onNotFile(ctx, msg)
+		return bot.onUnsupportedFileKind(ctx, msg)
 	}
 
 	// handle callback queries
