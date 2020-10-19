@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/bots-house/share-file-bot/core"
@@ -10,15 +9,11 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func embeddWebPagePreview(txt string, link string) string {
-	return fmt.Sprintf("[\u200e](%s)%s", link, txt)
-}
-
 func escapeMarkdown(txt string) string {
-	txt = strings.Replace(txt, "_", "\\_", -1)
-	txt = strings.Replace(txt, "*", "\\*", -1)
-	txt = strings.Replace(txt, "[", "\\[", -1)
-	txt = strings.Replace(txt, "`", "\\`", -1)
+	txt = strings.ReplaceAll(txt, "_", "\\_")
+	txt = strings.ReplaceAll(txt, "*", "\\*")
+	txt = strings.ReplaceAll(txt, "[", "\\[")
+	txt = strings.ReplaceAll(txt, "`", "\\`")
 	return txt
 }
 

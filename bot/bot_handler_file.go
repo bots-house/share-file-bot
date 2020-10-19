@@ -117,7 +117,7 @@ func (bot *Bot) renderGenericFile(
 
 func (bot *Bot) renderOwnedFile(msg *tgbotapi.Message, file *service.OwnedFile) tgbotapi.Chattable {
 	return bot.renderGenericFile(
-		int64(msg.Chat.ID),
+		msg.Chat.ID,
 		file.Kind,
 		file.TelegramID,
 		bot.renderOwnedFileCaption(file),
@@ -138,13 +138,13 @@ func (bot *Bot) deleteMessage(ctx context.Context, msg *tgbotapi.Message) error 
 	return nil
 }
 
-func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message, kind core.Kind) error {
+func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message) error {
 	user := getUserCtx(ctx)
 
 	inputFile := bot.extractInputFileFromMessage(msg)
 
 	if inputFile == nil {
-		bot.sendText(ctx,
+		_ = bot.sendText(ctx,
 			user.ID,
 			"⚠️ Упс, я не могу добавить этот файл, так как не поддерживаю его",
 		)
@@ -153,12 +153,14 @@ func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message, kind core.Kin
 	}
 
 	// delete user message for avoid trash in history
-	go bot.deleteMessage(ctx, msg)
+	go func() {
+		_ = bot.deleteMessage(ctx, msg)
+	}()
 
 	file, err := bot.fileSrv.AddFile(ctx, user, inputFile)
 
 	if err != nil {
-		bot.sendText(ctx,
+		_ = bot.sendText(ctx,
 			user.ID,
 			"⚠️ Что-то пошло не так при добавлении файла",
 		)
@@ -278,7 +280,9 @@ func (bot *Bot) onFileDeleteConfirmCBQ(
 		return errors.Wrap(err, "service delete file")
 	}
 
-	go bot.deleteMessage(ctx, cbq.Message)
+	go func() {
+		_ = bot.deleteMessage(ctx, cbq.Message)
+	}()
 
 	return bot.answerCallbackQuery(ctx, cbq, "✅ Документ удален")
 }

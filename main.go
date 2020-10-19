@@ -78,6 +78,8 @@ func main() {
 	ctx = log.WithLogger(ctx, logger)
 	if err := run(ctx); err != nil {
 		log.Error(ctx, "fatal error", "err", err)
+		cancel()
+		//nolint: gocritic
 		os.Exit(1)
 	}
 }

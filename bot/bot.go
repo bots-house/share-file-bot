@@ -115,7 +115,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 		// handle other
 		if kind := bot.detectKind(msg); kind != core.KindUnknown {
-			return bot.onFile(ctx, msg, kind)
+			return bot.onFile(ctx, msg)
 		}
 
 		return bot.onUnsupportedFileKind(ctx, msg)
