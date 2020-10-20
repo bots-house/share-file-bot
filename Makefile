@@ -14,11 +14,14 @@ generate:  generate-dal
 generate-dal: .bin/sqlboiler .bin/sqlboiler-psql
 	.bin/sqlboiler .bin/sqlboiler-psql
 
-generate-domain: core/kind_string.go
+generate-domain: core/kind_string.go core/chattype_string.go
 
 
 core/kind_string.go: core/kind.go
 	cd core && stringer -type Kind -trimprefix Kind
+
+core/chattype_string.go: core/chat.go
+	cd core && stringer -type ChatType -trimprefix ChatType
 
 .bin/golangci-lint:
 	mkdir -p .bin

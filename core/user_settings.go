@@ -15,16 +15,22 @@ type UserSettings struct {
 	UpdatedAt null.Time `json:"updated_at"`
 }
 
-// Update check if something changed, apply changes and set new updated at.
-func (settings *UserSettings) Update(patch UserSettings) {
+// Patch check if something changed, apply changes and set new updated at.
+func (settings *UserSettings) Patch(do func(*UserSettings)) bool {
+	newSettings := *settings
+
+	do(&newSettings)
+
 	var updated bool
 
-	if settings.LongIDs != patch.LongIDs {
-		settings.LongIDs = patch.LongIDs
+	if newSettings.LongIDs != settings.LongIDs {
+		settings.LongIDs = newSettings.LongIDs
 		updated = true
 	}
 
 	if updated {
 		settings.UpdatedAt = null.TimeFrom(time.Now())
 	}
+
+	return updated
 }
