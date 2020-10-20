@@ -58,20 +58,20 @@ func NewPostgres(db *sql.DB) *Postgres {
 	return pg
 }
 
-func (p *Postgres) Migrator() store.Migrator {
-	return p.migrator
+func (pg *Postgres) Migrator() store.Migrator {
+	return pg.migrator
 }
 
 // Tx run code in database transaction.
 // Based on: https://stackoverflow.com/a/23502629.
-func (p *Postgres) Tx(ctx context.Context, txFunc store.TxFunc) (err error) {
+func (pg *Postgres) Tx(ctx context.Context, txFunc store.TxFunc) (err error) {
 	tx := shared.GetTx(ctx)
 
 	if tx != nil {
 		return txFunc(ctx)
 	}
 
-	tx, err = p.BeginTx(ctx, nil)
+	tx, err = pg.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "begin tx failed")
 	}

@@ -97,7 +97,7 @@ func NewChat(tgID int64, title string, typ ChatType, ownerID UserID) *Chat {
 	}
 }
 
-// ChatStore define interface for persistance of chat.
+// ChatStore define interface for persistence of chat.
 type ChatStore interface {
 	// Add chat to store.
 	Add(ctx context.Context, chat *Chat) error

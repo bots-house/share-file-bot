@@ -21,38 +21,38 @@ func (bs *BaseStore) getExecutor(ctx context.Context) boil.ContextExecutor {
 	return shared.GetExecutorOrDefault(ctx, bs)
 }
 
-type deletableRow interface {
-	Delete(
-		ctx context.Context,
-		exec boil.ContextExecutor,
-	) (int64, error)
-}
+// type deletableRow interface {
+// 	Delete(
+// 		ctx context.Context,
+// 		exec boil.ContextExecutor,
+// 	) (int64, error)
+// }
 
-func (bs *BaseStore) deleteOne(
-	ctx context.Context,
-	row deletableRow,
-	notFoundErr error,
-) error {
-	return bs.Txier(ctx, func(ctx context.Context) error {
-		count, err := row.Delete(
-			ctx,
-			bs.getExecutor(ctx),
-		)
+// func (bs *BaseStore) deleteOne(
+// 	ctx context.Context,
+// 	row deletableRow,
+// 	notFoundErr error,
+// ) error {
+// 	return bs.Txier(ctx, func(ctx context.Context) error {
+// 		count, err := row.Delete(
+// 			ctx,
+// 			bs.getExecutor(ctx),
+// 		)
 
-		if err != nil {
-			return errors.Wrap(err, "exec")
-		}
+// 		if err != nil {
+// 			return errors.Wrap(err, "exec")
+// 		}
 
-		switch {
-		case count == 0:
-			return notFoundErr
-		case count > 1:
-			return store.ErrTooManyAffectedRows
-		}
+// 		switch {
+// 		case count == 0:
+// 			return notFoundErr
+// 		case count > 1:
+// 			return store.ErrTooManyAffectedRows
+// 		}
 
-		return nil
-	})
-}
+// 		return nil
+// 	})
+// }
 
 type updatetableRow interface {
 	Update(
