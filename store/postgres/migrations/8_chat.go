@@ -15,8 +15,12 @@ func init() {
 			type chat_type not null, 
 			owner_id integer not null references "user"(id) on delete cascade,
 			linked_at timestamptz not null, 
-			updated_at timestamptz
+			updated_at timestamptz,
+			
+			-- constraints
+			unique(owner_id, telegram_id)
 		);
+
     `), query(`
         drop table chat;
     `))
