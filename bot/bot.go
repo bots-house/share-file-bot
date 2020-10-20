@@ -14,9 +14,9 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/fatih/structs"
+	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/pkg/errors"
 	"github.com/tomasen/realip"
 )
 

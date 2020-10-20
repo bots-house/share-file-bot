@@ -17,10 +17,10 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
+	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/pkg/errors"
 	"github.com/subosito/gotenv"
 )
 

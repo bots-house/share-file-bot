@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/bots-house/share-file-bot/pkg/log"
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 )
 
 func Check(ctx context.Context, addr string) error {

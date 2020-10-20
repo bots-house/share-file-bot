@@ -10,7 +10,7 @@ import (
 	"github.com/bots-house/share-file-bot/store/postgres/migrations"
 	"github.com/bots-house/share-file-bot/store/postgres/shared"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 
 	// import postgresq driver
 	_ "github.com/lib/pq"

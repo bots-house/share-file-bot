@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"os"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 	"github.com/speps/go-hashids"
 )
 

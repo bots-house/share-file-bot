@@ -7,7 +7,7 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
