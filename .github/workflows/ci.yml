@@ -15,12 +15,32 @@ jobs:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: v1.31
 
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:12
+        env:
+          POSTGRES_USER: chn
+          POSTGRES_PASSWORD: chn
+          POSTGRES_DB: chn
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
   build:
     name: Build
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
       - name: Install Go
         uses: actions/setup-go@v2
@@ -42,3 +62,14 @@ jobs:
 
       - name: Try to build
         run: go build
+
+      - name: Run tests
+        env:
+          DB_DSN: postgres://sfb:sfb@localhost:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
+        run:  go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+      
+      - name: Upload Coverage Result
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} 
+          file: ./coverage.txt
