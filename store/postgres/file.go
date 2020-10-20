@@ -8,14 +8,12 @@ import (
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
-	"github.com/bots-house/share-file-bot/store/postgres/shared"
 	"github.com/pkg/errors"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type FileStore struct {
-	boil.ContextExecutor
+	BaseStore
 }
 
 func (store *FileStore) toRow(file *core.File) (*dal.File, error) {
@@ -66,13 +64,13 @@ func (store *FileStore) fromRow(row *dal.File) (*core.File, error) {
 	}, nil
 }
 
-func (store *FileStore) Add(ctx context.Context, doc *core.File) error {
+func (store *FileStore) Add(ctx context.Context, file *core.File) error {
 	for {
-		if err := store.add(ctx, doc); err != nil {
+		if err := store.add(ctx, file); err != nil {
 			if isFilePublicIDCollisionErr(err) {
-				currID := doc.PublicID
-				doc.RegenPublicID()
-				log.Warn(ctx, "collison when insert doc", "curr_id", currID, "next_id", doc.PublicID)
+				currID := file.PublicID
+				file.RegenPublicID()
+				log.Warn(ctx, "collison when insert doc", "curr_id", currID, "next_id", file.PublicID)
 				continue
 			} else {
 				return err
@@ -89,7 +87,7 @@ func (store *FileStore) add(ctx context.Context, file *core.File) error {
 		return errors.Wrap(err, "to row")
 	}
 
-	if err := row.Insert(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer()); err != nil {
+	if err := store.insertOne(ctx, row); err != nil {
 		return errors.Wrap(err, "insert query")
 	}
 
@@ -109,13 +107,10 @@ func (store *FileStore) Update(ctx context.Context, file *core.File) error {
 		return errors.Wrap(err, "to row")
 	}
 
-	n, err := row.Update(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer())
-	if err != nil {
-		return errors.Wrap(err, "update query")
+	if err := store.updateOne(ctx, row, core.ErrFileNotFound); err != nil {
+		return errors.Wrap(err, "update one")
 	}
-	if n == 0 {
-		return core.ErrFileNotFound
-	}
+
 	return nil
 }
 
@@ -144,20 +139,20 @@ func (fsq *fileStoreQuery) OwnerID(id core.UserID) core.FileStoreQuery {
 }
 
 func (fsq *fileStoreQuery) One(ctx context.Context) (*core.File, error) {
-	executor := shared.GetExecutorOrDefault(ctx, fsq.store.ContextExecutor)
+	executor := fsq.store.getExecutor(ctx)
 
-	doc, err := dal.Files(fsq.mods...).One(ctx, executor)
+	file, err := dal.Files(fsq.mods...).One(ctx, executor)
 	if err == sql.ErrNoRows {
 		return nil, core.ErrFileNotFound
 	} else if err != nil {
 		return nil, err
 	}
 
-	return fsq.store.fromRow(doc)
+	return fsq.store.fromRow(file)
 }
 
 func (fsq *fileStoreQuery) Delete(ctx context.Context) error {
-	executor := shared.GetExecutorOrDefault(ctx, fsq.store.ContextExecutor)
+	executor := fsq.store.getExecutor(ctx)
 	count, err := dal.
 		Files(fsq.mods...).
 		DeleteAll(ctx, executor)
@@ -171,10 +166,12 @@ func (fsq *fileStoreQuery) Delete(ctx context.Context) error {
 }
 
 func (fsq *fileStoreQuery) Count(ctx context.Context) (int, error) {
-	executor := shared.GetExecutorOrDefault(ctx, fsq.store.ContextExecutor)
+	executor := fsq.store.getExecutor(ctx)
+
 	count, err := dal.
 		Files(fsq.mods...).
 		Count(ctx, executor)
+
 	if err != nil {
 		return 0, errors.Wrap(err, "count query")
 	}

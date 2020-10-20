@@ -5,15 +5,13 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
-	"github.com/bots-house/share-file-bot/store/postgres/shared"
 	"github.com/pkg/errors"
 	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type DownloadStore struct {
-	boil.ContextExecutor
+	BaseStore
 }
 
 func (store *DownloadStore) toRow(dwn *core.Download) *dal.Download {
@@ -36,7 +34,7 @@ func (store *DownloadStore) fromRow(row *dal.Download) *core.Download {
 
 func (store *DownloadStore) Add(ctx context.Context, dwn *core.Download) error {
 	row := store.toRow(dwn)
-	if err := row.Insert(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer()); err != nil {
+	if err := store.insertOne(ctx, row); err != nil {
 		return errors.Wrap(err, "insert query")
 	}
 	*dwn = *store.fromRow(row)
@@ -61,7 +59,7 @@ func (store *DownloadStore) GetDownloadStats(ctx context.Context, id core.FileID
 
 	result := &core.DownloadStats{}
 
-	executor := shared.GetExecutorOrDefault(ctx, store.ContextExecutor)
+	executor := store.getExecutor(ctx)
 
 	if err := executor.QueryRowContext(ctx, query, id).Scan(
 		&result.Total,
@@ -84,10 +82,9 @@ func (dsq *downloadStoreQuery) FileID(id core.FileID) core.DownloadStoreQuery {
 }
 
 func (dsq *downloadStoreQuery) Count(ctx context.Context) (int, error) {
-	executor := shared.GetExecutorOrDefault(ctx, dsq.store.ContextExecutor)
 	count, err := dal.
 		Downloads(dsq.mods...).
-		Count(ctx, executor)
+		Count(ctx, dsq.store.getExecutor(ctx))
 	if err != nil {
 		return 0, errors.Wrap(err, "count query")
 	}

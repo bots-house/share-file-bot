@@ -7,14 +7,12 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
-	"github.com/bots-house/share-file-bot/store/postgres/shared"
 	"github.com/pkg/errors"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type UserStore struct {
-	boil.ContextExecutor
+	BaseStore
 }
 
 func (store *UserStore) toRow(user *core.User) (*dal.User, error) {
@@ -64,7 +62,7 @@ func (store *UserStore) Add(ctx context.Context, user *core.User) error {
 	}
 
 	// insert
-	if err := row.Insert(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer()); err != nil {
+	if err := store.insertOne(ctx, row); err != nil {
 		return errors.Wrap(err, "insert query")
 	}
 
@@ -80,7 +78,7 @@ func (store *UserStore) Add(ctx context.Context, user *core.User) error {
 }
 
 func (store *UserStore) Find(ctx context.Context, id core.UserID) (*core.User, error) {
-	acc, err := dal.FindUser(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), int(id))
+	acc, err := dal.FindUser(ctx, store.getExecutor(ctx), int(id))
 	if err == sql.ErrNoRows {
 		return nil, core.ErrUserNotFound
 	} else if err != nil {
@@ -95,13 +93,11 @@ func (store *UserStore) Update(ctx context.Context, user *core.User) error {
 	if err != nil {
 		return errors.Wrap(err, "to row")
 	}
-	n, err := row.Update(ctx, shared.GetExecutorOrDefault(ctx, store.ContextExecutor), boil.Infer())
-	if err != nil {
-		return errors.Wrap(err, "update query")
+
+	if err := store.updateOne(ctx, row, core.ErrUserNotFound); err != nil {
+		return errors.Wrap(err, "update one")
 	}
-	if n == 0 {
-		return core.ErrUserNotFound
-	}
+
 	return nil
 }
 
@@ -115,10 +111,9 @@ type userStoreQuery struct {
 }
 
 func (usq *userStoreQuery) Count(ctx context.Context) (int, error) {
-	executor := shared.GetExecutorOrDefault(ctx, usq.store.ContextExecutor)
 	count, err := dal.
 		Users(usq.mods...).
-		Count(ctx, executor)
+		Count(ctx, usq.store.getExecutor(ctx))
 	if err != nil {
 		return 0, errors.Wrap(err, "count query")
 	}
