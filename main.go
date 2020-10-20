@@ -186,7 +186,7 @@ func run(ctx context.Context) error {
 	db.SetMaxIdleConns(cfg.DatabaseMaxIdleConns)
 
 	// create abstraction around db and apply migrations
-	pg := postgres.NewPostgres(db)
+	pg := postgres.New(db)
 
 	log.Info(ctx, "migrate database")
 	if err := pg.Migrator().Up(ctx); err != nil {

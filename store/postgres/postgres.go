@@ -39,8 +39,8 @@ func (pg *Postgres) Download() core.DownloadStore {
 	return pg.download
 }
 
-// NewPostgres create postgres based database with all stores.
-func NewPostgres(db *sql.DB) *Postgres {
+// New create postgres based database with all stores.
+func New(db *sql.DB) *Postgres {
 	pg := &Postgres{
 		DB:       db,
 		migrator: migrations.New(db),
