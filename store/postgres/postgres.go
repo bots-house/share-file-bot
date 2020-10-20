@@ -23,6 +23,7 @@ type Postgres struct {
 	user     *UserStore
 	file     *FileStore
 	download *DownloadStore
+	chat     *ChatStore
 }
 
 var _ store.Store = &Postgres{}
@@ -37,6 +38,10 @@ func (pg *Postgres) User() core.UserStore {
 
 func (pg *Postgres) Download() core.DownloadStore {
 	return pg.download
+}
+
+func (pg *Postgres) Chat() core.ChatStore {
+	return pg.chat
 }
 
 // New create postgres based database with all stores.
@@ -54,6 +59,7 @@ func New(db *sql.DB) *Postgres {
 	pg.download = &DownloadStore{base}
 	pg.user = &UserStore{base}
 	pg.file = &FileStore{base}
+	pg.chat = &ChatStore{base}
 
 	return pg
 }
