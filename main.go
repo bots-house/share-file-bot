@@ -194,18 +194,18 @@ func run(ctx context.Context) error {
 	}
 
 	authSrv := &service.Auth{
-		UserStore: pg.User,
+		UserStore: pg.User(),
 	}
 
 	fileSrv := &service.File{
-		FileStore:     pg.File,
-		DownloadStore: pg.Download,
+		FileStore:     pg.File(),
+		DownloadStore: pg.Download(),
 	}
 
 	adminSrv := &service.Admin{
-		User:     pg.User,
-		File:     pg.File,
-		Download: pg.Download,
+		User:     pg.User(),
+		File:     pg.File(),
+		Download: pg.Download(),
 	}
 
 	log.Info(ctx, "init bot")
