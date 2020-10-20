@@ -8,6 +8,8 @@ import (
 type StoreFactory interface {
 	User() core.UserStore
 	File() core.FileStore
+	Download() core.DownloadStore
+	Chat() core.ChatStore
 }
 
 // Store define generic interface for database with transaction support

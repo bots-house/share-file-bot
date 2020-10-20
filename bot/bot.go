@@ -27,6 +27,7 @@ type Bot struct {
 	authSrv  *service.Auth
 	fileSrv  *service.File
 	adminSrv *service.Admin
+	chatSrv  *service.Chat
 
 	handler tg.Handler
 }
@@ -35,11 +36,7 @@ func (bot *Bot) Self() tgbotapi.User {
 	return bot.client.Self
 }
 
-func New(revision string, token string, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin) (*Bot, error) {
-	client, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		return nil, errors.Wrap(err, "create bot api")
-	}
+func New(revision string, client *tgbotapi.BotAPI, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin, chatSrv *service.Chat) (*Bot, error) {
 
 	bot := &Bot{
 		revision: revision,
@@ -47,6 +44,7 @@ func New(revision string, token string, authSrv *service.Auth, docSrv *service.F
 		authSrv:  authSrv,
 		fileSrv:  docSrv,
 		adminSrv: adminSrv,
+		chatSrv:  chatSrv,
 	}
 
 	// bot.client.Debug = true
@@ -89,10 +87,14 @@ func (bot *Bot) initHandler() {
 }
 
 var (
-	cbqFileRefresh           = regexp.MustCompile(`^file:(\d+):refresh$`)
-	cbqFileDelete            = regexp.MustCompile(`^file:(\d+):delete$`)
-	cbqFileDeleteConfirm     = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
-	cbqSettingsToggleLongIDs = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
+	cbqFileRefresh       = regexp.MustCompile(`^file:(\d+):refresh$`)
+	cbqFileDelete        = regexp.MustCompile(`^file:(\d+):delete$`)
+	cbqFileDeleteConfirm = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
+
+	cbqSettings                        = regexp.MustCompile(`^` + callbackSettings + `$`)
+	cbqSettingsToggleLongIDs           = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
+	cbqSettingsChannelsAndChats        = regexp.MustCompile(`^` + callbackSettingsChannelsAndChats + `$`)
+	cbqSettingsChannelsAndChatsConnect = regexp.MustCompile(`^` + callbackSettingsChannelsAndChatsConnect + `$`)
 )
 
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
@@ -125,6 +127,8 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	if cbq := update.CallbackQuery; cbq != nil {
 		data := cbq.Data
 		switch {
+
+		// file menu
 		case len(cbqFileRefresh.FindStringIndex(data)) > 0:
 			result := cbqFileRefresh.FindStringSubmatch(data)
 
@@ -135,6 +139,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 			return bot.onFileRefreshCBQ(ctx, cbq, id)
 
+		// file menu / delete
 		case len(cbqFileDelete.FindStringIndex(data)) > 0:
 			result := cbqFileDelete.FindStringSubmatch(data)
 
@@ -153,9 +158,24 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onFileDeleteConfirmCBQ(ctx, cbq, id)
+
+		// settings
+		case len(cbqSettings.FindStringIndex(data)) > 0:
+			return bot.onSettingsCallbackQuery(ctx, cbq)
+
+		// settings / long ids
 		case len(cbqSettingsToggleLongIDs.FindStringIndex(data)) > 0:
 			return bot.onSettingsToggleLongIDsCBQ(ctx, cbq)
+
+		// settings / channels and chats
+		case len(cbqSettingsChannelsAndChats.FindStringIndex(data)) > 0:
+			return bot.onSettingsChannelsAndChats(ctx, cbq)
+
+		// settings / channels and chats / connect
+		case len(cbqSettingsChannelsAndChatsConnect.FindStringIndex(data)) > 0:
+			return bot.onSettingsChannelsAndChatsConnect(ctx, cbq)
 		}
+
 	}
 
 	return nil

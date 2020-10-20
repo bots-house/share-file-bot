@@ -13,7 +13,10 @@ func escapeMarkdown(txt string) string {
 	txt = strings.ReplaceAll(txt, "_", "\\_")
 	txt = strings.ReplaceAll(txt, "*", "\\*")
 	txt = strings.ReplaceAll(txt, "[", "\\[")
+	txt = strings.ReplaceAll(txt, "(", "\\(")
+	txt = strings.ReplaceAll(txt, ")", "\\)")
 	txt = strings.ReplaceAll(txt, "`", "\\`")
+	txt = strings.ReplaceAll(txt, ".", "\\.")
 	return txt
 }
 

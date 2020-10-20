@@ -20,6 +20,8 @@ import (
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+
 	"github.com/kelseyhightower/envconfig"
 	"github.com/subosito/gotenv"
 )
@@ -209,7 +211,17 @@ func run(ctx context.Context) error {
 	}
 
 	log.Info(ctx, "init bot")
-	tgBot, err := bot.New(revision, cfg.Token, authSrv, fileSrv, adminSrv)
+	tgClient, err := tgbotapi.NewBotAPI(cfg.Token)
+	if err != nil {
+		return errors.Wrap(err, "create bot api")
+	}
+
+	chatSrv := &service.Chat{
+		Telegram: tgClient,
+		Chat:     pg.Chat(),
+	}
+
+	tgBot, err := bot.New(revision, tgClient, authSrv, fileSrv, adminSrv, chatSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}

@@ -15,14 +15,22 @@ var (
 	textSettings = dedent.Dedent(`
         ⚙️ __*Настройки*__
 
-        _Длинные ID_ — бот будет генерировать максимально возможные по длине ссылки, идеально для личных файлов\. Длинные ссылки буду генерироватся только для новых документов\.
+		• _Длинные ID_ — бот будет генерировать максимально возможные по длине ссылки, идеально для личных файлов\. Длинные ссылки буду генерироватся только для новых документов\.
+
+		• _Каналы и чаты_ — управление каналами и чата подключенными к боту в качестве ограничителя при скачивании ваших файлов\.
     `)
+
+	textCommonBack = "« Назад"
 
 	textSettingsButtonLongIDs              = "Длинные ID"
 	textSettingsButtonLongIDsEnabledAlert  = "Генериация длинных ссылок включена"
 	textSettingsButtonLongIDsDisabledAlert = "Генериация длинных ссылок выключена"
 
-	callbackSettingsLongIDs = "settings:toggle-long-ids"
+	textSettingsButtonChannelsAndChats = "📢 Каналы и чаты"
+
+	callbackSettings                 = "settings"
+	callbackSettingsLongIDs          = "settings:toggle-long-ids"
+	callbackSettingsChannelsAndChats = "settings:channels-and-chats"
 )
 
 func addIsEnabledEmoji(v bool, text string) string {
@@ -33,16 +41,26 @@ func addIsEnabledEmoji(v bool, text string) string {
 	return text
 }
 
-func (bot *Bot) newSettingsMenuMessage(msg *tgbotapi.Message, user *core.User) *tgbotapi.MessageConfig {
-	answ := bot.newAnswerMsg(msg, textSettings)
-	answ.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+func (bot *Bot) newSettingsMenuMessageReplyMarkup(longIDs bool) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(
-				addIsEnabledEmoji(user.Settings.LongIDs, textSettingsButtonLongIDs),
+				addIsEnabledEmoji(longIDs, textSettingsButtonLongIDs),
 				callbackSettingsLongIDs,
 			),
 		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				textSettingsButtonChannelsAndChats,
+				callbackSettingsChannelsAndChats,
+			),
+		),
 	)
+}
+
+func (bot *Bot) newSettingsMenuMessage(msg *tgbotapi.Message, user *core.User) *tgbotapi.MessageConfig {
+	answ := bot.newAnswerMsg(msg, textSettings)
+	answ.ReplyMarkup = bot.newSettingsMenuMessageReplyMarkup(user.Settings.LongIDs)
 	answ.ParseMode = "MarkdownV2"
 
 	return answ
@@ -51,14 +69,7 @@ func (bot *Bot) newSettingsMenuMessage(msg *tgbotapi.Message, user *core.User) *
 func (bot *Bot) newSettingsMenuMessageEdit(msg *tgbotapi.Message, user *core.User) tgbotapi.EditMessageTextConfig {
 	answ := tgbotapi.NewEditMessageText(msg.Chat.ID, msg.MessageID, textSettings)
 
-	markup := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(
-				addIsEnabledEmoji(user.Settings.LongIDs, textSettingsButtonLongIDs),
-				callbackSettingsLongIDs,
-			),
-		),
-	)
+	markup := bot.newSettingsMenuMessageReplyMarkup(user.Settings.LongIDs)
 
 	answ.ReplyMarkup = &markup
 	answ.ParseMode = "MarkdownV2"
@@ -97,5 +108,12 @@ func (bot *Bot) onSettings(ctx context.Context, msg *tgbotapi.Message) error {
 
 	answ := bot.newSettingsMenuMessage(msg, user)
 
+	return bot.send(ctx, answ)
+}
+
+func (bot *Bot) onSettingsCallbackQuery(ctx context.Context, cbq *tgbotapi.CallbackQuery) error {
+
+	user := getUserCtx(ctx)
+	answ := bot.newSettingsMenuMessageEdit(cbq.Message, user)
 	return bot.send(ctx, answ)
 }
