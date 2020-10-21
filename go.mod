@@ -6,10 +6,12 @@ go 1.15
 require (
 	github.com/DATA-DOG/go-txdb v0.1.3
 	github.com/brianvoe/gofakeit/v5 v5.9.3
+	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/structs v1.1.0
 	github.com/friendsofgo/errors v0.9.2
 	github.com/getsentry/sentry-go v0.7.0
 	github.com/go-kit/kit v0.10.0
+	github.com/go-redis/redis/v8 v8.3.2
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/kelseyhightower/envconfig v1.4.0

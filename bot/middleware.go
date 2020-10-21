@@ -20,59 +20,56 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 		return tg.HandlerFunc(func(ctx context.Context, update *tgbotapi.Update) error {
 			var (
 				tgUser *tgbotapi.User
-				tgChat *tgbotapi.Chat
 			)
 
 			switch {
 			case update.Message != nil:
 				tgUser = update.Message.From
-				tgChat = update.Message.Chat
 			case update.EditedMessage != nil:
 				tgUser = update.EditedMessage.From
-				tgChat = update.EditedMessage.Chat
 			case update.CallbackQuery != nil:
 				tgUser = update.CallbackQuery.From
+			case update.ChannelPost != nil && update.ChannelPost.NewChatTitle != "":
+				tgUser = nil
 			default:
 				log.Warn(ctx, "unsupported update", "id", update.UpdateID)
 				return nil
 			}
 
-			if tgChat != nil && !tgChat.IsPrivate() {
-				return nil
-			}
+			if tgUser != nil {
+				if tgUser.UserName != "" {
+					ctx = log.With(ctx, "user", fmt.Sprintf("%s#%d", tgUser.UserName, tgUser.ID))
+				} else {
+					ctx = log.With(ctx, "user", fmt.Sprintf("#%d", tgUser.ID))
+				}
 
-			if tgUser.UserName != "" {
-				ctx = log.With(ctx, "user", fmt.Sprintf("%s#%d", tgUser.UserName, tgUser.ID))
-			} else {
-				ctx = log.With(ctx, "user", fmt.Sprintf("#%d", tgUser.ID))
-			}
-
-			user, err := srv.Auth(ctx, &service.UserInfo{
-				ID:           tgUser.ID,
-				FirstName:    tgUser.FirstName,
-				LastName:     tgUser.LastName,
-				Username:     tgUser.UserName,
-				LanguageCode: tgUser.LanguageCode,
-			})
-
-			if err != nil {
-				return errors.Wrap(err, "auth service")
-			}
-
-			sentry.AddBreadcrumb(&sentry.Breadcrumb{
-				Message: "Authenticated",
-				Level:   sentry.LevelInfo,
-				Data:    structs.Map(user),
-			})
-
-			ctx = withUser(ctx, user)
-
-			sentry.ConfigureScope(func(scope *sentry.Scope) {
-				scope.SetUser(sentry.User{
-					ID:       strconv.Itoa(int(user.ID)),
-					Username: user.Username.String,
+				user, err := srv.Auth(ctx, &service.UserInfo{
+					ID:           tgUser.ID,
+					FirstName:    tgUser.FirstName,
+					LastName:     tgUser.LastName,
+					Username:     tgUser.UserName,
+					LanguageCode: tgUser.LanguageCode,
 				})
-			})
+
+				if err != nil {
+					return errors.Wrap(err, "auth service")
+				}
+
+				sentry.AddBreadcrumb(&sentry.Breadcrumb{
+					Message: "Authenticated",
+					Level:   sentry.LevelInfo,
+					Data:    structs.Map(user),
+				})
+
+				ctx = withUser(ctx, user)
+
+				sentry.ConfigureScope(func(scope *sentry.Scope) {
+					scope.SetUser(sentry.User{
+						ID:       strconv.Itoa(int(user.ID)),
+						Username: user.Username.String,
+					})
+				})
+			}
 
 			return next.HandleUpdate(ctx, update)
 		})

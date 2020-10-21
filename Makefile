@@ -39,6 +39,9 @@ core/chattype_string.go: core/chat.go
 psql:
 	docker-compose exec postgres psql -U sfb
 
+redis-cli:
+	docker-compose exec redis redis-cli
+
 psql-recreate-db:
 	docker-compose exec postgres dropdb --username sfb sfb
 	docker-compose exec postgres createdb --username sfb sfb 

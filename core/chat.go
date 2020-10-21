@@ -106,4 +106,23 @@ type ChatStore interface {
 
 	// Update chat in store.
 	Update(ctx context.Context, chat *Chat) error
+
+	Query() ChatStoreQuery
+}
+
+// ChatStoreQuery define interface for complex queries.
+type ChatStoreQuery interface {
+	// Filter Users by ID's
+	ID(ids ...ChatID) ChatStoreQuery
+
+	TelegramID(v int64) ChatStoreQuery
+
+	// Query only one item from store.
+	One(ctx context.Context) (*Chat, error)
+
+	// Query all items from store.
+	All(ctx context.Context) ([]*Chat, error)
+
+	// Count items in store.
+	Count(ctx context.Context) (int, error)
 }

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
@@ -22,7 +23,9 @@ import (
 
 type Bot struct {
 	revision string
-	client   *tgbotapi.BotAPI
+
+	client *tgbotapi.BotAPI
+	state  state.Store
 
 	authSrv  *service.Auth
 	fileSrv  *service.File
@@ -36,11 +39,13 @@ func (bot *Bot) Self() tgbotapi.User {
 	return bot.client.Self
 }
 
-func New(revision string, client *tgbotapi.BotAPI, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin, chatSrv *service.Chat) (*Bot, error) {
+func New(revision string, client *tgbotapi.BotAPI, state state.Store, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin, chatSrv *service.Chat) (*Bot, error) {
 
 	bot := &Bot{
 		revision: revision,
 		client:   client,
+		state:    state,
+
 		authSrv:  authSrv,
 		fileSrv:  docSrv,
 		adminSrv: adminSrv,
@@ -98,8 +103,26 @@ var (
 )
 
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
+
+	if msg := update.ChannelPost; msg != nil {
+		if msg.NewChatTitle != "" {
+			return bot.onChatNewTitle(ctx, msg)
+		}
+	}
+
 	// handle message
 	if msg := update.Message; msg != nil {
+		user := getUserCtx(ctx)
+
+		userState, err := bot.state.Get(ctx, user.ID)
+		if err != nil {
+			return errors.Wrap(err, "get state")
+		}
+
+		switch userState {
+		case state.SettingsChannelsAndChatsConnect:
+			return bot.onSettingsChannelsAndChatsConnectState(ctx, msg)
+		}
 
 		// handle command
 		switch msg.Command() {
@@ -175,7 +198,6 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 		case len(cbqSettingsChannelsAndChatsConnect.FindStringIndex(data)) > 0:
 			return bot.onSettingsChannelsAndChatsConnect(ctx, cbq)
 		}
-
 	}
 
 	return nil

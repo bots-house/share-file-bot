@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
 	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type ChatStore struct {
@@ -41,6 +43,20 @@ func (store *ChatStore) fromRow(row *dal.Chat) (*core.Chat, error) {
 	}, nil
 }
 
+func (store *ChatStore) fromRowSlice(rows dal.ChatSlice) ([]*core.Chat, error) {
+	result := make([]*core.Chat, len(rows))
+
+	for i, row := range rows {
+		chat, err := store.fromRow(row)
+		if err != nil {
+			return nil, errors.Wrapf(err, "from row #%d", i)
+		}
+		result[i] = chat
+	}
+
+	return result, nil
+}
+
 // Add chat to store.
 func (store *ChatStore) Add(ctx context.Context, chat *core.Chat) error {
 	row := store.toRow(chat)
@@ -67,4 +83,64 @@ func (store *ChatStore) Update(ctx context.Context, chat *core.Chat) error {
 	}
 
 	return nil
+}
+
+func (store *ChatStore) Query() core.ChatStoreQuery {
+	return &ChatStoreQuery{
+		Store: store,
+	}
+}
+
+type ChatStoreQuery struct {
+	Store *ChatStore
+	Mods  []qm.QueryMod
+}
+
+// ID Filter
+func (usq *ChatStoreQuery) ID(ids ...core.ChatID) core.ChatStoreQuery {
+	idsInt := make([]int, len(ids))
+	for i, v := range ids {
+		idsInt[i] = int(v)
+	}
+
+	usq.Mods = append(usq.Mods, dal.ChatWhere.ID.IN(idsInt))
+
+	return usq
+}
+
+// TelegramID filter
+func (csq *ChatStoreQuery) TelegramID(id int64) core.ChatStoreQuery {
+	csq.Mods = append(csq.Mods, dal.ChatWhere.TelegramID.EQ(id))
+	return csq
+}
+
+// One return only one item from store.
+func (csq *ChatStoreQuery) One(ctx context.Context) (*core.Chat, error) {
+	row, err := dal.Chats(csq.Mods...).One(ctx, csq.Store.getExecutor(ctx))
+	if err == sql.ErrNoRows {
+		return nil, core.ErrChatNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	return csq.Store.fromRow(row)
+}
+
+// All query items from store.
+func (csq *ChatStoreQuery) All(ctx context.Context) ([]*core.Chat, error) {
+	row, err := dal.Chats(csq.Mods...).All(ctx, csq.Store.getExecutor(ctx))
+	if err != nil {
+		return nil, err
+	}
+	return csq.Store.fromRowSlice(row)
+}
+
+// Count items in store.
+func (csq *ChatStoreQuery) Count(ctx context.Context) (int, error) {
+	count, err := dal.Users(csq.Mods...).Count(ctx, csq.Store.getExecutor(ctx))
+	if err != nil {
+		return -1, err
+	}
+
+	return int(count), nil
 }

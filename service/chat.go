@@ -4,12 +4,16 @@ import (
 	"context"
 
 	"github.com/bots-house/share-file-bot/core"
+	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/bots-house/share-file-bot/pkg/tg"
+	"github.com/bots-house/share-file-bot/store"
 	"github.com/friendsofgo/errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type Chat struct {
 	Telegram *tgbotapi.BotAPI
+	Txier    store.Txier
 	Chat     core.ChatStore
 }
 
@@ -27,9 +31,37 @@ func NewChatIdentityFromUsername(un string) ChatIdentity {
 }
 
 var (
-	ErrBotIsNotChatAdmin  = errors.New("bot is not admin")
-	ErrUserIsNotChatAdmin = errors.New("user is not admin")
+	ErrChatNotFoundOrBotIsNotAdmin = errors.New("chat not found or bot is not admin")
+	ErrChatIsUser                  = errors.New("chat is private (user)")
+	ErrBotIsNotChatAdmin           = errors.New("bot is not admin")
+	ErrUserIsNotChatAdmin          = errors.New("user is not admin")
 )
+
+func (srv *Chat) UpdateTitle(ctx context.Context, chatID int64, title string) error {
+	return srv.Txier(ctx, func(ctx context.Context) error {
+		chats, err := srv.Chat.Query().TelegramID(chatID).All(ctx)
+		if err != nil {
+			return errors.Wrap(err, "query chats")
+		}
+
+		for _, chat := range chats {
+			updated := chat.Patch(func(chat *core.Chat) {
+				chat.Title = title
+			})
+
+			if !updated {
+				continue
+			}
+			log.Info(ctx, "update chat title", "id", chatID, "title", title)
+			if err := srv.Chat.Update(ctx, chat); err != nil {
+				return errors.Wrap(err, "update fail")
+			}
+		}
+
+		return nil
+	})
+
+}
 
 // Add links chat to Share File Bot.
 func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity) (*core.Chat, error) {
@@ -38,13 +70,34 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 		SuperGroupUsername: identity.Username,
 	})
 
-	if err != nil {
+	if tg.IsChatNotFoundError(err) {
+		return nil, ErrChatNotFoundOrBotIsNotAdmin
+	} else if err != nil {
 		return nil, errors.Wrap(err, "get chat")
 	}
 
 	typ, err := srv.getTypeFromChatInfo(&chatInfo)
 	if err != nil {
 		return nil, errors.Wrap(err, "get type from chat info")
+	}
+
+	admins, err := srv.Telegram.GetChatAdministrators(tgbotapi.ChatConfig{
+		ChatID:             identity.ID,
+		SuperGroupUsername: identity.Username,
+	})
+
+	if tg.IsMemberListIsInaccessible(err) {
+		return nil, ErrBotIsNotChatAdmin
+	} else if err != nil {
+		return nil, errors.Wrap(err, "get chat admins")
+	}
+
+	if !srv.isUserAdmin(admins, srv.Telegram.Self.ID) {
+		return nil, ErrBotIsNotChatAdmin
+	}
+
+	if !srv.isUserAdmin(admins, int(user.ID)) {
+		return nil, ErrUserIsNotChatAdmin
 	}
 
 	chat := core.NewChat(
@@ -59,6 +112,15 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 	}
 
 	return chat, nil
+}
+
+func (srv *Chat) isUserAdmin(admins []tgbotapi.ChatMember, userID int) bool {
+	for _, admin := range admins {
+		if admin.User.ID == userID {
+			return admin.IsAdministrator() || admin.IsCreator()
+		}
+	}
+	return false
 }
 
 func (srv *Chat) getTypeFromChatInfo(info *tgbotapi.Chat) (core.ChatType, error) {
@@ -87,24 +149,6 @@ func (srv *Chat) checkUserIsAdmin(ctx context.Context, identity ChatIdentity, us
 
 	if !(member.IsAdministrator() || member.IsCreator()) {
 		return ErrUserIsNotChatAdmin
-	}
-
-	return nil
-}
-
-func (srv *Chat) checkBotIsAdmin(ctx context.Context, identity ChatIdentity) error {
-	member, err := srv.Telegram.GetChatMember(tgbotapi.ChatConfigWithUser{
-		ChatID:             identity.ID,
-		SuperGroupUsername: identity.Username,
-		UserID:             srv.Telegram.Self.ID,
-	})
-
-	if err != nil {
-		return errors.Wrap(err, "get chat member")
-	}
-
-	if !member.IsAdministrator() {
-		return ErrBotIsNotChatAdmin
 	}
 
 	return nil

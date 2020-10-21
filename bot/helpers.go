@@ -20,6 +20,26 @@ func escapeMarkdown(txt string) string {
 	return txt
 }
 
+func getFirstMentionEntity(entities []tgbotapi.MessageEntity) *tgbotapi.MessageEntity {
+	for _, entity := range entities {
+		if entity.Type == "mention" {
+			return &entity
+		}
+	}
+
+	return nil
+}
+
+func getFirstLinkEntity(entities []tgbotapi.MessageEntity) *tgbotapi.MessageEntity {
+	for _, entity := range entities {
+		if entity.Type == "url" {
+			return &entity
+		}
+	}
+
+	return nil
+}
+
 func (bot *Bot) send(_ context.Context, s tgbotapi.Chattable) error {
 	// spew.Dump(msg)
 	_, err := bot.client.Send(s)

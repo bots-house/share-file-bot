@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/bots-house/share-file-bot/bot"
+	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/pkg/health"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
@@ -20,6 +21,7 @@ import (
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	redis "github.com/go-redis/redis/v8"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 
 	"github.com/kelseyhightower/envconfig"
@@ -40,6 +42,10 @@ type Config struct {
 	Database             string `default:"postgres://sfb:sfb@localhost/sfb?sslmode=disable"`
 	DatabaseMaxOpenConns int    `default:"10" split_words:"true"`
 	DatabaseMaxIdleConns int    `default:"0" split_words:"true"`
+
+	Redis             string `default:"redis://localhost:6379"`
+	RedisMaxOpenConns int    `default:"10" split_words:"true"`
+	RedisMaxIdleConns int    `default:"0" split_words:"true"`
 
 	Token        string `required:"true"`
 	Addr         string `default:":8000"`
@@ -195,6 +201,22 @@ func run(ctx context.Context) error {
 		return errors.Wrap(err, "migrate db")
 	}
 
+	log.Info(ctx, "open redis", "dsn", cfg.Redis)
+
+	rdbOpts, err := redis.ParseURL(cfg.Redis)
+	if err != nil {
+		return errors.Wrap(err, "parse redis url")
+	}
+
+	rdb := redis.NewClient(rdbOpts)
+
+	log.Debug(ctx, "ping redis")
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		return errors.Wrap(err, "ping redis")
+	}
+
+	botState := state.NewRedisStore(rdb, "share-file-bot")
+
 	authSrv := &service.Auth{
 		UserStore: pg.User(),
 	}
@@ -219,9 +241,10 @@ func run(ctx context.Context) error {
 	chatSrv := &service.Chat{
 		Telegram: tgClient,
 		Chat:     pg.Chat(),
+		Txier:    pg.Tx,
 	}
 
-	tgBot, err := bot.New(revision, tgClient, authSrv, fileSrv, adminSrv, chatSrv)
+	tgBot, err := bot.New(revision, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}
