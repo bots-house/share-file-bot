@@ -20,7 +20,9 @@ var (
 		• _Каналы и чаты_ — управление каналами и чата подключенными к боту в качестве ограничителя при скачивании ваших файлов\.
     `)
 
-	textCommonBack = "« Назад"
+	textCommonBack       = "« Назад"
+	textCommonDisconnect = "Отключить"
+	textCommonYesIamSure = "Да, я уверен"
 
 	textSettingsButtonLongIDs              = "Длинные ID"
 	textSettingsButtonLongIDsEnabledAlert  = "Генериация длинных ссылок включена"
@@ -28,9 +30,8 @@ var (
 
 	textSettingsButtonChannelsAndChats = "📢 Каналы и чаты"
 
-	callbackSettings                 = "settings"
-	callbackSettingsLongIDs          = "settings:toggle-long-ids"
-	callbackSettingsChannelsAndChats = "settings:channels-and-chats"
+	callbackSettings        = "settings"
+	callbackSettingsLongIDs = "settings:toggle-long-ids"
 )
 
 func addIsEnabledEmoji(v bool, text string) string {

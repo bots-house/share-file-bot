@@ -52,6 +52,7 @@ func (srv *Chat) UpdateTitle(ctx context.Context, chatID int64, title string) er
 			if !updated {
 				continue
 			}
+
 			log.Info(ctx, "update chat title", "id", chatID, "title", title)
 			if err := srv.Chat.Update(ctx, chat); err != nil {
 				return errors.Wrap(err, "update fail")
@@ -64,7 +65,7 @@ func (srv *Chat) UpdateTitle(ctx context.Context, chatID int64, title string) er
 }
 
 // Add links chat to Share File Bot.
-func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity) (*core.Chat, error) {
+func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity) (*FullChat, error) {
 	chatInfo, err := srv.Telegram.GetChat(tgbotapi.ChatConfig{
 		ChatID:             identity.ID,
 		SuperGroupUsername: identity.Username,
@@ -111,7 +112,7 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 		return nil, errors.Wrap(err, "add chat to store")
 	}
 
-	return chat, nil
+	return &FullChat{chat}, nil
 }
 
 func (srv *Chat) isUserAdmin(admins []tgbotapi.ChatMember, userID int) bool {
@@ -149,6 +150,74 @@ func (srv *Chat) checkUserIsAdmin(ctx context.Context, identity ChatIdentity, us
 
 	if !(member.IsAdministrator() || member.IsCreator()) {
 		return ErrUserIsNotChatAdmin
+	}
+
+	return nil
+}
+
+// GetChats returns chats of user
+func (srv *Chat) GetChats(ctx context.Context, user *core.User) ([]*core.Chat, error) {
+	chats, err := srv.Chat.Query().OwnerID(user.ID).All(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "query user chats")
+	}
+	return chats, nil
+}
+
+type FullChat struct {
+	*core.Chat
+}
+
+func (srv *Chat) GetChat(ctx context.Context, user *core.User, id core.ChatID) (*FullChat, error) {
+	chat, err := srv.Chat.Query().OwnerID(user.ID).ID(id).One(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "query chat")
+	}
+	return &FullChat{chat}, nil
+}
+
+// DisconnectChat disconnect user linked chat and optionaly leave it.
+func (srv *Chat) DisconnectChat(
+	ctx context.Context,
+	user *core.User,
+	id core.ChatID,
+	leave bool,
+) error {
+	return srv.Txier(ctx, func(ctx context.Context) error {
+		return srv.disconnectChat(ctx, user, id, false)
+	})
+}
+
+func (srv *Chat) disconnectChat(
+	ctx context.Context,
+	user *core.User,
+	id core.ChatID,
+	leave bool,
+) error {
+	chat, err := srv.Chat.Query().OwnerID(user.ID).ID(id).One(ctx)
+	if err != nil {
+		return errors.Wrap(err, "query chat")
+	}
+
+	count, err := srv.Chat.Query().ID(chat.ID).Delete(ctx)
+	if err != nil {
+		return errors.Wrap(err, "delete chats")
+	}
+
+	if count == 0 {
+		return core.ErrChatNotFound
+	} else if count > 1 {
+		return store.ErrTooManyAffectedRows
+	}
+
+	if leave {
+		_, err := srv.Telegram.LeaveChat(tgbotapi.ChatConfig{
+			ChatID: chat.TelegramID,
+		})
+
+		if err != nil {
+			log.Warn(ctx, "can't leave chat", "chat_id", chat.TelegramID, "err", err)
+		}
 	}
 
 	return nil

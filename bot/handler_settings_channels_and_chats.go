@@ -3,14 +3,20 @@ package bot
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/bots-house/share-file-bot/bot/state"
+	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/friendsofgo/errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/lithammer/dedent"
 )
+
+func join(vs ...string) string {
+	return strings.Join(vs, "\n")
+}
 
 var (
 	textSettingsChannelsAndChats = dedent.Dedent(`
@@ -29,6 +35,23 @@ var (
 		2\. Отправь мне @username или приватную ссылку на канал или чат, так же ты можешь переслать любое сообщение из канала\.
 	`)
 
+	textSettingsChannelsAndChatsDetails = join(
+		"⚙️ __*Настройки*__ / 📢 __*Каналы и чаты*__ / __*%s*__",
+		"",
+		"*ID:* `%d`",
+		"*Тип:* `%s`",
+		"*Кол\\-во файлов:* `%d`",
+		"*Кол\\-во подписок:* `%d`",
+	)
+
+	textSettingsChannelsAndChatsDelete = dedent.Dedent(`
+		⚙️ __*Настройки*__ / 📢 __*Каналы и чаты*__ / __*%s*__
+
+		Уверены что хотите отвзять этот канал/группу? 
+		Файл для скачивания которых требовалась подписка на этот канал/группу, станут доступны без нее\.
+		Это действие нельзя будет отменить\. 
+	`)
+
 	textSettingsChannelsAndChatsConnectForwardNotFromChannel = "⚠️ Пересланное сообщение не является сообщением из канала, для подключения группы или супергруппы отправь мне ее @username или приватную ссылку"
 	textSettingsChannelsAndChatsConnectNotJoinLink           = "⚠️ Ссылка не является пригласительной, она должна выглядить как-то так: `t.me/joinchat/...`"
 	textSettingsChannelsAndChatsConnectNotValid              = "⚠️ Для подключения канала или чата отправь мне его @username, приватную ссылку или перешли мне любое сообщение из канала"
@@ -39,23 +62,44 @@ var (
 
 	textSettingsChannelsAndChatsConnectNotValidButtonCancel = "Я передумал"
 	textSettingsChannelsAndChatsButtonConnect               = "+ Подключить"
-	callbackSettingsChannelsAndChatsConnect                 = "settings:channels-and-chats:connect"
+
+	callbackSettingsChannelsAndChats              = "settings:channels-and-chats"
+	callbackSettingsChannelsAndChatsConnect       = "settings:channels-and-chats:connect"
+	callbackSettingsChannelsAndChatsDetails       = "settings:channels-and-chats:%d"
+	callbackSettingsChannelsAndChatsDelete        = "settings:channels-and-chats:%d:delete"
+	callbackSettingsChannelsAndChatsDeleteConfirm = "settings:channels-and-chats:%d:delete:confirm"
 )
 
-func (bot *Bot) newSettingsChannelsAndChatsMessageEdit(ctx context.Context, chatID int64, msgID int) tgbotapi.EditMessageTextConfig {
+func (bot *Bot) newSettingsChannelsAndChatsMessageEdit(
+	ctx context.Context,
+	chatID int64,
+	msgID int,
+	chats []*core.Chat,
+) tgbotapi.EditMessageTextConfig {
 	answ := tgbotapi.NewEditMessageText(chatID, msgID, textSettingsChannelsAndChats)
 
-	markup := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(
-				textSettingsChannelsAndChatsButtonConnect,
-				callbackSettingsChannelsAndChatsConnect,
-			),
-			tgbotapi.NewInlineKeyboardButtonData(
-				textCommonBack,
-				callbackSettings,
-			),
+	chatRows := make([][]tgbotapi.InlineKeyboardButton, len(chats))
+
+	for i, chat := range chats {
+		cbData := fmt.Sprintf(callbackSettingsChannelsAndChatsDetails, chat.ID)
+		chatRows[i] = tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(chat.Title, cbData),
+		)
+	}
+
+	chatRows = append(chatRows, tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(
+			textCommonBack,
+			callbackSettings,
 		),
+		tgbotapi.NewInlineKeyboardButtonData(
+			textSettingsChannelsAndChatsButtonConnect,
+			callbackSettingsChannelsAndChatsConnect,
+		),
+	))
+
+	markup := tgbotapi.NewInlineKeyboardMarkup(
+		chatRows...,
 	)
 
 	answ.ReplyMarkup = &markup
@@ -65,15 +109,20 @@ func (bot *Bot) newSettingsChannelsAndChatsMessageEdit(ctx context.Context, chat
 }
 
 func (bot *Bot) onSettingsChannelsAndChats(ctx context.Context, cbq *tgbotapi.CallbackQuery) error {
-	user := getUserCtx(ctx).ID
+	user := getUserCtx(ctx)
 
 	go bot.answerCallbackQuery(ctx, cbq, "")
 
-	if err := bot.state.Del(ctx, user); err != nil {
+	if err := bot.state.Del(ctx, user.ID); err != nil {
 		return errors.Wrap(err, "delete state")
 	}
 
-	edit := bot.newSettingsChannelsAndChatsMessageEdit(ctx, cbq.Message.Chat.ID, cbq.Message.MessageID)
+	chats, err := bot.chatSrv.GetChats(ctx, user)
+	if err != nil {
+		return errors.Wrap(err, "get chats")
+	}
+
+	edit := bot.newSettingsChannelsAndChatsMessageEdit(ctx, cbq.Message.Chat.ID, cbq.Message.MessageID, chats)
 	return bot.send(ctx, edit)
 }
 
@@ -105,6 +154,152 @@ func (bot *Bot) onSettingsChannelsAndChatsConnect(ctx context.Context, cbq *tgbo
 	}
 
 	edit := bot.newSettingsChannelsAndChatsConnectEdit(ctx, cbq.Message.Chat.ID, cbq.Message.MessageID)
+	return bot.send(ctx, edit)
+}
+
+func getChatTypeRussian(typ core.ChatType) string {
+	switch typ {
+	case core.ChatTypeChannel:
+		return "канал"
+	case core.ChatTypeSuperGroup:
+		return "супергруппа"
+	case core.ChatTypeGroup:
+		return "группа"
+	default:
+		return "неизвестно"
+	}
+}
+
+func (bot *Bot) newSettingsChannelsAndChatsDetailsEdit(
+	ctx context.Context,
+	cid int64, mid int,
+	chat *service.FullChat,
+) *tgbotapi.EditMessageTextConfig {
+	text := fmt.Sprintf(
+		textSettingsChannelsAndChatsDetails,
+		escapeMarkdown(chat.Title),
+		chat.TelegramID,
+		getChatTypeRussian(chat.Type),
+		0,
+		0,
+	)
+
+	answ := tgbotapi.NewEditMessageText(cid, mid, text)
+
+	markup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				textCommonBack,
+				callbackSettingsChannelsAndChats,
+			),
+			tgbotapi.NewInlineKeyboardButtonData(
+				textCommonDisconnect,
+				fmt.Sprintf(callbackSettingsChannelsAndChatsDelete, chat.ID),
+			),
+		),
+	)
+
+	answ.ReplyMarkup = &markup
+	answ.ParseMode = "MarkdownV2"
+
+	return &answ
+}
+
+func (bot *Bot) onSettingsChannelsAndChatsDeleteConfirm(
+	ctx context.Context,
+	user *core.User,
+	cbq *tgbotapi.CallbackQuery,
+	id core.ChatID,
+) error {
+	chat, err := bot.chatSrv.GetChat(ctx, user, id)
+	if err != nil {
+		return errors.Wrap(err, "Chat.GetChat")
+	}
+
+	if err := bot.chatSrv.DisconnectChat(ctx, user, chat.ID, false); err != nil {
+		return errors.Wrap(err, "service disconnect chat")
+	}
+
+	go bot.answerCallbackQuery(ctx, cbq, "Канал/группа отключена")
+
+	chats, err := bot.chatSrv.GetChats(ctx, user)
+	if err != nil {
+		return errors.Wrap(err, "service get chats")
+	}
+
+	edit := bot.newSettingsChannelsAndChatsMessageEdit(ctx, cbq.Message.Chat.ID, cbq.Message.MessageID, chats)
+
+	return bot.send(ctx, edit)
+}
+
+func (bot *Bot) onSettingsChannelsAndChatsDelete(
+	ctx context.Context,
+	user *core.User,
+	cbq *tgbotapi.CallbackQuery,
+	id core.ChatID,
+) error {
+	chat, err := bot.chatSrv.GetChat(ctx, user, id)
+	if err != nil {
+		return errors.Wrap(err, "Chat.GetChat")
+	}
+
+	return bot.send(ctx, bot.newSettingsChannelsAndChatsDeleteEdit(
+		cbq.Message.Chat.ID,
+		cbq.Message.MessageID,
+		chat,
+	))
+}
+
+func (bot *Bot) newSettingsChannelsAndChatsDeleteEdit(
+	cid int64,
+	mid int,
+	chat *service.FullChat,
+) tgbotapi.EditMessageTextConfig {
+	text := fmt.Sprintf(textSettingsChannelsAndChatsDelete, escapeMarkdown(chat.Title))
+	answ := tgbotapi.NewEditMessageText(
+		cid,
+		mid,
+		text,
+	)
+
+	replyMarkup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				textCommonBack,
+				fmt.Sprintf(callbackSettingsChannelsAndChatsDetails, chat.ID),
+			),
+			tgbotapi.NewInlineKeyboardButtonData(
+				textCommonYesIamSure,
+				fmt.Sprintf(callbackSettingsChannelsAndChatsDeleteConfirm, chat.ID),
+			),
+		),
+	)
+
+	answ.ParseMode = "MarkdownV2"
+
+	answ.ReplyMarkup = &replyMarkup
+
+	return answ
+}
+
+func (bot *Bot) onSettingsChannelsAndChatsDetails(
+	ctx context.Context,
+	user *core.User,
+	cbq *tgbotapi.CallbackQuery,
+	id core.ChatID,
+) error {
+	chat, err := bot.chatSrv.GetChat(ctx, user, id)
+	if err != nil {
+		return errors.Wrap(err, "Chat.GetChat")
+	}
+
+	edit := bot.newSettingsChannelsAndChatsDetailsEdit(
+		ctx,
+		cbq.Message.Chat.ID,
+		cbq.Message.MessageID,
+		chat,
+	)
+
 	return bot.send(ctx, edit)
 }
 
@@ -180,5 +375,16 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 		return errors.Wrap(err, "add chat")
 	}
 
-	return nil
+	out := tgbotapi.NewMessage(
+		msg.Chat.ID,
+		fmt.Sprintln("Канал / супергруппа подключена!"),
+	)
+
+	out.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(textCommonBack, callbackSettingsChannelsAndChats),
+		),
+	)
+
+	return bot.send(ctx, out)
 }

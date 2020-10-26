@@ -114,6 +114,19 @@ func (csq *ChatStoreQuery) TelegramID(id int64) core.ChatStoreQuery {
 	return csq
 }
 
+// OwnerID filter
+func (csq *ChatStoreQuery) OwnerID(id core.UserID) core.ChatStoreQuery {
+	csq.Mods = append(csq.Mods, dal.ChatWhere.OwnerID.EQ(int(id)))
+	return csq
+}
+
+func (csq *ChatStoreQuery) Delete(ctx context.Context) (int, error) {
+	count, err := dal.Chats(csq.Mods...).
+		DeleteAll(ctx, csq.Store.getExecutor(ctx))
+
+	return int(count), err
+}
+
 // One return only one item from store.
 func (csq *ChatStoreQuery) One(ctx context.Context) (*core.Chat, error) {
 	row, err := dal.Chats(csq.Mods...).One(ctx, csq.Store.getExecutor(ctx))

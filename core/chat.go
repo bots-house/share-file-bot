@@ -117,11 +117,17 @@ type ChatStoreQuery interface {
 
 	TelegramID(v int64) ChatStoreQuery
 
+	// UserID filter response by user id
+	OwnerID(id UserID) ChatStoreQuery
+
 	// Query only one item from store.
 	One(ctx context.Context) (*Chat, error)
 
 	// Query all items from store.
 	All(ctx context.Context) ([]*Chat, error)
+
+	// Delete all matched objects
+	Delete(ctx context.Context) (int, error)
 
 	// Count items in store.
 	Count(ctx context.Context) (int, error)

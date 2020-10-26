@@ -14,6 +14,7 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fatih/structs"
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
@@ -96,10 +97,13 @@ var (
 	cbqFileDelete        = regexp.MustCompile(`^file:(\d+):delete$`)
 	cbqFileDeleteConfirm = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
 
-	cbqSettings                        = regexp.MustCompile(`^` + callbackSettings + `$`)
-	cbqSettingsToggleLongIDs           = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
-	cbqSettingsChannelsAndChats        = regexp.MustCompile(`^` + callbackSettingsChannelsAndChats + `$`)
-	cbqSettingsChannelsAndChatsConnect = regexp.MustCompile(`^` + callbackSettingsChannelsAndChatsConnect + `$`)
+	cbqSettings                              = regexp.MustCompile(`^` + callbackSettings + `$`)
+	cbqSettingsToggleLongIDs                 = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
+	cbqSettingsChannelsAndChats              = regexp.MustCompile(`^` + callbackSettingsChannelsAndChats + `$`)
+	cbqSettingsChannelsAndChatsConnect       = regexp.MustCompile(`^` + callbackSettingsChannelsAndChatsConnect + `$`)
+	cbqSettingsChannelsAndChatsDetails       = regexp.MustCompile(`^settings:channels-and-chats:(\d+)$`)
+	cbqSettingsChannelsAndChatsDelete        = regexp.MustCompile(`^settings:channels-and-chats:(\d+):delete$`)
+	cbqSettingsChannelsAndChatsDeleteConfirm = regexp.MustCompile(`^settings:channels-and-chats:(\d+):delete:confirm$`)
 )
 
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
@@ -110,9 +114,10 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 		}
 	}
 
+	user := getUserCtx(ctx)
+
 	// handle message
 	if msg := update.Message; msg != nil {
-		user := getUserCtx(ctx)
 
 		userState, err := bot.state.Get(ctx, user.ID)
 		if err != nil {
@@ -197,7 +202,41 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 		// settings / channels and chats / connect
 		case len(cbqSettingsChannelsAndChatsConnect.FindStringIndex(data)) > 0:
 			return bot.onSettingsChannelsAndChatsConnect(ctx, cbq)
+
+		// settings / channels and chats / details
+		case len(cbqSettingsChannelsAndChatsDetails.FindStringIndex(data)) > 0:
+			result := cbqSettingsChannelsAndChatsDetails.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onSettingsChannelsAndChatsDetails(ctx, user, cbq, core.ChatID(id))
+		// settings / channels and chats / delete
+		case len(cbqSettingsChannelsAndChatsDelete.FindStringIndex(data)) > 0:
+			result := cbqSettingsChannelsAndChatsDelete.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onSettingsChannelsAndChatsDelete(ctx, user, cbq, core.ChatID(id))
+		// settings / channels and chats / delete / confirm
+		case len(cbqSettingsChannelsAndChatsDeleteConfirm.FindStringIndex(data)) > 0:
+			result := cbqSettingsChannelsAndChatsDeleteConfirm.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onSettingsChannelsAndChatsDeleteConfirm(ctx, user, cbq, core.ChatID(id))
+		default:
+			spew.Dump(cbq)
 		}
+
 	}
 
 	return nil
