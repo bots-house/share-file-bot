@@ -133,26 +133,8 @@ func (srv *Chat) getTypeFromChatInfo(info *tgbotapi.Chat) (core.ChatType, error)
 	case info.IsSuperGroup():
 		return core.ChatTypeSuperGroup, nil
 	default:
-		return core.ChatType(0), errors.New("unkown chat type")
+		return core.ChatType(0), errors.New("unknown chat type")
 	}
-}
-
-func (srv *Chat) checkUserIsAdmin(ctx context.Context, identity ChatIdentity, userID int) error {
-	member, err := srv.Telegram.GetChatMember(tgbotapi.ChatConfigWithUser{
-		ChatID:             identity.ID,
-		SuperGroupUsername: identity.Username,
-		UserID:             userID,
-	})
-
-	if err != nil {
-		return errors.Wrap(err, "get chat member")
-	}
-
-	if !(member.IsAdministrator() || member.IsCreator()) {
-		return ErrUserIsNotChatAdmin
-	}
-
-	return nil
 }
 
 // GetChats returns chats of user

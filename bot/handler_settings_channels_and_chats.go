@@ -71,7 +71,6 @@ var (
 )
 
 func (bot *Bot) newSettingsChannelsAndChatsMessageEdit(
-	ctx context.Context,
 	chatID int64,
 	msgID int,
 	chats []*core.Chat,
@@ -103,7 +102,7 @@ func (bot *Bot) newSettingsChannelsAndChatsMessageEdit(
 	)
 
 	answ.ReplyMarkup = &markup
-	answ.ParseMode = "MarkdownV2"
+	answ.ParseMode = mdv2
 
 	return answ
 }
@@ -111,7 +110,9 @@ func (bot *Bot) newSettingsChannelsAndChatsMessageEdit(
 func (bot *Bot) onSettingsChannelsAndChats(ctx context.Context, cbq *tgbotapi.CallbackQuery) error {
 	user := getUserCtx(ctx)
 
-	go bot.answerCallbackQuery(ctx, cbq, "")
+	go func() {
+		_ = bot.answerCallbackQuery(ctx, cbq, "")
+	}()
 
 	if err := bot.state.Del(ctx, user.ID); err != nil {
 		return errors.Wrap(err, "delete state")
@@ -122,11 +123,11 @@ func (bot *Bot) onSettingsChannelsAndChats(ctx context.Context, cbq *tgbotapi.Ca
 		return errors.Wrap(err, "get chats")
 	}
 
-	edit := bot.newSettingsChannelsAndChatsMessageEdit(ctx, cbq.Message.Chat.ID, cbq.Message.MessageID, chats)
+	edit := bot.newSettingsChannelsAndChatsMessageEdit(cbq.Message.Chat.ID, cbq.Message.MessageID, chats)
 	return bot.send(ctx, edit)
 }
 
-func (bot *Bot) newSettingsChannelsAndChatsConnectEdit(ctx context.Context, cid int64, mid int) tgbotapi.EditMessageTextConfig {
+func (bot *Bot) newSettingsChannelsAndChatsConnectEdit(cid int64, mid int) tgbotapi.EditMessageTextConfig {
 	text := fmt.Sprintf(textSettingsChannelsAndChatsConnect, escapeMarkdown(bot.client.Self.UserName))
 	answ := tgbotapi.NewEditMessageText(cid, mid, text)
 
@@ -140,20 +141,23 @@ func (bot *Bot) newSettingsChannelsAndChatsConnectEdit(ctx context.Context, cid 
 	)
 
 	answ.ReplyMarkup = &markup
-	answ.ParseMode = "MarkdownV2"
+	answ.ParseMode = mdv2
 
 	return answ
 }
 
 func (bot *Bot) onSettingsChannelsAndChatsConnect(ctx context.Context, cbq *tgbotapi.CallbackQuery) error {
-	go bot.answerCallbackQuery(ctx, cbq, "")
+	go func() {
+		_ = bot.answerCallbackQuery(ctx, cbq, "")
+	}()
+
 	user := getUserCtx(ctx)
 
 	if err := bot.state.Set(ctx, user.ID, state.SettingsChannelsAndChatsConnect); err != nil {
 		return errors.Wrap(err, "can't set state of user")
 	}
 
-	edit := bot.newSettingsChannelsAndChatsConnectEdit(ctx, cbq.Message.Chat.ID, cbq.Message.MessageID)
+	edit := bot.newSettingsChannelsAndChatsConnectEdit(cbq.Message.Chat.ID, cbq.Message.MessageID)
 	return bot.send(ctx, edit)
 }
 
@@ -171,7 +175,6 @@ func getChatTypeRussian(typ core.ChatType) string {
 }
 
 func (bot *Bot) newSettingsChannelsAndChatsDetailsEdit(
-	ctx context.Context,
 	cid int64, mid int,
 	chat *service.FullChat,
 ) *tgbotapi.EditMessageTextConfig {
@@ -200,7 +203,7 @@ func (bot *Bot) newSettingsChannelsAndChatsDetailsEdit(
 	)
 
 	answ.ReplyMarkup = &markup
-	answ.ParseMode = "MarkdownV2"
+	answ.ParseMode = mdv2
 
 	return &answ
 }
@@ -220,14 +223,16 @@ func (bot *Bot) onSettingsChannelsAndChatsDeleteConfirm(
 		return errors.Wrap(err, "service disconnect chat")
 	}
 
-	go bot.answerCallbackQuery(ctx, cbq, "Канал/группа отключена")
+	go func() {
+		_ = bot.answerCallbackQuery(ctx, cbq, "Канал/группа отключена")
+	}()
 
 	chats, err := bot.chatSrv.GetChats(ctx, user)
 	if err != nil {
 		return errors.Wrap(err, "service get chats")
 	}
 
-	edit := bot.newSettingsChannelsAndChatsMessageEdit(ctx, cbq.Message.Chat.ID, cbq.Message.MessageID, chats)
+	edit := bot.newSettingsChannelsAndChatsMessageEdit(cbq.Message.Chat.ID, cbq.Message.MessageID, chats)
 
 	return bot.send(ctx, edit)
 }
@@ -275,7 +280,7 @@ func (bot *Bot) newSettingsChannelsAndChatsDeleteEdit(
 		),
 	)
 
-	answ.ParseMode = "MarkdownV2"
+	answ.ParseMode = mdv2
 
 	answ.ReplyMarkup = &replyMarkup
 
@@ -294,7 +299,6 @@ func (bot *Bot) onSettingsChannelsAndChatsDetails(
 	}
 
 	edit := bot.newSettingsChannelsAndChatsDetailsEdit(
-		ctx,
 		cbq.Message.Chat.ID,
 		cbq.Message.MessageID,
 		chat,
@@ -346,7 +350,7 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 	// unknown input
 	default:
 		answ := bot.newAnswerMsg(msg, textSettingsChannelsAndChatsConnectNotValid)
-		answ.ParseMode = "MarkdownV2"
+		answ.ParseMode = mdv2
 		answ.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData(

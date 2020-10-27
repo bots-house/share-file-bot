@@ -70,7 +70,7 @@ func (bot *Bot) newSettingsMenuMessageReplyMarkup(longIDs bool) tgbotapi.InlineK
 func (bot *Bot) newSettingsMenuMessage(msg *tgbotapi.Message, user *core.User) *tgbotapi.MessageConfig {
 	answ := bot.newAnswerMsg(msg, textSettings)
 	answ.ReplyMarkup = bot.newSettingsMenuMessageReplyMarkup(user.Settings.LongIDs)
-	answ.ParseMode = "MarkdownV2"
+	answ.ParseMode = mdv2
 
 	return answ
 }
@@ -81,7 +81,7 @@ func (bot *Bot) newSettingsMenuMessageEdit(msg *tgbotapi.Message, user *core.Use
 	markup := bot.newSettingsMenuMessageReplyMarkup(user.Settings.LongIDs)
 
 	answ.ReplyMarkup = &markup
-	answ.ParseMode = "MarkdownV2"
+	answ.ParseMode = mdv2
 
 	return answ
 }

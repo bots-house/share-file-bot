@@ -113,7 +113,7 @@ func (srv *File) checkFileRestrictionsChat(
 		return nil, errors.Wrap(err, "query chat")
 	}
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(ctx)
 
 	// query chat
 	var tgChat tgbotapi.Chat
@@ -169,19 +169,17 @@ func (srv *File) registerSubAwait(ctx context.Context, user *core.User, fileID c
 func (srv *File) hasSubAwait(ctx context.Context, user *core.User, fileID core.FileID) (bool, error) {
 	key := srv.getSubAwaitKey(user.ID, fileID)
 
-	delKey := func() {
-		if err := srv.Redis.Del(ctx, key).Err(); err != nil {
-			log.Warn(ctx, "can't delete key", "key", key, "err", err)
-		}
-	}
-
 	if err := srv.Redis.Get(ctx, key).Err(); err == redis.Nil {
 		return false, nil
 	} else if err != nil {
 		return false, errors.Wrap(err, "get key")
 	}
 
-	delKey()
+	go func() {
+		if err := srv.Redis.Del(ctx, key).Err(); err != nil {
+			log.Warn(ctx, "can't delete key", "key", key, "err", err)
+		}
+	}()
 
 	return true, nil
 }

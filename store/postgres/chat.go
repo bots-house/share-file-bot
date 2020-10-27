@@ -97,15 +97,15 @@ type ChatStoreQuery struct {
 }
 
 // ID Filter
-func (usq *ChatStoreQuery) ID(ids ...core.ChatID) core.ChatStoreQuery {
+func (csq *ChatStoreQuery) ID(ids ...core.ChatID) core.ChatStoreQuery {
 	idsInt := make([]int, len(ids))
 	for i, v := range ids {
 		idsInt[i] = int(v)
 	}
 
-	usq.Mods = append(usq.Mods, dal.ChatWhere.ID.IN(idsInt))
+	csq.Mods = append(csq.Mods, dal.ChatWhere.ID.IN(idsInt))
 
-	return usq
+	return csq
 }
 
 // TelegramID filter

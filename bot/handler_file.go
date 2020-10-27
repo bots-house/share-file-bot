@@ -83,7 +83,7 @@ func (bot *Bot) renderSubRequest(msg *tgbotapi.Message, sub *service.ChatSubRequ
 	text := fmt.Sprintf(textFileSubRequest, link)
 
 	out := tgbotapi.NewMessage(msg.Chat.ID, text)
-	out.ParseMode = "MarkdownV2"
+	out.ParseMode = mdv2
 	out.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonURL("Подписаться", sub.Link()),
@@ -366,7 +366,7 @@ func (bot *Bot) onFileRestrictionsCBQ(
 			MessageID:   cbq.Message.MessageID,
 			ReplyMarkup: markup,
 		},
-		ParseMode: "MarkdownV2",
+		ParseMode: mdv2,
 		Caption:   textFileRestrictions,
 	}
 

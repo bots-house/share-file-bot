@@ -110,6 +110,8 @@ var (
 	cbqSettingsChannelsAndChatsDeleteConfirm = regexp.MustCompile(`^settings:channels-and-chats:(\d+):delete:confirm$`)
 )
 
+// i known, we should rewrite it
+// nolint:gocyclo
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 	if msg := update.ChannelPost; msg != nil {
@@ -128,6 +130,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			return errors.Wrap(err, "get state")
 		}
 
+		//nolint:gocritic
 		switch userState {
 		case state.SettingsChannelsAndChatsConnect:
 			return bot.onSettingsChannelsAndChatsConnectState(ctx, msg)
@@ -156,6 +159,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	}
 
 	// handle callback queries
+	//nolint:nestif
 	if cbq := update.CallbackQuery; cbq != nil {
 		data := cbq.Data
 		switch {
