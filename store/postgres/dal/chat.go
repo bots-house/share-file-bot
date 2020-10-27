@@ -189,14 +189,17 @@ var ChatWhere = struct {
 
 // ChatRels is where relationship names are stored.
 var ChatRels = struct {
-	Owner string
+	Owner                 string
+	RestrictionsChatFiles string
 }{
-	Owner: "Owner",
+	Owner:                 "Owner",
+	RestrictionsChatFiles: "RestrictionsChatFiles",
 }
 
 // chatR is where relationships are stored.
 type chatR struct {
-	Owner *User `boil:"Owner" json:"Owner" toml:"Owner" yaml:"Owner"`
+	Owner                 *User     `boil:"Owner" json:"Owner" toml:"Owner" yaml:"Owner"`
+	RestrictionsChatFiles FileSlice `boil:"RestrictionsChatFiles" json:"RestrictionsChatFiles" toml:"RestrictionsChatFiles" yaml:"RestrictionsChatFiles"`
 }
 
 // NewStruct creates a new relationship struct
@@ -319,6 +322,27 @@ func (o *Chat) Owner(mods ...qm.QueryMod) userQuery {
 	return query
 }
 
+// RestrictionsChatFiles retrieves all the file's Files with an executor via restrictions_chat_id column.
+func (o *Chat) RestrictionsChatFiles(mods ...qm.QueryMod) fileQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"file\".\"restrictions_chat_id\"=?", o.ID),
+	)
+
+	query := Files(queryMods...)
+	queries.SetFrom(query.Query, "\"file\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"file\".*"})
+	}
+
+	return query
+}
+
 // LoadOwner allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (chatL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular bool, maybeChat interface{}, mods queries.Applicator) error {
@@ -415,6 +439,97 @@ func (chatL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular boo
 	return nil
 }
 
+// LoadRestrictionsChatFiles allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (chatL) LoadRestrictionsChatFiles(ctx context.Context, e boil.ContextExecutor, singular bool, maybeChat interface{}, mods queries.Applicator) error {
+	var slice []*Chat
+	var object *Chat
+
+	if singular {
+		object = maybeChat.(*Chat)
+	} else {
+		slice = *maybeChat.(*[]*Chat)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &chatR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &chatR{}
+			}
+
+			for _, a := range args {
+				if queries.Equal(a, obj.ID) {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`file`),
+		qm.WhereIn(`file.restrictions_chat_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load file")
+	}
+
+	var resultSlice []*File
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice file")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on file")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for file")
+	}
+
+	if singular {
+		object.R.RestrictionsChatFiles = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &fileR{}
+			}
+			foreign.R.RestrictionsChat = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.ID, foreign.RestrictionsChatID) {
+				local.R.RestrictionsChatFiles = append(local.R.RestrictionsChatFiles, foreign)
+				if foreign.R == nil {
+					foreign.R = &fileR{}
+				}
+				foreign.R.RestrictionsChat = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetOwner of the chat to the related item.
 // Sets o.R.Owner to related.
 // Adds o to related.R.OwnerChats.
@@ -457,6 +572,129 @@ func (o *Chat) SetOwner(ctx context.Context, exec boil.ContextExecutor, insert b
 		}
 	} else {
 		related.R.OwnerChats = append(related.R.OwnerChats, o)
+	}
+
+	return nil
+}
+
+// AddRestrictionsChatFiles adds the given related objects to the existing relationships
+// of the chat, optionally inserting them as new records.
+// Appends related to o.R.RestrictionsChatFiles.
+// Sets related.R.RestrictionsChat appropriately.
+func (o *Chat) AddRestrictionsChatFiles(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*File) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.RestrictionsChatID, o.ID)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"file\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"restrictions_chat_id"}),
+				strmangle.WhereClause("\"", "\"", 2, filePrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.RestrictionsChatID, o.ID)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &chatR{
+			RestrictionsChatFiles: related,
+		}
+	} else {
+		o.R.RestrictionsChatFiles = append(o.R.RestrictionsChatFiles, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &fileR{
+				RestrictionsChat: o,
+			}
+		} else {
+			rel.R.RestrictionsChat = o
+		}
+	}
+	return nil
+}
+
+// SetRestrictionsChatFiles removes all previously related items of the
+// chat replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.RestrictionsChat's RestrictionsChatFiles accordingly.
+// Replaces o.R.RestrictionsChatFiles with related.
+// Sets related.R.RestrictionsChat's RestrictionsChatFiles accordingly.
+func (o *Chat) SetRestrictionsChatFiles(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*File) error {
+	query := "update \"file\" set \"restrictions_chat_id\" = null where \"restrictions_chat_id\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.RestrictionsChatFiles {
+			queries.SetScanner(&rel.RestrictionsChatID, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.RestrictionsChat = nil
+		}
+
+		o.R.RestrictionsChatFiles = nil
+	}
+	return o.AddRestrictionsChatFiles(ctx, exec, insert, related...)
+}
+
+// RemoveRestrictionsChatFiles relationships from objects passed in.
+// Removes related items from R.RestrictionsChatFiles (uses pointer comparison, removal does not keep order)
+// Sets related.R.RestrictionsChat.
+func (o *Chat) RemoveRestrictionsChatFiles(ctx context.Context, exec boil.ContextExecutor, related ...*File) error {
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.RestrictionsChatID, nil)
+		if rel.R != nil {
+			rel.R.RestrictionsChat = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("restrictions_chat_id")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.RestrictionsChatFiles {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.RestrictionsChatFiles)
+			if ln > 1 && i < ln-1 {
+				o.R.RestrictionsChatFiles[i] = o.R.RestrictionsChatFiles[ln-1]
+			}
+			o.R.RestrictionsChatFiles = o.R.RestrictionsChatFiles[:ln-1]
+			break
+		}
 	}
 
 	return nil

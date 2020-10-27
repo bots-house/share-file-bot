@@ -222,8 +222,9 @@ func run(ctx context.Context) error {
 	}
 
 	fileSrv := &service.File{
-		FileStore:     pg.File(),
-		DownloadStore: pg.Download(),
+		File:     pg.File(),
+		Chat:     pg.Chat(),
+		Download: pg.Download(),
 	}
 
 	adminSrv := &service.Admin{

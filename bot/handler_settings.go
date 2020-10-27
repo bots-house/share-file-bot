@@ -42,6 +42,14 @@ func addIsEnabledEmoji(v bool, text string) string {
 	return text
 }
 
+func addHasLockEmoji(v bool, text string) string {
+	if v {
+		return "🔒 " + text
+	}
+
+	return "🔓 " + text
+}
+
 func (bot *Bot) newSettingsMenuMessageReplyMarkup(longIDs bool) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(

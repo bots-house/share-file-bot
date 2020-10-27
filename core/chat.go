@@ -11,6 +11,8 @@ import (
 // ChatID represents unique identifier of Chat in Share File Bot.
 type ChatID int
 
+const ZeroChatID = ChatID(0)
+
 // ChatType define types of chat.
 type ChatType int8
 

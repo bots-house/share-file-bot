@@ -93,12 +93,15 @@ func (bot *Bot) initHandler() {
 }
 
 var (
-	cbqFileRefresh       = regexp.MustCompile(`^file:(\d+):refresh$`)
-	cbqFileDelete        = regexp.MustCompile(`^file:(\d+):delete$`)
-	cbqFileDeleteConfirm = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
+	cbqFileRefresh          = regexp.MustCompile(`^file:(\d+):refresh$`)
+	cbqFileDelete           = regexp.MustCompile(`^file:(\d+):delete$`)
+	cbqFileDeleteConfirm    = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
+	cbqFileRestrictions     = regexp.MustCompile(`^file:(\d+):restrictions$`)
+	cbqFileRestrictionsChat = regexp.MustCompile(`file:(\d+):restrictions:chat-subscription:(\d+):toggl`)
 
-	cbqSettings                              = regexp.MustCompile(`^` + callbackSettings + `$`)
-	cbqSettingsToggleLongIDs                 = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
+	cbqSettings              = regexp.MustCompile(`^` + callbackSettings + `$`)
+	cbqSettingsToggleLongIDs = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
+
 	cbqSettingsChannelsAndChats              = regexp.MustCompile(`^` + callbackSettingsChannelsAndChats + `$`)
 	cbqSettingsChannelsAndChatsConnect       = regexp.MustCompile(`^` + callbackSettingsChannelsAndChatsConnect + `$`)
 	cbqSettingsChannelsAndChatsDetails       = regexp.MustCompile(`^settings:channels-and-chats:(\d+)$`)
@@ -177,6 +180,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onFileDeleteCBQ(ctx, cbq, id)
+		// file menu / delete
 		case len(cbqFileDeleteConfirm.FindStringIndex(data)) > 0:
 			result := cbqFileDeleteConfirm.FindStringSubmatch(data)
 
@@ -186,6 +190,34 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onFileDeleteConfirmCBQ(ctx, cbq, id)
+		// file menu / restrictions
+		case len(cbqFileRestrictions.FindStringIndex(data)) > 0:
+			result := cbqFileRestrictions.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onFileRestrictionsCBQ(ctx, cbq, id)
+		// file menu / restrictions / set chat
+		case len(cbqFileRestrictionsChat.FindStringIndex(data)) > 0:
+			result := cbqFileRestrictionsChat.FindStringSubmatch(data)
+
+			fileID, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data (file_id)")
+			}
+
+			chatID, err := strconv.Atoi(result[2])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data (chat_id)")
+			}
+
+			return bot.onFileRestrictionsSetChatCBQ(ctx, cbq,
+				core.FileID(fileID),
+				core.ChatID(chatID),
+			)
 
 		// settings
 		case len(cbqSettings.FindStringIndex(data)) > 0:

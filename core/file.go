@@ -12,6 +12,19 @@ import (
 // FileID it's alias for share id.
 type FileID int
 
+type DownloadRestrictions struct {
+	// Request subscription to this chat. Zero means null.
+	ChatID ChatID
+}
+
+func (dr *DownloadRestrictions) HasChatID() bool {
+	return dr.ChatID != 0
+}
+
+func (dr *DownloadRestrictions) Any() bool {
+	return dr.HasChatID()
+}
+
 // File represents shared file.
 type File struct {
 	// Unique ID of File.
@@ -40,6 +53,9 @@ type File struct {
 
 	// File size in bytes
 	Size int
+
+	// Contains restrictions for download
+	Restriction DownloadRestrictions
 
 	// Metadata contains metadata of file depends by kind.
 	Metadata Metadata
@@ -96,6 +112,9 @@ type FileStoreQuery interface {
 type FileStore interface {
 	// Add File to store. Update ID.
 	Add(ctx context.Context, file *File) error
+
+	// Update file in store.
+	Update(ctx context.Context, file *File) error
 
 	Query() FileStoreQuery
 }
