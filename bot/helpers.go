@@ -76,6 +76,19 @@ func (bot *Bot) answerCallbackQuery(_ context.Context, cbq *tgbotapi.CallbackQue
 	return err
 }
 
+func (bot *Bot) answerCallbackQueryAlert(_ context.Context, cbq *tgbotapi.CallbackQuery, text string) error {
+	answ := tgbotapi.NewCallback(
+		cbq.ID,
+		text,
+	)
+
+	answ.ShowAlert = true
+
+	_, err := bot.client.AnswerCallbackQuery(answ)
+
+	return err
+}
+
 func (bot *Bot) detectKind(msg *tgbotapi.Message) core.Kind {
 	switch {
 	case msg.Animation != nil:

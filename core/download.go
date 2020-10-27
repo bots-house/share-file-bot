@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"time"
+
+	"github.com/volatiletech/null/v8"
 )
 
 // DownloadID alias for download.
@@ -18,8 +20,17 @@ type Download struct {
 	// References to user. Can be null.
 	UserID UserID
 
+	// If true, means user was requested to subscription and successefuly subscribed,
+	// False means, user was already subscribed,
+	// Null means check is disable.
+	NewSubscription null.Bool
+
 	// At time when download was happen
 	At time.Time
+}
+
+func (dwn *Download) SetNewSubscription(v bool) {
+	dwn.NewSubscription = null.NewBool(v, true)
 }
 
 func NewDownload(fileID FileID, userID UserID) *Download {

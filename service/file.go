@@ -2,17 +2,22 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
-	"github.com/bots-house/share-file-bot/store"
 	"github.com/friendsofgo/errors"
+	"github.com/go-redis/redis/v8"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"golang.org/x/sync/errgroup"
 )
 
 type File struct {
 	File     core.FileStore
 	Chat     core.ChatStore
-	Txier    store.Txier
+	Telegram *tgbotapi.BotAPI
+	Redis    redis.UniversalClient
 	Download core.DownloadStore
 }
 
@@ -73,14 +78,113 @@ func (srv *File) AddFile(
 	return srv.newOwnedFile(ctx, doc)
 }
 
+type ChatSubRequest struct {
+	FileID core.FileID
+
+	Title    string
+	Username string
+	JoinLink string
+}
+
+func (sub *ChatSubRequest) Link() string {
+	if sub.Username != "" {
+		return "https://t.me/" + sub.Username
+	}
+	return sub.JoinLink
+}
+
 type DownloadResult struct {
-	File      *core.File
-	OwnedFile *OwnedFile
+	File           *core.File
+	OwnedFile      *OwnedFile
+	ChatSubRequest *ChatSubRequest
 }
 
 var (
 	ErrInvalidID = errors.New("invalid file id")
 )
+
+func (srv *File) checkFileRestrictionsChat(
+	ctx context.Context,
+	user *core.User,
+	file *core.File,
+) (*ChatSubRequest, error) {
+	chat, err := srv.Chat.Query().ID(file.Restriction.ChatID).One(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "query chat")
+	}
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	// query chat
+	var tgChat tgbotapi.Chat
+
+	g.Go(func() error {
+		var err error
+		tgChat, err = srv.Telegram.GetChat(tgbotapi.ChatConfig{
+			ChatID: chat.TelegramID,
+		})
+		return err
+	})
+
+	// query member
+	var tgMember tgbotapi.ChatMember
+
+	g.Go(func() error {
+		var err error
+		tgMember, err = srv.Telegram.GetChatMember(tgbotapi.ChatConfigWithUser{
+			ChatID: chat.TelegramID,
+			UserID: int(user.ID),
+		})
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, errors.Wrap(err, "one of call failed")
+	}
+
+	if !(tgMember.IsMember() || tgMember.IsAdministrator() || tgMember.IsCreator()) {
+		return &ChatSubRequest{
+			FileID:   file.ID,
+			Title:    chat.Title,
+			Username: tgChat.UserName,
+			JoinLink: tgChat.InviteLink,
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func (srv *File) getSubAwaitKey(userID core.UserID, fileID core.FileID) string {
+	return fmt.Sprintf("share-file-bot:users:%d:subscription:%d", userID, fileID)
+}
+
+func (srv *File) registerSubAwait(ctx context.Context, user *core.User, fileID core.FileID) error {
+	key := srv.getSubAwaitKey(user.ID, fileID)
+	if err := srv.Redis.Set(ctx, key, true, time.Hour).Err(); err != nil {
+		return errors.Wrap(err, "set key")
+	}
+	return nil
+}
+
+func (srv *File) hasSubAwait(ctx context.Context, user *core.User, fileID core.FileID) (bool, error) {
+	key := srv.getSubAwaitKey(user.ID, fileID)
+
+	delKey := func() {
+		if err := srv.Redis.Del(ctx, key).Err(); err != nil {
+			log.Warn(ctx, "can't delete key", "key", key, "err", err)
+		}
+	}
+
+	if err := srv.Redis.Get(ctx, key).Err(); err == redis.Nil {
+		return false, nil
+	} else if err != nil {
+		return false, errors.Wrap(err, "get key")
+	}
+
+	delKey()
+
+	return true, nil
+}
 
 func (srv *File) toDownloadResult(ctx context.Context, user *core.User, file *core.File) (*DownloadResult, error) {
 	// if user is owner of this docs we just display it
@@ -94,15 +198,88 @@ func (srv *File) toDownloadResult(ctx context.Context, user *core.User, file *co
 		}, nil
 	}
 
+	// check user subscription
+	if file.Restriction.HasChatID() {
+		sub, err := srv.checkFileRestrictionsChat(ctx, user, file)
+		if err != nil {
+			return nil, errors.Wrap(err, "check file restrictions chat")
+		}
+
+		if sub != nil {
+			// add user to subscription await list
+			if err := srv.registerSubAwait(ctx, user, file.ID); err != nil {
+				return nil, errors.Wrap(err, "can't add user to await list")
+			}
+
+			return &DownloadResult{
+				ChatSubRequest: sub,
+			}, nil
+		}
+	}
+
+	return srv.RegisterDownload(ctx, user, file)
+}
+
+func (srv *File) RegisterDownload(ctx context.Context, user *core.User, file *core.File) (*DownloadResult, error) {
 	// register download
 	download := core.NewDownload(file.ID, user.ID)
 
+	if file.Restriction.HasChatID() {
+		sub, err := srv.hasSubAwait(ctx, user, file.ID)
+		if err != nil {
+			return nil, errors.Wrap(err, "check sub await")
+		}
+
+		download.SetNewSubscription(sub)
+	}
+
 	log.Info(ctx, "register download", "file_id", file.ID)
 	if err := srv.Download.Add(ctx, download); err != nil {
-		return nil, errors.Wrap(err, "download result")
+		return nil, errors.Wrap(err, "add download to store")
 	}
 
 	return &DownloadResult{
+		File: file,
+	}, nil
+}
+
+type ChatRestrictionStatus struct {
+	Ok   bool
+	Chat *core.Chat
+	File *core.File
+}
+
+func (srv *File) CheckFileRestrictionsChat(
+	ctx context.Context,
+	user *core.User,
+	id core.FileID,
+) (*ChatRestrictionStatus, error) {
+	file, err := srv.File.Query().ID(id).One(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "query file by id")
+	}
+
+	if !file.Restriction.HasChatID() {
+		return nil, nil
+	}
+
+	chat, err := srv.Chat.Query().ID(file.Restriction.ChatID).One(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "query chat by restriction")
+	}
+
+	member, err := srv.Telegram.GetChatMember(tgbotapi.ChatConfigWithUser{
+		ChatID: chat.TelegramID,
+		UserID: int(user.ID),
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "get chat member")
+	}
+
+	return &ChatRestrictionStatus{
+		Ok:   member.IsMember() || member.IsAdministrator() || member.IsCreator(),
+		Chat: chat,
 		File: file,
 	}, nil
 }

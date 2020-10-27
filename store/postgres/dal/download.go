@@ -24,25 +24,28 @@ import (
 
 // Download is an object representing the database table.
 type Download struct {
-	ID     int       `boil:"id" json:"id" toml:"id" yaml:"id"`
-	FileID null.Int  `boil:"file_id" json:"file_id,omitempty" toml:"file_id" yaml:"file_id,omitempty"`
-	UserID null.Int  `boil:"user_id" json:"user_id,omitempty" toml:"user_id" yaml:"user_id,omitempty"`
-	At     time.Time `boil:"at" json:"at" toml:"at" yaml:"at"`
+	ID              int       `boil:"id" json:"id" toml:"id" yaml:"id"`
+	FileID          null.Int  `boil:"file_id" json:"file_id,omitempty" toml:"file_id" yaml:"file_id,omitempty"`
+	UserID          null.Int  `boil:"user_id" json:"user_id,omitempty" toml:"user_id" yaml:"user_id,omitempty"`
+	At              time.Time `boil:"at" json:"at" toml:"at" yaml:"at"`
+	NewSubscription null.Bool `boil:"new_subscription" json:"new_subscription,omitempty" toml:"new_subscription" yaml:"new_subscription,omitempty"`
 
 	R *downloadR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L downloadL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var DownloadColumns = struct {
-	ID     string
-	FileID string
-	UserID string
-	At     string
+	ID              string
+	FileID          string
+	UserID          string
+	At              string
+	NewSubscription string
 }{
-	ID:     "id",
-	FileID: "file_id",
-	UserID: "user_id",
-	At:     "at",
+	ID:              "id",
+	FileID:          "file_id",
+	UserID:          "user_id",
+	At:              "at",
+	NewSubscription: "new_subscription",
 }
 
 // Generated where
@@ -70,16 +73,41 @@ func (w whereHelpernull_Int) GTE(x null.Int) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.GTE, x)
 }
 
+type whereHelpernull_Bool struct{ field string }
+
+func (w whereHelpernull_Bool) EQ(x null.Bool) qm.QueryMod {
+	return qmhelper.WhereNullEQ(w.field, false, x)
+}
+func (w whereHelpernull_Bool) NEQ(x null.Bool) qm.QueryMod {
+	return qmhelper.WhereNullEQ(w.field, true, x)
+}
+func (w whereHelpernull_Bool) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
+func (w whereHelpernull_Bool) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
+func (w whereHelpernull_Bool) LT(x null.Bool) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.LT, x)
+}
+func (w whereHelpernull_Bool) LTE(x null.Bool) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.LTE, x)
+}
+func (w whereHelpernull_Bool) GT(x null.Bool) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.GT, x)
+}
+func (w whereHelpernull_Bool) GTE(x null.Bool) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.GTE, x)
+}
+
 var DownloadWhere = struct {
-	ID     whereHelperint
-	FileID whereHelpernull_Int
-	UserID whereHelpernull_Int
-	At     whereHelpertime_Time
+	ID              whereHelperint
+	FileID          whereHelpernull_Int
+	UserID          whereHelpernull_Int
+	At              whereHelpertime_Time
+	NewSubscription whereHelpernull_Bool
 }{
-	ID:     whereHelperint{field: "\"download\".\"id\""},
-	FileID: whereHelpernull_Int{field: "\"download\".\"file_id\""},
-	UserID: whereHelpernull_Int{field: "\"download\".\"user_id\""},
-	At:     whereHelpertime_Time{field: "\"download\".\"at\""},
+	ID:              whereHelperint{field: "\"download\".\"id\""},
+	FileID:          whereHelpernull_Int{field: "\"download\".\"file_id\""},
+	UserID:          whereHelpernull_Int{field: "\"download\".\"user_id\""},
+	At:              whereHelpertime_Time{field: "\"download\".\"at\""},
+	NewSubscription: whereHelpernull_Bool{field: "\"download\".\"new_subscription\""},
 }
 
 // DownloadRels is where relationship names are stored.
@@ -106,8 +134,8 @@ func (*downloadR) NewStruct() *downloadR {
 type downloadL struct{}
 
 var (
-	downloadAllColumns            = []string{"id", "file_id", "user_id", "at"}
-	downloadColumnsWithoutDefault = []string{"file_id", "user_id", "at"}
+	downloadAllColumns            = []string{"id", "file_id", "user_id", "at", "new_subscription"}
+	downloadColumnsWithoutDefault = []string{"file_id", "user_id", "at", "new_subscription"}
 	downloadColumnsWithDefault    = []string{"id"}
 	downloadPrimaryKeyColumns     = []string{"id"}
 )

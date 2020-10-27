@@ -38,6 +38,8 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 			return bot.send(ctx, bot.renderOwnedFile(msg, result.OwnedFile))
 		case result.File != nil:
 			return bot.send(ctx, bot.renderNotOwnedFile(msg, result.File))
+		case result.ChatSubRequest != nil:
+			return bot.send(ctx, bot.renderSubRequest(msg, result.ChatSubRequest))
 		default:
 			log.Error(ctx, "bad result")
 		}

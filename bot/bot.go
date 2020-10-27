@@ -93,11 +93,12 @@ func (bot *Bot) initHandler() {
 }
 
 var (
-	cbqFileRefresh          = regexp.MustCompile(`^file:(\d+):refresh$`)
-	cbqFileDelete           = regexp.MustCompile(`^file:(\d+):delete$`)
-	cbqFileDeleteConfirm    = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
-	cbqFileRestrictions     = regexp.MustCompile(`^file:(\d+):restrictions$`)
-	cbqFileRestrictionsChat = regexp.MustCompile(`file:(\d+):restrictions:chat-subscription:(\d+):toggl`)
+	cbqFileRefresh               = regexp.MustCompile(`^file:(\d+):refresh$`)
+	cbqFileDelete                = regexp.MustCompile(`^file:(\d+):delete$`)
+	cbqFileDeleteConfirm         = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
+	cbqFileRestrictions          = regexp.MustCompile(`^file:(\d+):restrictions$`)
+	cbqFileRestrictionsChat      = regexp.MustCompile(`file:(\d+):restrictions:chat-subscription:(\d+):toggl`)
+	cbqFileRestrictionsChatCheck = regexp.MustCompile(`^file:(\d+):restrictions:chat:check$`)
 
 	cbqSettings              = regexp.MustCompile(`^` + callbackSettings + `$`)
 	cbqSettingsToggleLongIDs = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
@@ -158,6 +159,17 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	if cbq := update.CallbackQuery; cbq != nil {
 		data := cbq.Data
 		switch {
+
+		// file check chat subscription
+		case len(cbqFileRestrictionsChatCheck.FindStringIndex(data)) > 0:
+			result := cbqFileRestrictionsChatCheck.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onFileRestrictionsChatCheck(ctx, cbq, core.FileID(id))
 
 		// file menu
 		case len(cbqFileRefresh.FindStringIndex(data)) > 0:

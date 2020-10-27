@@ -217,6 +217,12 @@ func run(ctx context.Context) error {
 
 	botState := state.NewRedisStore(rdb, "share-file-bot")
 
+	log.Info(ctx, "init bot api client")
+	tgClient, err := tgbotapi.NewBotAPI(cfg.Token)
+	if err != nil {
+		return errors.Wrap(err, "create bot api")
+	}
+
 	authSrv := &service.Auth{
 		UserStore: pg.User(),
 	}
@@ -225,18 +231,14 @@ func run(ctx context.Context) error {
 		File:     pg.File(),
 		Chat:     pg.Chat(),
 		Download: pg.Download(),
+		Telegram: tgClient,
+		Redis:    rdb,
 	}
 
 	adminSrv := &service.Admin{
 		User:     pg.User(),
 		File:     pg.File(),
 		Download: pg.Download(),
-	}
-
-	log.Info(ctx, "init bot")
-	tgClient, err := tgbotapi.NewBotAPI(cfg.Token)
-	if err != nil {
-		return errors.Wrap(err, "create bot api")
 	}
 
 	chatSrv := &service.Chat{

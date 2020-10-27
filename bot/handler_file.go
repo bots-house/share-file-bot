@@ -16,8 +16,9 @@ import (
 const tgDomain = "t.me"
 
 const (
-	callbackFileRestrictions     = "file:%d:restrictions"
-	callbackFileRestrictionsChat = "file:%d:restrictions:chat-subscription:%d:toggl"
+	callbackFileRestrictions          = "file:%d:restrictions"
+	callbackFileRestrictionsChat      = "file:%d:restrictions:chat-subscription:%d:toggl"
+	callbackFileRestrictionsChatCheck = "file:%d:restrictions:chat:check"
 )
 
 var (
@@ -26,6 +27,11 @@ var (
 		Перед каждым скачиванием бот будет проверять наличие подписки и только после этого выдавать доступ к файлу\. 
 		
 		_Для подключения каналов перейдите в настройки \(/settings\)\._
+	`)
+
+	textFileSubRequest = dedent.Dedent(`
+		Владелец файла установил ограничение на доступ только с подпиской\. 
+		Подпишись на %s и нажми кнопку *«Я подписался»*
 	`)
 )
 
@@ -63,6 +69,29 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 	))
 
 	return strings.Join(rows, "\n")
+}
+
+func (bot *Bot) renderSubRequest(msg *tgbotapi.Message, sub *service.ChatSubRequest) tgbotapi.MessageConfig {
+	var link string
+
+	if sub.Username != "" {
+		link = escapeMarkdown("@" + sub.Username)
+	} else {
+		link = fmt.Sprintf("[%s](%s)", sub.Title, sub.JoinLink)
+	}
+
+	text := fmt.Sprintf(textFileSubRequest, link)
+
+	out := tgbotapi.NewMessage(msg.Chat.ID, text)
+	out.ParseMode = "MarkdownV2"
+	out.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonURL("Подписаться", sub.Link()),
+			tgbotapi.NewInlineKeyboardButtonData("Я подписался", fmt.Sprintf(callbackFileRestrictionsChatCheck, sub.FileID)),
+		),
+	)
+
+	return out
 }
 
 func (bot *Bot) renderOwnedFileReplyMarkup(file *service.OwnedFile) tgbotapi.InlineKeyboardMarkup {
@@ -416,4 +445,32 @@ func (bot *Bot) onFileRestrictionsSetChatCBQ(
 		cbq.Message.MessageID,
 		*replyMarkup,
 	))
+}
+
+func (bot *Bot) onFileRestrictionsChatCheck(
+	ctx context.Context,
+	cbq *tgbotapi.CallbackQuery,
+	fileID core.FileID,
+) error {
+	user := getUserCtx(ctx)
+
+	status, err := bot.fileSrv.CheckFileRestrictionsChat(ctx, user, fileID)
+	if err != nil {
+		return errors.Wrap(err, "check file restrictions chat")
+	}
+
+	if !status.Ok {
+		return bot.answerCallbackQueryAlert(ctx, cbq, "Я не наблюдаю тебе в подписчиках, подпишись чтобы получить доступ к файлу")
+	}
+
+	go func() {
+		_ = bot.deleteMessage(ctx, cbq.Message)
+	}()
+
+	result, err := bot.fileSrv.RegisterDownload(ctx, user, status.File)
+	if err != nil {
+		return errors.Wrap(err, "register file download")
+	}
+
+	return bot.send(ctx, bot.renderNotOwnedFile(cbq.Message, result.File))
 }
