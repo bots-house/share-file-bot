@@ -14,7 +14,6 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/fatih/structs"
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
@@ -282,7 +281,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 			return bot.onSettingsChannelsAndChatsDeleteConfirm(ctx, user, cbq, core.ChatID(id))
 		default:
-			spew.Dump(cbq)
+			// spew.Dump(cbq)
 		}
 
 	}
