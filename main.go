@@ -243,8 +243,10 @@ func run(ctx context.Context) error {
 
 	chatSrv := &service.Chat{
 		Telegram: tgClient,
-		Chat:     pg.Chat(),
 		Txier:    pg.Tx,
+		Chat:     pg.Chat(),
+		File:     pg.File(),
+		Download: pg.Download(),
 	}
 
 	tgBot, err := bot.New(revision, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv)

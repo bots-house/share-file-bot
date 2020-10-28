@@ -40,8 +40,12 @@ var (
 		"",
 		"*ID:* `%d`",
 		"*Тип:* `%s`",
-		"*Кол\\-во файлов:* `%d`",
-		"*Кол\\-во подписок:* `%d`",
+		"",
+		"📈 __Статистика__",
+		"",
+		"*Файлов:* `%d`",
+		"*Загрузок с подпиской:* `%d`",
+		"*Загрузок с новой подпиской*: `%d`",
 	)
 
 	textSettingsChannelsAndChatsDelete = dedent.Dedent(`
@@ -178,13 +182,16 @@ func (bot *Bot) newSettingsChannelsAndChatsDetailsEdit(
 	cid int64, mid int,
 	chat *service.FullChat,
 ) *tgbotapi.EditMessageTextConfig {
+	stats := chat.GetStats()
+
 	text := fmt.Sprintf(
 		textSettingsChannelsAndChatsDetails,
 		escapeMarkdown(chat.Title),
 		chat.TelegramID,
 		getChatTypeRussian(chat.Type),
-		0,
-		0,
+		chat.Files,
+		stats.WithSubscription,
+		stats.NewSubscription,
 	)
 
 	answ := tgbotapi.NewEditMessageText(cid, mid, text)

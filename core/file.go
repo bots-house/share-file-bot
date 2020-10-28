@@ -102,6 +102,7 @@ type FileStoreQuery interface {
 	ID(id FileID) FileStoreQuery
 	OwnerID(id UserID) FileStoreQuery
 	PublicID(id string) FileStoreQuery
+	RestrictionChatID(id ChatID) FileStoreQuery
 
 	One(ctx context.Context) (*File, error)
 	Delete(ctx context.Context) error

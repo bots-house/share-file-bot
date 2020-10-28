@@ -133,6 +133,12 @@ func (fsq *fileStoreQuery) ID(id core.FileID) core.FileStoreQuery {
 	return fsq
 }
 
+func (fsq *fileStoreQuery) RestrictionChatID(id core.ChatID) core.FileStoreQuery {
+	v := null.NewInt(int(id), id != core.ZeroChatID)
+	fsq.mods = append(fsq.mods, dal.FileWhere.RestrictionsChatID.EQ(v))
+	return fsq
+}
+
 func (fsq *fileStoreQuery) PublicID(id string) core.FileStoreQuery {
 	fsq.mods = append(fsq.mods, dal.FileWhere.PublicID.EQ(id))
 	return fsq

@@ -49,7 +49,7 @@ func (store *DownloadStore) Query() core.DownloadStoreQuery {
 	}
 }
 
-func (store *DownloadStore) GetFileDownloadStats(ctx context.Context, id core.FileID) (*core.DownloadStats, error) {
+func (store *DownloadStore) GetFileStats(ctx context.Context, id core.FileID) (*core.FileDownloadStats, error) {
 	const query = `
 	select
 		count(user_id) as total, 
@@ -62,13 +62,40 @@ func (store *DownloadStore) GetFileDownloadStats(ctx context.Context, id core.Fi
 		file_id = $1
     `
 
-	result := &core.DownloadStats{}
+	result := &core.FileDownloadStats{}
 
 	executor := store.getExecutor(ctx)
 
 	if err := executor.QueryRowContext(ctx, query, id).Scan(
 		&result.Total,
 		&result.Unique,
+		&result.NewSubscription,
+		&result.WithSubscription,
+	); err != nil {
+		return nil, errors.Wrap(err, "count downloads query")
+	}
+
+	return result, nil
+}
+
+func (store *DownloadStore) GetChatStats(ctx context.Context, id core.ChatID) (*core.ChatDownloadStats, error) {
+	const query = `
+		select
+			coalesce(sum(case when new_subscription = true then 1 else 0 end), 0) as new_subscription,
+			coalesce(sum(case when new_subscription = false then 1 else 0 end), 0) as with_subscription
+		from
+			download
+		inner join
+			file on download.file_id = file.id
+		where
+			file.restrictions_chat_id = $1
+    `
+
+	result := &core.ChatDownloadStats{}
+
+	executor := store.getExecutor(ctx)
+
+	if err := executor.QueryRowContext(ctx, query, id).Scan(
 		&result.NewSubscription,
 		&result.WithSubscription,
 	); err != nil {

@@ -34,11 +34,11 @@ type InputFile struct {
 
 type OwnedFile struct {
 	*core.File
-	Stats *core.DownloadStats
+	Stats *core.FileDownloadStats
 }
 
 func (srv *File) newOwnedFile(ctx context.Context, doc *core.File) (*OwnedFile, error) {
-	downloadStats, err := srv.Download.GetFileDownloadStats(ctx, doc.ID)
+	downloadStats, err := srv.Download.GetFileStats(ctx, doc.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "get downloads count")
 	}
@@ -258,7 +258,7 @@ func (srv *File) CheckFileRestrictionsChat(
 	}
 
 	if !file.Restriction.HasChatID() {
-		return nil, nil
+		return &ChatRestrictionStatus{Ok: true, File: file}, nil
 	}
 
 	chat, err := srv.Chat.Query().ID(file.Restriction.ChatID).One(ctx)

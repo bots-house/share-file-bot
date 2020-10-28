@@ -41,7 +41,7 @@ func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, file *core.File) tgbot
 		file.Kind,
 		file.TelegramID,
 		escapeMarkdown(file.Caption.String),
-		tgbotapi.ModeMarkdown,
+		mdv2,
 		nil,
 	)
 }
@@ -50,8 +50,11 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 	rows := []string{}
 
 	if file.Caption.String != "" {
+
 		rows = append(rows,
-			fmt.Sprintf("*Описание*: %s", escapeMarkdown(file.Caption.String)),
+			fmt.Sprintf("💬 __Описание__"),
+			"",
+			escapeMarkdown(file.Caption.String),
 			"",
 		)
 	}
@@ -189,7 +192,7 @@ func (bot *Bot) renderOwnedFile(msg *tgbotapi.Message, file *service.OwnedFile) 
 		file.Kind,
 		file.TelegramID,
 		bot.renderOwnedFileCaption(file),
-		tgbotapi.ModeMarkdown,
+		mdv2,
 		bot.renderOwnedFileReplyMarkup(file),
 	)
 }

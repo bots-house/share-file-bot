@@ -9,12 +9,16 @@ import (
 	"github.com/bots-house/share-file-bot/store"
 	"github.com/friendsofgo/errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"golang.org/x/sync/errgroup"
 )
 
 type Chat struct {
 	Telegram *tgbotapi.BotAPI
 	Txier    store.Txier
+
+	File     core.FileStore
 	Chat     core.ChatStore
+	Download core.DownloadStore
 }
 
 type ChatIdentity struct {
@@ -112,7 +116,7 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 		return nil, errors.Wrap(err, "add chat to store")
 	}
 
-	return &FullChat{chat}, nil
+	return &FullChat{Chat: chat}, nil
 }
 
 func (srv *Chat) isUserAdmin(admins []tgbotapi.ChatMember, userID int) bool {
@@ -148,6 +152,20 @@ func (srv *Chat) GetChats(ctx context.Context, user *core.User) ([]*core.Chat, e
 
 type FullChat struct {
 	*core.Chat
+
+	// Count of files
+	Files int
+
+	// Stats of downloads
+	Stats *core.ChatDownloadStats
+}
+
+func (chat *FullChat) GetStats() *core.ChatDownloadStats {
+	if chat.Stats == nil {
+		return &core.ChatDownloadStats{}
+	}
+
+	return chat.Stats
 }
 
 func (srv *Chat) GetChat(ctx context.Context, user *core.User, id core.ChatID) (*FullChat, error) {
@@ -155,7 +173,41 @@ func (srv *Chat) GetChat(ctx context.Context, user *core.User, id core.ChatID) (
 	if err != nil {
 		return nil, errors.Wrap(err, "query chat")
 	}
-	return &FullChat{chat}, nil
+
+	full := &FullChat{Chat: chat}
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		filesCount, err := srv.File.Query().
+			RestrictionChatID(chat.ID).
+			Count(ctx)
+
+		if err != nil {
+			return errors.Wrap(err, "query files count")
+		}
+
+		full.Files = filesCount
+
+		return nil
+	})
+
+	g.Go(func() error {
+		stats, err := srv.Download.GetChatStats(ctx, chat.ID)
+		if err != nil {
+			return errors.Wrap(err, "query chat stats")
+		}
+
+		full.Stats = stats
+
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, errors.Wrap(err, "collect stats")
+	}
+
+	return full, nil
 }
 
 // DisconnectChat disconnect user linked chat and optionaly leave it.
