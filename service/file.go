@@ -38,7 +38,7 @@ type OwnedFile struct {
 }
 
 func (srv *File) newOwnedFile(ctx context.Context, doc *core.File) (*OwnedFile, error) {
-	downloadStats, err := srv.Download.GetDownloadStats(ctx, doc.ID)
+	downloadStats, err := srv.Download.GetFileDownloadStats(ctx, doc.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "get downloads count")
 	}

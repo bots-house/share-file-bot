@@ -49,14 +49,17 @@ func (store *DownloadStore) Query() core.DownloadStoreQuery {
 	}
 }
 
-func (store *DownloadStore) GetDownloadStats(ctx context.Context, id core.FileID) (*core.DownloadStats, error) {
+func (store *DownloadStore) GetFileDownloadStats(ctx context.Context, id core.FileID) (*core.DownloadStats, error) {
 	const query = `
-        select
-            count(*) as total, count(distinct user_id) as unique
-        from
-            download
-        where
-            file_id = $1
+	select
+		count(user_id) as total, 
+		count(distinct user_id) as unique, 
+		coalesce(sum(case when new_subscription = true then 1 else 0 end), 0) as new_subscription, 
+		coalesce(sum(case when new_subscription = false then 1 else 0 end), 0) as with_subscription
+	from
+		download
+	where
+		file_id = $1
     `
 
 	result := &core.DownloadStats{}
@@ -66,6 +69,8 @@ func (store *DownloadStore) GetDownloadStats(ctx context.Context, id core.FileID
 	if err := executor.QueryRowContext(ctx, query, id).Scan(
 		&result.Total,
 		&result.Unique,
+		&result.NewSubscription,
+		&result.WithSubscription,
 	); err != nil {
 		return nil, errors.Wrap(err, "count downloads query")
 	}

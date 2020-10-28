@@ -57,16 +57,34 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 	}
 
 	rows = append(rows,
-		fmt.Sprintf("*Кол-во загрузок*: `%d`", file.Stats.Total),
-		fmt.Sprintf("*Кол-во уникальных загрузок*: `%d`", file.Stats.Unique),
+		"🔗 __Публичная ссылка__",
+		"",
+		fmt.Sprintf("https://%s/%s?start\\=%s",
+			escapeMarkdown(tgDomain),
+			escapeMarkdown(bot.client.Self.UserName),
+			escapeMarkdown(file.PublicID),
+		),
 		"",
 	)
 
-	rows = append(rows, fmt.Sprintf("*Публичная ссылка*: https://%s/%s?start=%s",
-		tgDomain,
-		escapeMarkdown(bot.client.Self.UserName),
-		escapeMarkdown(file.PublicID),
-	))
+	rows = append(rows,
+		"📈 __Статистика__",
+		"",
+	)
+
+	rows = append(rows,
+		fmt.Sprintf("*Загрузок*: `%d`", file.Stats.Total),
+		fmt.Sprintf("*Уникальных загрузок*: `%d`", file.Stats.Unique),
+		"",
+	)
+
+	if file.Restriction.HasChatID() {
+		rows = append(rows,
+			fmt.Sprintf("*Загрузок с подпиской*: `%d`", file.Stats.WithSubscription),
+			fmt.Sprintf("*Загрузок с новой подпиской*: `%d`", file.Stats.NewSubscription),
+			"",
+		)
+	}
 
 	return strings.Join(rows, "\n")
 }
@@ -256,7 +274,7 @@ func (bot *Bot) onFileRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuer
 		caption,
 	)
 
-	edit.ParseMode = tgbotapi.ModeMarkdown
+	edit.ParseMode = mdv2
 	replyMarkup := bot.renderOwnedFileReplyMarkup(doc)
 	edit.ReplyMarkup = &replyMarkup
 

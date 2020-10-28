@@ -41,9 +41,19 @@ func NewDownload(fileID FileID, userID UserID) *Download {
 	}
 }
 
+// DownloadStats of file.
 type DownloadStats struct {
-	Total  int
+	// Total downloads count
+	Total int
+
+	// Unique downloads count
 	Unique int
+
+	// Downloads with subscription
+	WithSubscription int
+
+	// Downloads with new subscription
+	NewSubscription int
 }
 
 type DownloadStoreQuery interface {
@@ -54,7 +64,7 @@ type DownloadStoreQuery interface {
 
 type DownloadStore interface {
 	Add(ctx context.Context, download *Download) error
-	GetDownloadStats(ctx context.Context, id FileID) (*DownloadStats, error)
+	GetFileDownloadStats(ctx context.Context, id FileID) (*DownloadStats, error)
 
 	Query() DownloadStoreQuery
 }
