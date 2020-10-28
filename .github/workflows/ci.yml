@@ -39,7 +39,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-
       postgres:
         image: postgres:12
         env:
@@ -82,16 +81,16 @@ jobs:
           SFB_DATABASE: postgres://sfb:sfb@localhost:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
           SFB_REDIS: redis://localhost:${{ job.services.redis.ports[6379] }}
 
-        run:  go test -race -coverprofile=coverage.txt -covermode=atomic ./...
-      
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
       - name: Upload Coverage Result
         uses: codecov/codecov-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} 
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.txt
 
   deploy-production:
-    name: Deploy Staging
+    name: Deploy Production
     runs-on: ubuntu-latest
     needs: [build-and-test, lint-docker, lint-go]
     if: github.ref == 'refs/heads/master'
