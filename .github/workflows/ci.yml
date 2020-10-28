@@ -22,22 +22,23 @@ jobs:
     services:
       redis:
         image: redis:6
+        ports:
+          - 6379:6379
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        # ports:
-        #   - 6379/tcp
+
 
       postgres:
         image: postgres:12
         env:
-          POSTGRES_USER: chn
-          POSTGRES_PASSWORD: chn
-          POSTGRES_DB: chn
-        # ports:
-        #   - 5432/tcp
+          POSTGRES_USER: sfb
+          POSTGRES_PASSWORD: sfb
+          POSTGRES_DB: sfb
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -71,8 +72,8 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE: postgres://sfb:sfb@postgres:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
-          REDIS: redis://redis:${{ job.services.redis.ports[6379] }}
+          DATABASE: postgres://sfb:sfb@localhost:5432/sfb?sslmode=disable
+          REDIS: redis://localhost:6379
 
         run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
