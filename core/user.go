@@ -34,6 +34,9 @@ type User struct {
 	// Settings of user
 	Settings UserSettings
 
+	// Ref is set we user /start with deep-link like ref_*
+	Ref null.String
+
 	// Time of first interaction with bot
 	JoinedAt time.Time
 

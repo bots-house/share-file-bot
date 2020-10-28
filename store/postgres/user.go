@@ -29,6 +29,7 @@ func (store *UserStore) toRow(user *core.User) (*dal.User, error) {
 		LanguageCode: user.LanguageCode,
 		IsAdmin:      user.IsAdmin,
 		Settings:     settings,
+		Ref:          user.Ref,
 		JoinedAt:     user.JoinedAt,
 		UpdatedAt:    user.UpdatedAt,
 	}, nil
@@ -49,6 +50,7 @@ func (store *UserStore) fromRow(row *dal.User) (*core.User, error) {
 		LanguageCode: row.LanguageCode,
 		IsAdmin:      row.IsAdmin,
 		Settings:     settings,
+		Ref:          row.Ref,
 		JoinedAt:     row.JoinedAt,
 		UpdatedAt:    row.UpdatedAt,
 	}, nil

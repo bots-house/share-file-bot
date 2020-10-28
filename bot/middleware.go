@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/fatih/structs"
 	"github.com/friendsofgo/errors"
@@ -14,6 +15,20 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
 )
+
+const refDeepLinkPrefix = "ref_"
+
+func getRefFromMessage(msg *tgbotapi.Message) string {
+	if msg != nil && msg.Command() == "start" {
+		args := msg.CommandArguments()
+
+		if strings.HasPrefix(args, refDeepLinkPrefix) {
+			return strings.TrimPrefix(args, refDeepLinkPrefix)
+		}
+	}
+
+	return ""
+}
 
 func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 	return func(next tg.Handler) tg.Handler {
@@ -49,6 +64,7 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 					LastName:     tgUser.LastName,
 					Username:     tgUser.UserName,
 					LanguageCode: tgUser.LanguageCode,
+					Ref:          getRefFromMessage(update.Message),
 				})
 
 				if err != nil {
