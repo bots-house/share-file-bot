@@ -13,14 +13,18 @@ import (
 	"time"
 
 	"github.com/bots-house/share-file-bot/bot"
+	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/pkg/health"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
+	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	redis "github.com/go-redis/redis/v8"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+
 	"github.com/kelseyhightower/envconfig"
-	"github.com/pkg/errors"
 	"github.com/subosito/gotenv"
 )
 
@@ -38,6 +42,10 @@ type Config struct {
 	Database             string `default:"postgres://sfb:sfb@localhost/sfb?sslmode=disable"`
 	DatabaseMaxOpenConns int    `default:"10" split_words:"true"`
 	DatabaseMaxIdleConns int    `default:"0" split_words:"true"`
+
+	Redis             string `default:"redis://localhost:6379"`
+	RedisMaxOpenConns int    `default:"10" split_words:"true"`
+	RedisMaxIdleConns int    `default:"0" split_words:"true"`
 
 	Token        string `required:"true"`
 	Addr         string `default:":8000"`
@@ -186,30 +194,68 @@ func run(ctx context.Context) error {
 	db.SetMaxIdleConns(cfg.DatabaseMaxIdleConns)
 
 	// create abstraction around db and apply migrations
-	pg := postgres.NewPostgres(db)
+	pg := postgres.New(db)
 
 	log.Info(ctx, "migrate database")
 	if err := pg.Migrator().Up(ctx); err != nil {
 		return errors.Wrap(err, "migrate db")
 	}
 
+	log.Info(ctx, "open redis",
+		"dsn", cfg.Redis,
+		"max_open_conns",
+		cfg.RedisMaxOpenConns,
+		"max_idle_conns",
+		cfg.RedisMaxIdleConns,
+	)
+
+	rdbOpts, err := redis.ParseURL(cfg.Redis)
+	if err != nil {
+		return errors.Wrap(err, "parse redis url")
+	}
+
+	rdb := redis.NewClient(rdbOpts)
+
+	log.Debug(ctx, "ping redis")
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		return errors.Wrap(err, "ping redis")
+	}
+
+	botState := state.NewRedisStore(rdb, "share-file-bot")
+
+	log.Info(ctx, "init bot api client")
+	tgClient, err := tgbotapi.NewBotAPI(cfg.Token)
+	if err != nil {
+		return errors.Wrap(err, "create bot api")
+	}
+
 	authSrv := &service.Auth{
-		UserStore: pg.User,
+		UserStore: pg.User(),
 	}
 
 	fileSrv := &service.File{
-		FileStore:     pg.File,
-		DownloadStore: pg.Download,
+		File:     pg.File(),
+		Chat:     pg.Chat(),
+		Download: pg.Download(),
+		Telegram: tgClient,
+		Redis:    rdb,
 	}
 
 	adminSrv := &service.Admin{
-		User:     pg.User,
-		File:     pg.File,
-		Download: pg.Download,
+		User:     pg.User(),
+		File:     pg.File(),
+		Download: pg.Download(),
 	}
 
-	log.Info(ctx, "init bot")
-	tgBot, err := bot.New(revision, cfg.Token, authSrv, fileSrv, adminSrv)
+	chatSrv := &service.Chat{
+		Telegram: tgClient,
+		Txier:    pg.Tx,
+		Chat:     pg.Chat(),
+		File:     pg.File(),
+		Download: pg.Download(),
+	}
+
+	tgBot, err := bot.New(revision, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}

@@ -3,7 +3,7 @@ package bot
 import (
 	"net"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 )
 
 func newIPChecker(cidrs ...string) (func(ip string) bool, error) {

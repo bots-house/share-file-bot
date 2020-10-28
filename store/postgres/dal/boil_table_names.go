@@ -4,10 +4,12 @@
 package dal
 
 var TableNames = struct {
+	Chat     string
 	Download string
 	File     string
 	User     string
 }{
+	Chat:     "chat",
 	Download: "download",
 	File:     "file",
 	User:     "user",

@@ -13,8 +13,31 @@ func escapeMarkdown(txt string) string {
 	txt = strings.ReplaceAll(txt, "_", "\\_")
 	txt = strings.ReplaceAll(txt, "*", "\\*")
 	txt = strings.ReplaceAll(txt, "[", "\\[")
+	txt = strings.ReplaceAll(txt, "(", "\\(")
+	txt = strings.ReplaceAll(txt, ")", "\\)")
 	txt = strings.ReplaceAll(txt, "`", "\\`")
+	txt = strings.ReplaceAll(txt, ".", "\\.")
 	return txt
+}
+
+func getFirstMentionEntity(entities []tgbotapi.MessageEntity) *tgbotapi.MessageEntity {
+	for _, entity := range entities {
+		if entity.Type == "mention" {
+			return &entity
+		}
+	}
+
+	return nil
+}
+
+func getFirstLinkEntity(entities []tgbotapi.MessageEntity) *tgbotapi.MessageEntity {
+	for _, entity := range entities {
+		if entity.Type == "url" {
+			return &entity
+		}
+	}
+
+	return nil
 }
 
 func (bot *Bot) send(_ context.Context, s tgbotapi.Chattable) error {
@@ -49,6 +72,19 @@ func (bot *Bot) answerCallbackQuery(_ context.Context, cbq *tgbotapi.CallbackQue
 		cbq.ID,
 		text,
 	))
+
+	return err
+}
+
+func (bot *Bot) answerCallbackQueryAlert(_ context.Context, cbq *tgbotapi.CallbackQuery, text string) error {
+	answ := tgbotapi.NewCallback(
+		cbq.ID,
+		text,
+	)
+
+	answ.ShowAlert = true
+
+	_, err := bot.client.AnswerCallbackQuery(answ)
 
 	return err
 }

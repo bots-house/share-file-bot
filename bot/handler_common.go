@@ -5,14 +5,15 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/friendsofgo/errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/pkg/errors"
 )
 
 const (
 	textHelp                = "Я помогу тебе поделится любым медиафайлом (фото, видео, документы, аудио, голосовые) с подписчиками твоего канала. Отправь любой из перечисленных файлов, а я в ответ дам тебе ссылку. Так же рекомендую указать подпись, чтобы человек не забыл кто ему это пошарил 🤗.\n\n /settings - для более тонкой настройки"
 	textStart               = "Привет! 👋\n\n" + textHelp
 	textUnsupportedFileKind = "К сожалению, я не поддерживаю данный тип файлов. На данный момент я умею работать только с документами, видео, фото, аудио и голосовыми. Отправь и перешли мне сообщение перечисленного типа, а в ответ я дам тебе ссылку."
+	mdv2                    = "MarkdownV2"
 )
 
 func (bot *Bot) onHelp(ctx context.Context, msg *tgbotapi.Message) error {
@@ -38,6 +39,8 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 			return bot.send(ctx, bot.renderOwnedFile(msg, result.OwnedFile))
 		case result.File != nil:
 			return bot.send(ctx, bot.renderNotOwnedFile(msg, result.File))
+		case result.ChatSubRequest != nil:
+			return bot.send(ctx, bot.renderSubRequest(msg, result.ChatSubRequest))
 		default:
 			log.Error(ctx, "bad result")
 		}

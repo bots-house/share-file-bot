@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"time"
+
+	"github.com/volatiletech/null/v8"
 )
 
 // DownloadID alias for download.
@@ -18,8 +20,17 @@ type Download struct {
 	// References to user. Can be null.
 	UserID UserID
 
+	// If true, means user was requested to subscription and successefuly subscribed,
+	// False means, user was already subscribed,
+	// Null means check is disable.
+	NewSubscription null.Bool
+
 	// At time when download was happen
 	At time.Time
+}
+
+func (dwn *Download) SetNewSubscription(v bool) {
+	dwn.NewSubscription = null.NewBool(v, true)
 }
 
 func NewDownload(fileID FileID, userID UserID) *Download {
@@ -30,9 +41,27 @@ func NewDownload(fileID FileID, userID UserID) *Download {
 	}
 }
 
-type DownloadStats struct {
-	Total  int
+// FileDownloadStats of file.
+type FileDownloadStats struct {
+	// Total downloads count
+	Total int
+
+	// Unique downloads count
 	Unique int
+
+	// Downloads with subscription
+	WithSubscription int
+
+	// Downloads with new subscription
+	NewSubscription int
+}
+
+type ChatDownloadStats struct {
+	// Downloads with subscription
+	WithSubscription int
+
+	// Downloads with new subscription
+	NewSubscription int
 }
 
 type DownloadStoreQuery interface {
@@ -43,7 +72,7 @@ type DownloadStoreQuery interface {
 
 type DownloadStore interface {
 	Add(ctx context.Context, download *Download) error
-	GetDownloadStats(ctx context.Context, id FileID) (*DownloadStats, error)
-
+	GetFileStats(ctx context.Context, id FileID) (*FileDownloadStats, error)
+	GetChatStats(ctx context.Context, id ChatID) (*ChatDownloadStats, error)
 	Query() DownloadStoreQuery
 }

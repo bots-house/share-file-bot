@@ -9,24 +9,28 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/fatih/structs"
+	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/pkg/errors"
 	"github.com/tomasen/realip"
 )
 
 type Bot struct {
 	revision string
-	client   *tgbotapi.BotAPI
+
+	client *tgbotapi.BotAPI
+	state  state.Store
 
 	authSrv  *service.Auth
 	fileSrv  *service.File
 	adminSrv *service.Admin
+	chatSrv  *service.Chat
 
 	handler tg.Handler
 }
@@ -35,18 +39,17 @@ func (bot *Bot) Self() tgbotapi.User {
 	return bot.client.Self
 }
 
-func New(revision string, token string, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin) (*Bot, error) {
-	client, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		return nil, errors.Wrap(err, "create bot api")
-	}
+func New(revision string, client *tgbotapi.BotAPI, state state.Store, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin, chatSrv *service.Chat) (*Bot, error) {
 
 	bot := &Bot{
 		revision: revision,
 		client:   client,
+		state:    state,
+
 		authSrv:  authSrv,
 		fileSrv:  docSrv,
 		adminSrv: adminSrv,
+		chatSrv:  chatSrv,
 	}
 
 	// bot.client.Debug = true
@@ -89,15 +92,48 @@ func (bot *Bot) initHandler() {
 }
 
 var (
-	cbqFileRefresh           = regexp.MustCompile(`^file:(\d+):refresh$`)
-	cbqFileDelete            = regexp.MustCompile(`^file:(\d+):delete$`)
-	cbqFileDeleteConfirm     = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
+	cbqFileRefresh               = regexp.MustCompile(`^file:(\d+):refresh$`)
+	cbqFileDelete                = regexp.MustCompile(`^file:(\d+):delete$`)
+	cbqFileDeleteConfirm         = regexp.MustCompile(`^file:(\d+):delete:confirm$`)
+	cbqFileRestrictions          = regexp.MustCompile(`^file:(\d+):restrictions$`)
+	cbqFileRestrictionsChat      = regexp.MustCompile(`file:(\d+):restrictions:chat-subscription:(\d+):toggl`)
+	cbqFileRestrictionsChatCheck = regexp.MustCompile(`^file:(\d+):restrictions:chat:check$`)
+
+	cbqSettings              = regexp.MustCompile(`^` + callbackSettings + `$`)
 	cbqSettingsToggleLongIDs = regexp.MustCompile(`^` + callbackSettingsLongIDs + `$`)
+
+	cbqSettingsChannelsAndChats              = regexp.MustCompile(`^` + callbackSettingsChannelsAndChats + `$`)
+	cbqSettingsChannelsAndChatsConnect       = regexp.MustCompile(`^` + callbackSettingsChannelsAndChatsConnect + `$`)
+	cbqSettingsChannelsAndChatsDetails       = regexp.MustCompile(`^settings:channels-and-chats:(\d+)$`)
+	cbqSettingsChannelsAndChatsDelete        = regexp.MustCompile(`^settings:channels-and-chats:(\d+):delete$`)
+	cbqSettingsChannelsAndChatsDeleteConfirm = regexp.MustCompile(`^settings:channels-and-chats:(\d+):delete:confirm$`)
 )
 
+// i known, we should rewrite it
+// nolint:gocyclo
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
+
+	if msg := update.ChannelPost; msg != nil {
+		if msg.NewChatTitle != "" {
+			return bot.onChatNewTitle(ctx, msg)
+		}
+	}
+
+	user := getUserCtx(ctx)
+
 	// handle message
 	if msg := update.Message; msg != nil {
+
+		userState, err := bot.state.Get(ctx, user.ID)
+		if err != nil {
+			return errors.Wrap(err, "get state")
+		}
+
+		//nolint:gocritic
+		switch userState {
+		case state.SettingsChannelsAndChatsConnect:
+			return bot.onSettingsChannelsAndChatsConnectState(ctx, msg)
+		}
 
 		// handle command
 		switch msg.Command() {
@@ -122,9 +158,23 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	}
 
 	// handle callback queries
+	//nolint:nestif
 	if cbq := update.CallbackQuery; cbq != nil {
 		data := cbq.Data
 		switch {
+
+		// file check chat subscription
+		case len(cbqFileRestrictionsChatCheck.FindStringIndex(data)) > 0:
+			result := cbqFileRestrictionsChatCheck.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onFileRestrictionsChatCheck(ctx, cbq, core.FileID(id))
+
+		// file menu
 		case len(cbqFileRefresh.FindStringIndex(data)) > 0:
 			result := cbqFileRefresh.FindStringSubmatch(data)
 
@@ -135,6 +185,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 			return bot.onFileRefreshCBQ(ctx, cbq, id)
 
+		// file menu / delete
 		case len(cbqFileDelete.FindStringIndex(data)) > 0:
 			result := cbqFileDelete.FindStringSubmatch(data)
 
@@ -144,6 +195,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onFileDeleteCBQ(ctx, cbq, id)
+		// file menu / delete
 		case len(cbqFileDeleteConfirm.FindStringIndex(data)) > 0:
 			result := cbqFileDeleteConfirm.FindStringSubmatch(data)
 
@@ -153,9 +205,85 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onFileDeleteConfirmCBQ(ctx, cbq, id)
+		// file menu / restrictions
+		case len(cbqFileRestrictions.FindStringIndex(data)) > 0:
+			result := cbqFileRestrictions.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onFileRestrictionsCBQ(ctx, cbq, id)
+		// file menu / restrictions / set chat
+		case len(cbqFileRestrictionsChat.FindStringIndex(data)) > 0:
+			result := cbqFileRestrictionsChat.FindStringSubmatch(data)
+
+			fileID, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data (file_id)")
+			}
+
+			chatID, err := strconv.Atoi(result[2])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data (chat_id)")
+			}
+
+			return bot.onFileRestrictionsSetChatCBQ(ctx, cbq,
+				core.FileID(fileID),
+				core.ChatID(chatID),
+			)
+
+		// settings
+		case len(cbqSettings.FindStringIndex(data)) > 0:
+			return bot.onSettingsCallbackQuery(ctx, cbq)
+
+		// settings / long ids
 		case len(cbqSettingsToggleLongIDs.FindStringIndex(data)) > 0:
 			return bot.onSettingsToggleLongIDsCBQ(ctx, cbq)
+
+		// settings / channels and chats
+		case len(cbqSettingsChannelsAndChats.FindStringIndex(data)) > 0:
+			return bot.onSettingsChannelsAndChats(ctx, cbq)
+
+		// settings / channels and chats / connect
+		case len(cbqSettingsChannelsAndChatsConnect.FindStringIndex(data)) > 0:
+			return bot.onSettingsChannelsAndChatsConnect(ctx, cbq)
+
+		// settings / channels and chats / details
+		case len(cbqSettingsChannelsAndChatsDetails.FindStringIndex(data)) > 0:
+			result := cbqSettingsChannelsAndChatsDetails.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onSettingsChannelsAndChatsDetails(ctx, user, cbq, core.ChatID(id))
+		// settings / channels and chats / delete
+		case len(cbqSettingsChannelsAndChatsDelete.FindStringIndex(data)) > 0:
+			result := cbqSettingsChannelsAndChatsDelete.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onSettingsChannelsAndChatsDelete(ctx, user, cbq, core.ChatID(id))
+		// settings / channels and chats / delete / confirm
+		case len(cbqSettingsChannelsAndChatsDeleteConfirm.FindStringIndex(data)) > 0:
+			result := cbqSettingsChannelsAndChatsDeleteConfirm.FindStringSubmatch(data)
+
+			id, err := strconv.Atoi(result[1])
+			if err != nil {
+				return errors.Wrap(err, "parse cbq data")
+			}
+
+			return bot.onSettingsChannelsAndChatsDeleteConfirm(ctx, user, cbq, core.ChatID(id))
+		default:
+			// spew.Dump(cbq)
 		}
+
 	}
 
 	return nil
