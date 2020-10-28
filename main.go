@@ -201,7 +201,12 @@ func run(ctx context.Context) error {
 		return errors.Wrap(err, "migrate db")
 	}
 
-	log.Info(ctx, "open redis", "dsn", cfg.Redis)
+	log.Info(ctx, "open redis",
+		"dsn", cfg.Redis,
+		"max_open_conns",
+		cfg.RedisMaxOpenConns,
+		"max_idle_conns", cfg.RedisMaxIdleConns,
+	)
 
 	rdbOpts, err := redis.ParseURL(cfg.Redis)
 	if err != nil {
