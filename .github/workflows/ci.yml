@@ -1,18 +1,27 @@
 name: CI
 
 on:
-  pull_request:
+  push:
 
 jobs:
-  lint:
-    name: Lint
+  lint-docker:
+    name: Lint Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Lint Dockerfile
+        uses: brpaz/hadolint-action@master
+        with:
+          dockerfile: "Dockerfile"
+
+  lint-go:
+    name: Lint Go
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v1
         with:
-          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: v1.31
 
   build-and-test:
@@ -46,9 +55,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
+      - uses: actions/checkout@v2
       - name: Install Go
         uses: actions/setup-go@v2
         with:
@@ -75,10 +82,49 @@ jobs:
           SFB_DATABASE: postgres://sfb:sfb@localhost:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
           SFB_REDIS: redis://localhost:${{ job.services.redis.ports[6379] }}
 
-        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
-
+        run:  go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+      
       - name: Upload Coverage Result
         uses: codecov/codecov-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }} 
           file: ./coverage.txt
+
+  deploy-production:
+    name: Deploy Staging
+    runs-on: ubuntu-latest
+    needs: [build-and-test, lint-docker, lint-go]
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login to docker.pkg.github.com
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+      - name: Get Revision
+        run: |
+          echo ::set-env name=REVISION::${GITHUB_REF##*/}-${GITHUB_SHA::7}-$(date +'%Y%m%d%H%M')
+
+      # In this step, this action saves a list of existing images,
+      # the cache is created without them in the post run.
+      # It also restores the cache if it exists.
+      - uses: satackey/action-docker-layer-caching@v0.0.8
+        continue-on-error: true
+
+      - name: Build the Docker image
+        run: |
+          docker build \
+            --build-arg REVISION=${REVISION} \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:${REVISION} \
+            .
+
+      - name: Push image to GitHub Packages
+        run: |
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:${REVISION}
+
+      - name: Call Deploy Hooks
+        run: |
+          curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
