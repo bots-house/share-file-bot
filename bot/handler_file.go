@@ -96,7 +96,7 @@ func (bot *Bot) renderSubRequest(msg *tgbotapi.Message, sub *service.ChatSubRequ
 	var link string
 
 	if sub.Username != "" {
-		link = escapeMarkdown("@" + sub.Username)
+		link = fmt.Sprintf("[@%s](https://t.me/%s)", escapeMarkdown(sub.Username), sub.Username)
 	} else {
 		link = fmt.Sprintf("[%s](%s)", sub.Title, sub.JoinLink)
 	}
@@ -486,6 +486,7 @@ func (bot *Bot) onFileRestrictionsChatCheck(
 
 	go func() {
 		_ = bot.deleteMessage(ctx, cbq.Message)
+		_ = bot.answerCallbackQuery(ctx, cbq, "🔓 Доступ к файлу получен")
 	}()
 
 	result, err := bot.fileSrv.RegisterDownload(ctx, user, status.File)

@@ -31,7 +31,7 @@ var (
 
 		Чтобы добавить канал или чат, тебе нужно выполнить следующие действия:
 
-		1\. Добавьте @%s в администратраторы канала или чата с минимальными правами \(например "Add User"\)\.
+		1\. Добавьте @%s в администратраторы канала или чата с правами «Добавление подписчиков» \(Add User\)\.
 		2\. Отправь мне @username или приватную ссылку на канал или чат, так же ты можешь переслать любое сообщение из канала\.
 	`)
 
@@ -61,8 +61,9 @@ var (
 	textSettingsChannelsAndChatsConnectNotValid              = "⚠️ Для подключения канала или чата отправь мне его @username, приватную ссылку или перешли мне любое сообщение из канала"
 	textSettingsChannelsAndChatsConnectIsPrivate             = "⚠️ Нужно отправить @username или приватную ссылку на канал или чат, ты скинул пользователя :)"
 	textSettingsChannelsAndChatsConnectNotFound              = "⚠️ Чат не найден или бот не является админом, добавь бота в администраторы и повтори запрос"
-	textSettingsChannelsAndChatsConnectBotIsNotAdmin         = "⚠️ Бот не установлен администратором чата или канала, добавьте его в администраторы с минимальными правами"
+	textSettingsChannelsAndChatsConnectBotIsNotAdmin         = "⚠️ Бот не установлен администратором чата или канала, добавьте его в администраторы с правами «Добавление подписчиков» (Add User)"
 	textSettingsChannelsAndChatsConnectUserIsNotAdmin        = "⚠️ Ты не являешся администратором данного чата / канала"
+	textSettingsChannelsAndChatsConnectBotIsNotEnoughRights  = "⚠️ Бот установлен администратором чата / канала, но ему не хватает прав «Добавление подписчиков» (Add User)"
 
 	textSettingsChannelsAndChatsConnectNotValidButtonCancel = "Я передумал"
 	textSettingsChannelsAndChatsButtonConnect               = "+ Подключить"
@@ -380,6 +381,8 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectNotFound)
 	case err == service.ErrBotIsNotChatAdmin:
 		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectBotIsNotAdmin)
+	case err == service.ErrBotNotEnoughRights:
+		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectBotIsNotEnoughRights)
 	case err == service.ErrUserIsNotChatAdmin:
 		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectUserIsNotAdmin)
 	case err != nil:

@@ -38,6 +38,7 @@ var (
 	ErrChatNotFoundOrBotIsNotAdmin = errors.New("chat not found or bot is not admin")
 	ErrChatIsUser                  = errors.New("chat is private (user)")
 	ErrBotIsNotChatAdmin           = errors.New("bot is not admin")
+	ErrBotNotEnoughRights          = errors.New("bot not has rights")
 	ErrUserIsNotChatAdmin          = errors.New("user is not admin")
 )
 
@@ -97,12 +98,26 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 		return nil, errors.Wrap(err, "get chat admins")
 	}
 
-	if !srv.isUserAdmin(admins, srv.Telegram.Self.ID) {
+	if !srv.isUserAdmin(admins, srv.Telegram.Self.ID, nil) {
 		return nil, ErrBotIsNotChatAdmin
 	}
 
-	if !srv.isUserAdmin(admins, int(user.ID)) {
+	if !srv.isUserAdmin(admins, srv.Telegram.Self.ID, func(member tgbotapi.ChatMember) bool {
+		return member.CanInviteUsers
+	}) {
+		return nil, ErrBotNotEnoughRights
+	}
+
+	if !srv.isUserAdmin(admins, int(user.ID), nil) {
 		return nil, ErrUserIsNotChatAdmin
+	}
+
+	_, err = srv.Telegram.GetInviteLink(tgbotapi.ChatConfig{
+		ChatID: chatInfo.ID,
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "can't get invite link")
 	}
 
 	chat := core.NewChat(
@@ -119,10 +134,16 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 	return &FullChat{Chat: chat}, nil
 }
 
-func (srv *Chat) isUserAdmin(admins []tgbotapi.ChatMember, userID int) bool {
+func (srv *Chat) isUserAdmin(admins []tgbotapi.ChatMember, userID int, rights func(m tgbotapi.ChatMember) bool) bool {
 	for _, admin := range admins {
 		if admin.User.ID == userID {
-			return admin.IsAdministrator() || admin.IsCreator()
+			base := admin.IsAdministrator() || admin.IsCreator()
+
+			if rights != nil {
+				base = base && rights(admin)
+			}
+
+			return base
 		}
 	}
 	return false
