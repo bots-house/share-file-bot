@@ -157,5 +157,9 @@ func (store *UserStore) RefStats(ctx context.Context) (core.UserRefStats, error)
 		result = append(result, item)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows error")
+	}
+
 	return result, nil
 }
