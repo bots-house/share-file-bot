@@ -245,6 +245,7 @@ func run(ctx context.Context) error {
 		User:     pg.User(),
 		File:     pg.File(),
 		Download: pg.Download(),
+		Chat:     pg.Chat(),
 	}
 
 	chatSrv := &service.Chat{

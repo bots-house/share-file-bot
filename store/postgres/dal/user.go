@@ -34,6 +34,7 @@ type User struct {
 	JoinedAt     time.Time   `boil:"joined_at" json:"joined_at" toml:"joined_at" yaml:"joined_at"`
 	UpdatedAt    null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
 	Settings     types.JSON  `boil:"settings" json:"settings" toml:"settings" yaml:"settings"`
+	Ref          null.String `boil:"ref" json:"ref,omitempty" toml:"ref" yaml:"ref,omitempty"`
 
 	R *userR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L userL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -49,6 +50,7 @@ var UserColumns = struct {
 	JoinedAt     string
 	UpdatedAt    string
 	Settings     string
+	Ref          string
 }{
 	ID:           "id",
 	FirstName:    "first_name",
@@ -59,6 +61,7 @@ var UserColumns = struct {
 	JoinedAt:     "joined_at",
 	UpdatedAt:    "updated_at",
 	Settings:     "settings",
+	Ref:          "ref",
 }
 
 // Generated where
@@ -82,6 +85,7 @@ var UserWhere = struct {
 	JoinedAt     whereHelpertime_Time
 	UpdatedAt    whereHelpernull_Time
 	Settings     whereHelpertypes_JSON
+	Ref          whereHelpernull_String
 }{
 	ID:           whereHelperint{field: "\"user\".\"id\""},
 	FirstName:    whereHelperstring{field: "\"user\".\"first_name\""},
@@ -92,6 +96,7 @@ var UserWhere = struct {
 	JoinedAt:     whereHelpertime_Time{field: "\"user\".\"joined_at\""},
 	UpdatedAt:    whereHelpernull_Time{field: "\"user\".\"updated_at\""},
 	Settings:     whereHelpertypes_JSON{field: "\"user\".\"settings\""},
+	Ref:          whereHelpernull_String{field: "\"user\".\"ref\""},
 }
 
 // UserRels is where relationship names are stored.
@@ -121,8 +126,8 @@ func (*userR) NewStruct() *userR {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "first_name", "last_name", "username", "language_code", "is_admin", "joined_at", "updated_at", "settings"}
-	userColumnsWithoutDefault = []string{"id", "first_name", "last_name", "username", "language_code", "is_admin", "joined_at", "updated_at"}
+	userAllColumns            = []string{"id", "first_name", "last_name", "username", "language_code", "is_admin", "joined_at", "updated_at", "settings", "ref"}
+	userColumnsWithoutDefault = []string{"id", "first_name", "last_name", "username", "language_code", "is_admin", "joined_at", "updated_at", "ref"}
 	userColumnsWithDefault    = []string{"settings"}
 	userPrimaryKeyColumns     = []string{"id"}
 )
