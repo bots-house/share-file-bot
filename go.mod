@@ -17,6 +17,7 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/remind101/migrate v0.0.0-20170729031349-52c1edff7319
+	github.com/rs/zerolog v1.20.0
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/stretchr/testify v1.6.1
 	github.com/subosito/gotenv v1.2.0
