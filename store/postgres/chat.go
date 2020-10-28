@@ -150,7 +150,7 @@ func (csq *ChatStoreQuery) All(ctx context.Context) ([]*core.Chat, error) {
 
 // Count items in store.
 func (csq *ChatStoreQuery) Count(ctx context.Context) (int, error) {
-	count, err := dal.Users(csq.Mods...).Count(ctx, csq.Store.getExecutor(ctx))
+	count, err := dal.Chats(csq.Mods...).Count(ctx, csq.Store.getExecutor(ctx))
 	if err != nil {
 		return -1, err
 	}
