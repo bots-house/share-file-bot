@@ -1,8 +1,8 @@
 package postgres
 
 import (
+	"github.com/friendsofgo/errors"
 	"github.com/lib/pq"
-	"github.com/pkg/errors"
 )
 
 func isFilePublicIDCollisionErr(err error) bool {

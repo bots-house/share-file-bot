@@ -13,13 +13,17 @@ import (
 	"time"
 
 	"github.com/bots-house/share-file-bot/bot"
+	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/pkg/health"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
+	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	redis "github.com/go-redis/redis/v8"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+
 	"github.com/kelseyhightower/envconfig"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/subosito/gotenv"
@@ -41,6 +45,10 @@ type Config struct {
 	DatabaseMaxOpenConns int    `default:"10" split_words:"true"`
 	DatabaseMaxIdleConns int    `default:"0" split_words:"true"`
 
+	Redis             string `default:"redis://localhost:6379"`
+	RedisMaxOpenConns int    `default:"10" split_words:"true"`
+	RedisMaxIdleConns int    `default:"0" split_words:"true"`
+
 	Token        string `required:"true"`
 	Addr         string `default:":8000"`
 	WebhookURL   string `default:"/" split_words:"true"`
@@ -54,7 +62,6 @@ type Config struct {
 
 func (cfg Config) getEnv() string {
 	for _, v := range []string{EnvLocal, EnvProduction, EnvStaging} {
-		print(v)
 		if v == strings.ToLower(cfg.Env) {
 			return v
 		}
@@ -94,7 +101,7 @@ func main() {
 	ctx = setupLogging(ctx, cfg)
 
 	if err := run(ctx, cfg); err != nil {
-		log.Ctx(ctx).Error().Str("err", err.Error()).Msg("fatal error")
+		log.Ctx(ctx).Error().Err(err).Msg("fatal error")
 		cancel()
 		//nolint: gocritic
 		os.Exit(1)
@@ -193,30 +200,62 @@ func run(ctx context.Context, cfg Config) error {
 	db.SetMaxIdleConns(cfg.DatabaseMaxIdleConns)
 
 	// create abstraction around db and apply migrations
-	pg := postgres.NewPostgres(db)
+	pg := postgres.New(db)
 
 	log.Ctx(ctx).Info().Msg("migrate database")
 	if err := pg.Migrator().Up(ctx); err != nil {
 		return errors.Wrap(err, "migrate db")
 	}
 
+	log.Ctx(ctx).Info().Str("dsn", cfg.Redis).Int("max_open_conns", cfg.RedisMaxOpenConns).Int("max_idle_conns", cfg.RedisMaxIdleConns).Msg("open redis")
+	rdbOpts, err := redis.ParseURL(cfg.Redis)
+	if err != nil {
+		return errors.Wrap(err, "parse redis url")
+	}
+
+	rdb := redis.NewClient(rdbOpts)
+
+	log.Ctx(ctx).Debug().Msg("ping redis")
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		return errors.Wrap(err, "ping redis")
+	}
+
+	botState := state.NewRedisStore(rdb, "share-file-bot")
+
+	log.Ctx(ctx).Info().Msg("init bot api client")
+	tgClient, err := tgbotapi.NewBotAPI(cfg.Token)
+	if err != nil {
+		return errors.Wrap(err, "create bot api")
+	}
+
 	authSrv := &service.Auth{
-		UserStore: pg.User,
+		UserStore: pg.User(),
 	}
 
 	fileSrv := &service.File{
-		FileStore:     pg.File,
-		DownloadStore: pg.Download,
+		File:     pg.File(),
+		Chat:     pg.Chat(),
+		Download: pg.Download(),
+		Telegram: tgClient,
+		Redis:    rdb,
 	}
 
 	adminSrv := &service.Admin{
-		User:     pg.User,
-		File:     pg.File,
-		Download: pg.Download,
+		User:     pg.User(),
+		File:     pg.File(),
+		Download: pg.Download(),
+	}
+
+	chatSrv := &service.Chat{
+		Telegram: tgClient,
+		Txier:    pg.Tx,
+		Chat:     pg.Chat(),
+		File:     pg.File(),
+		Download: pg.Download(),
 	}
 
 	log.Ctx(ctx).Info().Msg("init bot")
-	tgBot, err := bot.New(revision, cfg.Token, authSrv, fileSrv, adminSrv)
+	tgBot, err := bot.New(revision, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}
@@ -233,7 +272,7 @@ func run(ctx context.Context, cfg Config) error {
 
 		log.Ctx(ctx).Info().Msg("shutdown server")
 		if err := server.Shutdown(shutdownCtx); err != nil {
-			log.Ctx(ctx).Warn().Str("err", err.Error()).Msg("shutdown error")
+			log.Ctx(ctx).Warn().Err(err).Msg("shutdown error")
 		}
 	}()
 

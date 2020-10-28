@@ -41,6 +41,40 @@ type User struct {
 	UpdatedAt null.Time
 }
 
+func (user *User) Patch(do func(*User)) bool {
+	newUser := *user
+
+	do(&newUser)
+
+	var updated bool
+
+	if user.FirstName != newUser.FirstName {
+		user.FirstName = newUser.FirstName
+		updated = true
+	}
+
+	if user.LastName != newUser.LastName {
+		user.LastName = newUser.LastName
+		updated = true
+	}
+
+	if user.Username != newUser.Username {
+		user.Username = newUser.Username
+		updated = true
+	}
+
+	if user.Settings != newUser.Settings {
+		user.Settings = newUser.Settings
+		updated = true
+	}
+
+	if updated {
+		user.UpdatedAt = null.TimeFrom(time.Now())
+	}
+
+	return updated
+}
+
 func NewUser(
 	id UserID,
 	firstName, lastName, username, langCode string,

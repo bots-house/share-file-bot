@@ -25,72 +25,52 @@ import (
 
 // File is an object representing the database table.
 type File struct {
-	ID        int         `boil:"id" json:"id" toml:"id" yaml:"id"`
-	FileID    string      `boil:"file_id" json:"file_id" toml:"file_id" yaml:"file_id"`
-	Caption   null.String `boil:"caption" json:"caption,omitempty" toml:"caption" yaml:"caption,omitempty"`
-	MimeType  null.String `boil:"mime_type" json:"mime_type,omitempty" toml:"mime_type" yaml:"mime_type,omitempty"`
-	Size      int         `boil:"size" json:"size" toml:"size" yaml:"size"`
-	Name      string      `boil:"name" json:"name" toml:"name" yaml:"name"`
-	OwnerID   int         `boil:"owner_id" json:"owner_id" toml:"owner_id" yaml:"owner_id"`
-	CreatedAt time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	PublicID  string      `boil:"public_id" json:"public_id" toml:"public_id" yaml:"public_id"`
-	Kind      string      `boil:"kind" json:"kind" toml:"kind" yaml:"kind"`
-	Metadata  types.JSON  `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
+	ID                 int         `boil:"id" json:"id" toml:"id" yaml:"id"`
+	FileID             string      `boil:"file_id" json:"file_id" toml:"file_id" yaml:"file_id"`
+	Caption            null.String `boil:"caption" json:"caption,omitempty" toml:"caption" yaml:"caption,omitempty"`
+	MimeType           null.String `boil:"mime_type" json:"mime_type,omitempty" toml:"mime_type" yaml:"mime_type,omitempty"`
+	Size               int         `boil:"size" json:"size" toml:"size" yaml:"size"`
+	Name               string      `boil:"name" json:"name" toml:"name" yaml:"name"`
+	OwnerID            int         `boil:"owner_id" json:"owner_id" toml:"owner_id" yaml:"owner_id"`
+	CreatedAt          time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	PublicID           string      `boil:"public_id" json:"public_id" toml:"public_id" yaml:"public_id"`
+	Kind               string      `boil:"kind" json:"kind" toml:"kind" yaml:"kind"`
+	Metadata           types.JSON  `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
+	RestrictionsChatID null.Int    `boil:"restrictions_chat_id" json:"restrictions_chat_id,omitempty" toml:"restrictions_chat_id" yaml:"restrictions_chat_id,omitempty"`
 
 	R *fileR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L fileL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var FileColumns = struct {
-	ID        string
-	FileID    string
-	Caption   string
-	MimeType  string
-	Size      string
-	Name      string
-	OwnerID   string
-	CreatedAt string
-	PublicID  string
-	Kind      string
-	Metadata  string
+	ID                 string
+	FileID             string
+	Caption            string
+	MimeType           string
+	Size               string
+	Name               string
+	OwnerID            string
+	CreatedAt          string
+	PublicID           string
+	Kind               string
+	Metadata           string
+	RestrictionsChatID string
 }{
-	ID:        "id",
-	FileID:    "file_id",
-	Caption:   "caption",
-	MimeType:  "mime_type",
-	Size:      "size",
-	Name:      "name",
-	OwnerID:   "owner_id",
-	CreatedAt: "created_at",
-	PublicID:  "public_id",
-	Kind:      "kind",
-	Metadata:  "metadata",
+	ID:                 "id",
+	FileID:             "file_id",
+	Caption:            "caption",
+	MimeType:           "mime_type",
+	Size:               "size",
+	Name:               "name",
+	OwnerID:            "owner_id",
+	CreatedAt:          "created_at",
+	PublicID:           "public_id",
+	Kind:               "kind",
+	Metadata:           "metadata",
+	RestrictionsChatID: "restrictions_chat_id",
 }
 
 // Generated where
-
-type whereHelperstring struct{ field string }
-
-func (w whereHelperstring) EQ(x string) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperstring) NEQ(x string) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperstring) LT(x string) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperstring) LTE(x string) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperstring) GT(x string) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperstring) GTE(x string) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-func (w whereHelperstring) IN(slice []string) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelperstring) NIN(slice []string) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
 
 type whereHelpernull_String struct{ field string }
 
@@ -137,44 +117,49 @@ func (w whereHelpertypes_JSON) GTE(x types.JSON) qm.QueryMod {
 }
 
 var FileWhere = struct {
-	ID        whereHelperint
-	FileID    whereHelperstring
-	Caption   whereHelpernull_String
-	MimeType  whereHelpernull_String
-	Size      whereHelperint
-	Name      whereHelperstring
-	OwnerID   whereHelperint
-	CreatedAt whereHelpertime_Time
-	PublicID  whereHelperstring
-	Kind      whereHelperstring
-	Metadata  whereHelpertypes_JSON
+	ID                 whereHelperint
+	FileID             whereHelperstring
+	Caption            whereHelpernull_String
+	MimeType           whereHelpernull_String
+	Size               whereHelperint
+	Name               whereHelperstring
+	OwnerID            whereHelperint
+	CreatedAt          whereHelpertime_Time
+	PublicID           whereHelperstring
+	Kind               whereHelperstring
+	Metadata           whereHelpertypes_JSON
+	RestrictionsChatID whereHelpernull_Int
 }{
-	ID:        whereHelperint{field: "\"file\".\"id\""},
-	FileID:    whereHelperstring{field: "\"file\".\"file_id\""},
-	Caption:   whereHelpernull_String{field: "\"file\".\"caption\""},
-	MimeType:  whereHelpernull_String{field: "\"file\".\"mime_type\""},
-	Size:      whereHelperint{field: "\"file\".\"size\""},
-	Name:      whereHelperstring{field: "\"file\".\"name\""},
-	OwnerID:   whereHelperint{field: "\"file\".\"owner_id\""},
-	CreatedAt: whereHelpertime_Time{field: "\"file\".\"created_at\""},
-	PublicID:  whereHelperstring{field: "\"file\".\"public_id\""},
-	Kind:      whereHelperstring{field: "\"file\".\"kind\""},
-	Metadata:  whereHelpertypes_JSON{field: "\"file\".\"metadata\""},
+	ID:                 whereHelperint{field: "\"file\".\"id\""},
+	FileID:             whereHelperstring{field: "\"file\".\"file_id\""},
+	Caption:            whereHelpernull_String{field: "\"file\".\"caption\""},
+	MimeType:           whereHelpernull_String{field: "\"file\".\"mime_type\""},
+	Size:               whereHelperint{field: "\"file\".\"size\""},
+	Name:               whereHelperstring{field: "\"file\".\"name\""},
+	OwnerID:            whereHelperint{field: "\"file\".\"owner_id\""},
+	CreatedAt:          whereHelpertime_Time{field: "\"file\".\"created_at\""},
+	PublicID:           whereHelperstring{field: "\"file\".\"public_id\""},
+	Kind:               whereHelperstring{field: "\"file\".\"kind\""},
+	Metadata:           whereHelpertypes_JSON{field: "\"file\".\"metadata\""},
+	RestrictionsChatID: whereHelpernull_Int{field: "\"file\".\"restrictions_chat_id\""},
 }
 
 // FileRels is where relationship names are stored.
 var FileRels = struct {
-	Owner     string
-	Downloads string
+	Owner            string
+	RestrictionsChat string
+	Downloads        string
 }{
-	Owner:     "Owner",
-	Downloads: "Downloads",
+	Owner:            "Owner",
+	RestrictionsChat: "RestrictionsChat",
+	Downloads:        "Downloads",
 }
 
 // fileR is where relationships are stored.
 type fileR struct {
-	Owner     *User         `boil:"Owner" json:"Owner" toml:"Owner" yaml:"Owner"`
-	Downloads DownloadSlice `boil:"Downloads" json:"Downloads" toml:"Downloads" yaml:"Downloads"`
+	Owner            *User         `boil:"Owner" json:"Owner" toml:"Owner" yaml:"Owner"`
+	RestrictionsChat *Chat         `boil:"RestrictionsChat" json:"RestrictionsChat" toml:"RestrictionsChat" yaml:"RestrictionsChat"`
+	Downloads        DownloadSlice `boil:"Downloads" json:"Downloads" toml:"Downloads" yaml:"Downloads"`
 }
 
 // NewStruct creates a new relationship struct
@@ -186,8 +171,8 @@ func (*fileR) NewStruct() *fileR {
 type fileL struct{}
 
 var (
-	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "metadata"}
-	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind"}
+	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "metadata", "restrictions_chat_id"}
+	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "restrictions_chat_id"}
 	fileColumnsWithDefault    = []string{"id", "metadata"}
 	filePrimaryKeyColumns     = []string{"id"}
 )
@@ -293,6 +278,20 @@ func (o *File) Owner(mods ...qm.QueryMod) userQuery {
 
 	query := Users(queryMods...)
 	queries.SetFrom(query.Query, "\"user\"")
+
+	return query
+}
+
+// RestrictionsChat pointed to by the foreign key.
+func (o *File) RestrictionsChat(mods ...qm.QueryMod) chatQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.RestrictionsChatID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	query := Chats(queryMods...)
+	queries.SetFrom(query.Query, "\"chat\"")
 
 	return query
 }
@@ -406,6 +405,106 @@ func (fileL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular boo
 					foreign.R = &userR{}
 				}
 				foreign.R.OwnerFiles = append(foreign.R.OwnerFiles, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadRestrictionsChat allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (fileL) LoadRestrictionsChat(ctx context.Context, e boil.ContextExecutor, singular bool, maybeFile interface{}, mods queries.Applicator) error {
+	var slice []*File
+	var object *File
+
+	if singular {
+		object = maybeFile.(*File)
+	} else {
+		slice = *maybeFile.(*[]*File)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &fileR{}
+		}
+		if !queries.IsNil(object.RestrictionsChatID) {
+			args = append(args, object.RestrictionsChatID)
+		}
+
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &fileR{}
+			}
+
+			for _, a := range args {
+				if queries.Equal(a, obj.RestrictionsChatID) {
+					continue Outer
+				}
+			}
+
+			if !queries.IsNil(obj.RestrictionsChatID) {
+				args = append(args, obj.RestrictionsChatID)
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`chat`),
+		qm.WhereIn(`chat.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Chat")
+	}
+
+	var resultSlice []*Chat
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Chat")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for chat")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for chat")
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.RestrictionsChat = foreign
+		if foreign.R == nil {
+			foreign.R = &chatR{}
+		}
+		foreign.R.RestrictionsChatFiles = append(foreign.R.RestrictionsChatFiles, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.RestrictionsChatID, foreign.ID) {
+				local.R.RestrictionsChat = foreign
+				if foreign.R == nil {
+					foreign.R = &chatR{}
+				}
+				foreign.R.RestrictionsChatFiles = append(foreign.R.RestrictionsChatFiles, local)
 				break
 			}
 		}
@@ -549,6 +648,86 @@ func (o *File) SetOwner(ctx context.Context, exec boil.ContextExecutor, insert b
 		related.R.OwnerFiles = append(related.R.OwnerFiles, o)
 	}
 
+	return nil
+}
+
+// SetRestrictionsChat of the file to the related item.
+// Sets o.R.RestrictionsChat to related.
+// Adds o to related.R.RestrictionsChatFiles.
+func (o *File) SetRestrictionsChat(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Chat) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"file\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"restrictions_chat_id"}),
+		strmangle.WhereClause("\"", "\"", 2, filePrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.RestrictionsChatID, related.ID)
+	if o.R == nil {
+		o.R = &fileR{
+			RestrictionsChat: related,
+		}
+	} else {
+		o.R.RestrictionsChat = related
+	}
+
+	if related.R == nil {
+		related.R = &chatR{
+			RestrictionsChatFiles: FileSlice{o},
+		}
+	} else {
+		related.R.RestrictionsChatFiles = append(related.R.RestrictionsChatFiles, o)
+	}
+
+	return nil
+}
+
+// RemoveRestrictionsChat relationship.
+// Sets o.R.RestrictionsChat to nil.
+// Removes o from all passed in related items' relationships struct (Optional).
+func (o *File) RemoveRestrictionsChat(ctx context.Context, exec boil.ContextExecutor, related *Chat) error {
+	var err error
+
+	queries.SetScanner(&o.RestrictionsChatID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("restrictions_chat_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.RestrictionsChat = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.RestrictionsChatFiles {
+		if queries.Equal(o.RestrictionsChatID, ri.RestrictionsChatID) {
+			continue
+		}
+
+		ln := len(related.R.RestrictionsChatFiles)
+		if ln > 1 && i < ln-1 {
+			related.R.RestrictionsChatFiles[i] = related.R.RestrictionsChatFiles[ln-1]
+		}
+		related.R.RestrictionsChatFiles = related.R.RestrictionsChatFiles[:ln-1]
+		break
+	}
 	return nil
 }
 

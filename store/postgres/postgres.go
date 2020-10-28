@@ -4,50 +4,80 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/store"
 	"github.com/bots-house/share-file-bot/store/postgres/migrations"
 	"github.com/bots-house/share-file-bot/store/postgres/shared"
+	"github.com/rs/zerolog/log"
+
+	"github.com/friendsofgo/errors"
+
+	// import postgresq driver
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
 )
 
 type Postgres struct {
 	*sql.DB
 	migrator *migrations.Migrator
 
-	User     *UserStore
-	File     *FileStore
-	Download *DownloadStore
+	user     *UserStore
+	file     *FileStore
+	download *DownloadStore
+	chat     *ChatStore
 }
 
-// NewPostgres create postgres based database with all stores.
-func NewPostgres(db *sql.DB) *Postgres {
+var _ store.Store = &Postgres{}
+
+func (pg *Postgres) File() core.FileStore {
+	return pg.file
+}
+
+func (pg *Postgres) User() core.UserStore {
+	return pg.user
+}
+
+func (pg *Postgres) Download() core.DownloadStore {
+	return pg.download
+}
+
+func (pg *Postgres) Chat() core.ChatStore {
+	return pg.chat
+}
+
+// New create postgres based database with all stores.
+func New(db *sql.DB) *Postgres {
 	pg := &Postgres{
 		DB:       db,
 		migrator: migrations.New(db),
-		User:     &UserStore{ContextExecutor: db},
-		File:     &FileStore{ContextExecutor: db},
-		Download: &DownloadStore{ContextExecutor: db},
 	}
+
+	base := BaseStore{
+		DB:    db,
+		Txier: pg.Tx,
+	}
+
+	pg.download = &DownloadStore{base}
+	pg.user = &UserStore{base}
+	pg.file = &FileStore{base}
+	pg.chat = &ChatStore{base}
 
 	return pg
 }
 
-func (p *Postgres) Migrator() store.Migrator {
-	return p.migrator
+func (pg *Postgres) Migrator() store.Migrator {
+	return pg.migrator
 }
 
 // Tx run code in database transaction.
 // Based on: https://stackoverflow.com/a/23502629.
-func (p *Postgres) Tx(ctx context.Context, txFunc store.TxFunc) (err error) {
+func (pg *Postgres) Tx(ctx context.Context, txFunc store.TxFunc) (err error) {
 	tx := shared.GetTx(ctx)
 
 	if tx != nil {
 		return txFunc(ctx)
 	}
 
-	tx, err = p.BeginTx(ctx, nil)
+	tx, err = pg.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "begin tx failed")
 	}
@@ -58,12 +88,12 @@ func (p *Postgres) Tx(ctx context.Context, txFunc store.TxFunc) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if err := tx.Rollback(); err != nil {
-				log.Warn(ctx, "tx rollback failed", "err", err)
+				log.Ctx(ctx).Warn().Err(err).Msg("tx rollback failed")
 			}
 			panic(r)
 		} else if err != nil {
 			if err := tx.Rollback(); err != nil {
-				log.Warn(ctx, "tx rollback failed", "err", err)
+				log.Ctx(ctx).Warn().Err(err).Msg("tx rollback failed")
 			}
 		} else {
 			err = tx.Commit()

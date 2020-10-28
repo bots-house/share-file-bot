@@ -8,8 +8,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/bots-house/share-file-bot/pkg/log"
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
+	"github.com/rs/zerolog/log"
 )
 
 func Check(ctx context.Context, addr string) error {
@@ -49,7 +49,7 @@ func NewHandler(db *sql.DB) http.Handler {
 
 		if err := db.PingContext(ctx); err != nil {
 			http.Error(w, "💩", http.StatusInternalServerError)
-			log.Error(ctx, "healthcheck fail", "err", err)
+			log.Ctx(ctx).Error().Err(err).Msg("healthcheck")
 		} else {
 			_, _ = io.WriteString(w, "👌")
 		}

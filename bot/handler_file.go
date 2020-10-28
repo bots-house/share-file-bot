@@ -6,13 +6,34 @@ import (
 	"strings"
 
 	"github.com/bots-house/share-file-bot/core"
-	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
+	"github.com/friendsofgo/errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/pkg/errors"
+	"github.com/lithammer/dedent"
+	"github.com/rs/zerolog/log"
 )
 
 const tgDomain = "t.me"
+
+const (
+	callbackFileRestrictions          = "file:%d:restrictions"
+	callbackFileRestrictionsChat      = "file:%d:restrictions:chat-subscription:%d:toggl"
+	callbackFileRestrictionsChatCheck = "file:%d:restrictions:chat:check"
+)
+
+var (
+	textFileRestrictions = dedent.Dedent(`
+		С помощью данного инструмента вы можете ограничить доступ к файлу только подписчикам вашего канала / супергруппы\.
+		Перед каждым скачиванием бот будет проверять наличие подписки и только после этого выдавать доступ к файлу\. 
+		
+		_Для подключения каналов перейдите в настройки \(/settings\)\._
+	`)
+
+	textFileSubRequest = dedent.Dedent(`
+		Владелец файла установил ограничение на доступ только с подпиской\. 
+		Подпишись на %s и нажми кнопку *«Я подписался»*
+	`)
+)
 
 func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, file *core.File) tgbotapi.Chattable {
 	return bot.renderGenericFile(
@@ -20,7 +41,7 @@ func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, file *core.File) tgbot
 		file.Kind,
 		file.TelegramID,
 		escapeMarkdown(file.Caption.String),
-		tgbotapi.ModeMarkdown,
+		mdv2,
 		nil,
 	)
 }
@@ -29,25 +50,69 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 	rows := []string{}
 
 	if file.Caption.String != "" {
+
 		rows = append(rows,
-			fmt.Sprintf("*Описание*: %s", escapeMarkdown(file.Caption.String)),
+			"💬 __Описание__",
+			"",
+			escapeMarkdown(file.Caption.String),
 			"",
 		)
 	}
 
 	rows = append(rows,
-		fmt.Sprintf("*Кол-во загрузок*: `%d`", file.Stats.Total),
-		fmt.Sprintf("*Кол-во уникальных загрузок*: `%d`", file.Stats.Unique),
+		"🔗 __Публичная ссылка__",
+		"",
+		fmt.Sprintf("https://%s/%s?start\\=%s",
+			escapeMarkdown(tgDomain),
+			escapeMarkdown(bot.client.Self.UserName),
+			escapeMarkdown(file.PublicID),
+		),
 		"",
 	)
 
-	rows = append(rows, fmt.Sprintf("*Публичная ссылка*: https://%s/%s?start=%s",
-		tgDomain,
-		escapeMarkdown(bot.client.Self.UserName),
-		escapeMarkdown(file.PublicID),
-	))
+	rows = append(rows,
+		"📈 __Статистика__",
+		"",
+	)
+
+	rows = append(rows,
+		fmt.Sprintf("*Загрузок*: `%d`", file.Stats.Total),
+		fmt.Sprintf("*Уникальных загрузок*: `%d`", file.Stats.Unique),
+		"",
+	)
+
+	if file.Restriction.HasChatID() {
+		rows = append(rows,
+			fmt.Sprintf("*Загрузок с подпиской*: `%d`", file.Stats.WithSubscription),
+			fmt.Sprintf("*Загрузок с новой подпиской*: `%d`", file.Stats.NewSubscription),
+			"",
+		)
+	}
 
 	return strings.Join(rows, "\n")
+}
+
+func (bot *Bot) renderSubRequest(msg *tgbotapi.Message, sub *service.ChatSubRequest) tgbotapi.MessageConfig {
+	var link string
+
+	if sub.Username != "" {
+		link = fmt.Sprintf("[@%s](https://t.me/%s)", escapeMarkdown(sub.Username), sub.Username)
+	} else {
+		link = fmt.Sprintf("[%s](%s)", sub.Title, sub.JoinLink)
+	}
+
+	text := fmt.Sprintf(textFileSubRequest, link)
+
+	out := tgbotapi.NewMessage(msg.Chat.ID, text)
+	out.ParseMode = mdv2
+	out.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonURL("Подписаться", sub.Link()),
+			tgbotapi.NewInlineKeyboardButtonData("Я подписался", fmt.Sprintf(callbackFileRestrictionsChatCheck, sub.FileID)),
+		),
+	)
+
+	return out
 }
 
 func (bot *Bot) renderOwnedFileReplyMarkup(file *service.OwnedFile) tgbotapi.InlineKeyboardMarkup {
@@ -60,6 +125,12 @@ func (bot *Bot) renderOwnedFileReplyMarkup(file *service.OwnedFile) tgbotapi.Inl
 			tgbotapi.NewInlineKeyboardButtonData(
 				"Удалить",
 				fmt.Sprintf("file:%d:delete", file.ID),
+			),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				addHasLockEmoji(file.Restriction.Any(), "Ограничения"),
+				fmt.Sprintf(callbackFileRestrictions, file.ID),
 			),
 		),
 	)
@@ -121,7 +192,7 @@ func (bot *Bot) renderOwnedFile(msg *tgbotapi.Message, file *service.OwnedFile) 
 		file.Kind,
 		file.TelegramID,
 		bot.renderOwnedFileCaption(file),
-		tgbotapi.ModeMarkdown,
+		mdv2,
 		bot.renderOwnedFileReplyMarkup(file),
 	)
 }
@@ -131,7 +202,7 @@ func (bot *Bot) deleteMessage(ctx context.Context, msg *tgbotapi.Message) error 
 		msg.Chat.ID,
 		msg.MessageID,
 	)); err != nil {
-		log.Warn(ctx, "can't delete incoming message", "chat_id", msg.Chat.ID, "msg_id", msg.MessageID)
+		log.Ctx(ctx).Warn().Int("chat_id", int(msg.Chat.ID)).Int("msg_id", int(msg.MessageID)).Msg("can't delete incoming message")
 		return err
 	}
 
@@ -206,7 +277,7 @@ func (bot *Bot) onFileRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuer
 		caption,
 	)
 
-	edit.ParseMode = tgbotapi.ModeMarkdown
+	edit.ParseMode = mdv2
 	replyMarkup := bot.renderOwnedFileReplyMarkup(doc)
 	edit.ReplyMarkup = &replyMarkup
 
@@ -285,4 +356,143 @@ func (bot *Bot) onFileDeleteConfirmCBQ(
 	}()
 
 	return bot.answerCallbackQuery(ctx, cbq, "✅ Документ удален")
+}
+
+func (bot *Bot) onFileRestrictionsCBQ(
+	ctx context.Context,
+	cbq *tgbotapi.CallbackQuery,
+	fid int,
+) error {
+	go func() {
+		_ = bot.answerCallbackQuery(ctx, cbq, "")
+	}()
+
+	file, err := bot.getFileForOwner(ctx, cbq, fid)
+	if err != nil {
+		return errors.Wrap(err, "get file for owner")
+	}
+
+	user := getUserCtx(ctx)
+
+	chats, err := bot.chatSrv.GetChats(ctx, user)
+	if err != nil {
+		return errors.Wrap(err, "service get chats")
+	}
+
+	markup := bot.newFileRestrictionsReplyMarkup(file.File, chats)
+
+	edit := tgbotapi.EditMessageCaptionConfig{
+		BaseEdit: tgbotapi.BaseEdit{
+			ChatID:      cbq.Message.Chat.ID,
+			MessageID:   cbq.Message.MessageID,
+			ReplyMarkup: markup,
+		},
+		ParseMode: mdv2,
+		Caption:   textFileRestrictions,
+	}
+
+	return bot.send(ctx, edit)
+}
+
+func (bot *Bot) newFileRestrictionsReplyMarkup(file *core.File, chats []*core.Chat) *tgbotapi.InlineKeyboardMarkup {
+	keyboard := make([][]tgbotapi.InlineKeyboardButton, 0, len(chats)+1)
+
+	for _, chat := range chats {
+		keyboard = append(keyboard, tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				addIsEnabledEmoji(
+					chat.ID == file.Restriction.ChatID,
+					chat.Title,
+				),
+				fmt.Sprintf(
+					callbackFileRestrictionsChat,
+					file.ID,
+					chat.ID,
+				),
+			),
+		))
+	}
+
+	keyboard = append(keyboard, tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(
+			textCommonBack,
+			fmt.Sprintf("file:%d:refresh", file.ID),
+		),
+	))
+
+	markup := tgbotapi.NewInlineKeyboardMarkup(keyboard...)
+
+	return &markup
+}
+
+func (bot *Bot) onFileRestrictionsSetChatCBQ(
+	ctx context.Context,
+	cbq *tgbotapi.CallbackQuery,
+	fileID core.FileID,
+	chatID core.ChatID,
+) error {
+	user := getUserCtx(ctx)
+
+	result, err := bot.fileSrv.SetChatRestriction(
+		ctx,
+		user,
+		fileID,
+		chatID,
+	)
+	if err != nil {
+		return errors.Wrap(err, "service set chat restriction")
+	}
+
+	chats, err := bot.chatSrv.GetChats(ctx, user)
+	if err != nil {
+		return errors.Wrap(err, "service query chats")
+	}
+
+	replyMarkup := bot.newFileRestrictionsReplyMarkup(
+		result.File,
+		chats,
+	)
+
+	go func() {
+		if result.Disable {
+			_ = bot.answerCallbackQuery(ctx, cbq, "Ограничение на загрузку отключено")
+		} else {
+			_ = bot.answerCallbackQuery(ctx, cbq, "Ограничение установлено")
+		}
+	}()
+
+	return bot.send(ctx, tgbotapi.NewEditMessageReplyMarkup(
+		cbq.Message.Chat.ID,
+		cbq.Message.MessageID,
+		*replyMarkup,
+	))
+}
+
+func (bot *Bot) onFileRestrictionsChatCheck(
+	ctx context.Context,
+	cbq *tgbotapi.CallbackQuery,
+	fileID core.FileID,
+) error {
+	user := getUserCtx(ctx)
+
+	status, err := bot.fileSrv.CheckFileRestrictionsChat(ctx, user, fileID)
+	if err != nil {
+		return errors.Wrap(err, "check file restrictions chat")
+	}
+
+	if !status.Ok {
+		return bot.answerCallbackQueryAlert(ctx, cbq, "Я не наблюдаю тебе в подписчиках, подпишись чтобы получить доступ к файлу")
+	}
+
+	go func() {
+		_ = bot.deleteMessage(ctx, cbq.Message)
+		_ = bot.answerCallbackQuery(ctx, cbq, "🔓 Доступ к файлу получен")
+	}()
+
+	result, err := bot.fileSrv.RegisterDownload(ctx, user, status.File)
+	if err != nil {
+		return errors.Wrap(err, "register file download")
+	}
+
+	return bot.send(ctx, bot.renderNotOwnedFile(cbq.Message, result.File))
 }

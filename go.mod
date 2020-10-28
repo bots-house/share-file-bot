@@ -4,10 +4,13 @@ module github.com/bots-house/share-file-bot
 go 1.15
 
 require (
+	github.com/DATA-DOG/go-txdb v0.1.3
+	github.com/brianvoe/gofakeit/v5 v5.9.3
 	github.com/fatih/structs v1.1.0
 	github.com/friendsofgo/errors v0.9.2
 	github.com/getsentry/sentry-go v0.7.0
 	github.com/go-kit/kit v0.10.0
+	github.com/go-redis/redis/v8 v8.3.2
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -15,7 +18,7 @@ require (
 	github.com/lithammer/dedent v1.1.0
 	github.com/matoous/go-nanoid v1.4.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
-	github.com/pkg/errors v0.9.1
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remind101/migrate v0.0.0-20170729031349-52c1edff7319
 	github.com/rs/zerolog v1.20.0
 	github.com/speps/go-hashids v2.0.0+incompatible

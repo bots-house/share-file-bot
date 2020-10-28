@@ -51,6 +51,13 @@ func makeCacheKey(cols boil.Columns, nzDefaults []string) string {
 	return str
 }
 
+// Enum values for chat_type
+const (
+	ChatTypeGroup      = "Group"
+	ChatTypeSuperGroup = "SuperGroup"
+	ChatTypeChannel    = "Channel"
+)
+
 // Enum values for file_kind
 const (
 	FileKindDocument  = "Document"
