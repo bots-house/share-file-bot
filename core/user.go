@@ -99,11 +99,20 @@ type UserStoreQuery interface {
 	Count(ctx context.Context) (int, error)
 }
 
+type UserRefStatsItem struct {
+	Ref   null.String
+	Count int
+}
+
+type UserRefStats []UserRefStatsItem
+
 // UserStore define interface for persistence of bot.
 type UserStore interface {
 	Add(ctx context.Context, user *User) error
 	Find(ctx context.Context, id UserID) (*User, error)
 	Update(ctx context.Context, user *User) error
+
+	RefStats(ctx context.Context) (UserRefStats, error)
 
 	Query() UserStoreQuery
 }

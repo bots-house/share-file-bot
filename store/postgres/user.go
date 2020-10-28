@@ -122,3 +122,40 @@ func (usq *userStoreQuery) Count(ctx context.Context) (int, error) {
 
 	return int(count), nil
 }
+
+func (store *UserStore) RefStats(ctx context.Context) (core.UserRefStats, error) {
+	const query = `
+		select 
+			ref, 
+			count(*) as users 
+		from 
+			"user"
+		group by
+			ref 
+	`
+
+	executor := store.getExecutor(ctx)
+
+	rows, err := executor.QueryContext(ctx, query)
+	if err != nil {
+		return nil, errors.Wrap(err, "query rows")
+	}
+	defer rows.Close()
+
+	result := core.UserRefStats{}
+
+	for rows.Next() {
+		item := core.UserRefStatsItem{}
+
+		if err := rows.Scan(
+			&item.Ref,
+			&item.Count,
+		); err != nil {
+			return nil, errors.Wrap(err, "scan row")
+		}
+
+		result = append(result, item)
+	}
+
+	return result, nil
+}

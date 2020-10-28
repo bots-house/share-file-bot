@@ -20,13 +20,36 @@ func (bot *Bot) onAdmin(ctx context.Context, msg *tgbotapi.Message) error {
 		return errors.Wrap(err, "summary stats")
 	}
 
-	text := strings.Join([]string{
-		"*#cтатистика*",
+	lines := []string{
+		"*__Общая__*",
 		"",
 		fmt.Sprintf("*Пользователи*: `%d`", stats.Users),
 		fmt.Sprintf("*Файлы*: `%d`", stats.Files),
 		fmt.Sprintf("*Загрузки*: `%d`", stats.Downloads),
-	}, "\n")
+		fmt.Sprintf("*Чаты*: `%d`", stats.Chats),
+		"",
+		"*__Источники__*",
+		"",
+	}
 
-	return bot.send(ctx, bot.newAnswerMsg(msg, text))
+	for _, item := range stats.UsersByRefs {
+		var key string
+
+		if item.Ref.Valid {
+			key = item.Ref.String
+		} else {
+			key = "null"
+		}
+
+		lines = append(lines,
+			fmt.Sprintf("*%s*: `%d`", key, item.Count),
+		)
+	}
+
+	text := strings.Join(lines, "\n")
+
+	out := tgbotapi.NewMessage(msg.Chat.ID, text)
+	out.ParseMode = mdv2
+
+	return bot.send(ctx, out)
 }

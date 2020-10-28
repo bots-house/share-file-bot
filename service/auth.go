@@ -62,7 +62,8 @@ func (srv *Auth) updateUserIfNeed(ctx context.Context, user *core.User, info *Us
 		update = true
 	}
 
-	if user.Ref.String != info.Ref {
+	// update ref only if provided
+	if info.Ref != "" && user.Ref.String != info.Ref {
 		user.Ref = null.NewString(info.Ref, info.Ref != "")
 		update = true
 	}
