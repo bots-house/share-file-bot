@@ -52,7 +52,7 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 	if file.Caption.String != "" {
 
 		rows = append(rows,
-			fmt.Sprintf("💬 __Описание__"),
+			"💬 __Описание__",
 			"",
 			escapeMarkdown(file.Caption.String),
 			"",
