@@ -9,15 +9,29 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+var escapeMarkdownReplacer = strings.NewReplacer(
+	"_", `\_`,
+	"*", `\*`,
+	"[", `\[`,
+	"]", `\]`,
+	"(", `\(`,
+	")", `\)`,
+	"~", `\~`,
+	"`", "\\`",
+	">", `\>`,
+	"#", `\#`,
+	"+", `\+`,
+	"-", `\-`,
+	"=", `\=`,
+	"|", `\|`,
+	"{", `\{`,
+	"}", `\}`,
+	".", `\.`,
+	"!", `\!`,
+)
+
 func escapeMarkdown(txt string) string {
-	txt = strings.ReplaceAll(txt, "_", "\\_")
-	txt = strings.ReplaceAll(txt, "*", "\\*")
-	txt = strings.ReplaceAll(txt, "[", "\\[")
-	txt = strings.ReplaceAll(txt, "(", "\\(")
-	txt = strings.ReplaceAll(txt, ")", "\\)")
-	txt = strings.ReplaceAll(txt, "`", "\\`")
-	txt = strings.ReplaceAll(txt, ".", "\\.")
-	return txt
+	return escapeMarkdownReplacer.Replace(txt)
 }
 
 func getFirstMentionEntity(entities []tgbotapi.MessageEntity) *tgbotapi.MessageEntity {
