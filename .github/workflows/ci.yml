@@ -34,9 +34,9 @@ jobs:
       postgres:
         image: postgres:12
         env:
-          POSTGRES_USER: chn
-          POSTGRES_PASSWORD: chn
-          POSTGRES_DB: chn
+          POSTGRES_USER: sfb
+          POSTGRES_PASSWORD: sfb
+          POSTGRES_DB: sfb
         ports:
           - 5432/tcp
         options: >-
