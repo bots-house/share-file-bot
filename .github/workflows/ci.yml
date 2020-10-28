@@ -27,8 +27,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        ports:
-          - 6379/tcp
+        # ports:
+        #   - 6379/tcp
 
       postgres:
         image: postgres:12
@@ -36,8 +36,8 @@ jobs:
           POSTGRES_USER: chn
           POSTGRES_PASSWORD: chn
           POSTGRES_DB: chn
-        ports:
-          - 5432/tcp
+        # ports:
+        #   - 5432/tcp
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -71,8 +71,8 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE: postgres://sfb:sfb@localhost:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
-          REDIS: redis://localhost:${{ job.services.redis.ports[6379] }}
+          DATABASE: postgres://sfb:sfb@postgres:${{ job.services.postgres.ports[5432] }}/sfb?sslmode=disable
+          REDIS: redis://redis:${{ job.services.redis.ports[6379] }}
 
         run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
