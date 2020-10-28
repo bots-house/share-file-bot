@@ -205,7 +205,8 @@ func run(ctx context.Context) error {
 		"dsn", cfg.Redis,
 		"max_open_conns",
 		cfg.RedisMaxOpenConns,
-		"max_idle_conns", cfg.RedisMaxIdleConns,
+		"max_idle_conns",
+		cfg.RedisMaxIdleConns,
 	)
 
 	rdbOpts, err := redis.ParseURL(cfg.Redis)
