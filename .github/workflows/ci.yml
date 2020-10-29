@@ -23,8 +23,8 @@ jobs:
 
           # Create new Sentry release
           export SENTRY_RELEASE=$REVISION
-          
-          sentry-cli releases new -p $SENTRY_PROJECT $SENTRY_RELEASE
+          echo $SENTRY_RELEASE $SENTRY_PROJECT
+          sentry-cli releases new --project $SENTRY_PROJECT $SENTRY_RELEASE
           sentry-cli releases set-commits --auto $SENTRY_RELEASE
           sentry-cli releases finalize $SENTRY_RELEASE
 
