@@ -8,13 +8,28 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PPOJECT }}
+      SENTRY_DEPLOY_ENVIRONMENT: production 
     steps:
       - uses: actions/checkout@v1.0.0
+      - name: Get Revision
+        run: |
+          echo ::set-env name=REVISION::${GITHUB_REF##*/}-${GITHUB_SHA::7}-$(date +'%Y%m%d%H%M')
+
       - name: Create new Sentry release and deploy
         run: |
           curl -sL https://sentry.io/get-cli/ | bash
-          export SENTRY_RELEASE=$(sentry-cli releases propose-version)
-          echo $SENTRY_RELEASE
+
+          # Create new Sentry release
+          export SENTRY_RELEASE=$REVISION
+          
+          sentry-cli releases new -p $SENTRY_PROJECT $SENTRY_RELEASE
+          sentry-cli releases set-commits --auto $SENTRY_RELEASE
+          sentry-cli releases finalize $SENTRY_RELEASE
+
+          # Create new deploy for this Sentry release
+          sentry-cli releases deploys $SENTRY_RELEASE new -e $SENTRY_DEPLOY_ENVIRONMENT
   
   lint-docker:
     name: Lint Docker
