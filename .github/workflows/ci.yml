@@ -4,6 +4,18 @@ on:
   push:
 
 jobs:
+  release:
+    runs-on: ubuntu-18.04
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v1.0.0
+      - name: Create new Sentry release and deploy
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          export SENTRY_RELEASE=$(sentry-cli releases propose-version)
+          echo $SENTRY_RELEASE
+  
   lint-docker:
     name: Lint Docker
     runs-on: ubuntu-latest
