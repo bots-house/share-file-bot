@@ -247,29 +247,35 @@ func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message) error {
 func (bot *Bot) getFileForOwner(ctx context.Context, cbq *tgbotapi.CallbackQuery, id int) (*service.OwnedFile, error) {
 	user := getUserCtx(ctx)
 
-	doc, err := bot.fileSrv.GetFileByID(ctx, user, core.FileID(id))
-	if err != nil {
+	file, err := bot.fileSrv.GetFileByID(ctx, user, core.FileID(id))
+	if errors.Is(err, core.ErrFileNotFound) {
+		_ = bot.deleteMessage(ctx, cbq.Message)
+		_ = bot.answerCallbackQueryAlert(ctx, cbq, "Файл был удален ранее")
+		return nil, err
+	} else if err != nil {
 		return nil, errors.Wrap(err, "get file by id")
 	}
 
 	// user is not owner of file but try to access
-	if doc.OwnedFile == nil {
+	if file.OwnedFile == nil {
 		if cbq != nil {
 			_ = bot.answerCallbackQuery(ctx, cbq, "bad body, what you do?")
 		}
 		return nil, errors.New("can't manage file")
 	}
 
-	return doc.OwnedFile, nil
+	return file.OwnedFile, nil
 }
 
 func (bot *Bot) onFileRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuery, id int) error {
-	doc, err := bot.getFileForOwner(ctx, cbq, id)
-	if err != nil {
+	file, err := bot.getFileForOwner(ctx, cbq, id)
+	if errors.Is(err, core.ErrFileNotFound) {
+		return nil
+	} else if err != nil {
 		return errors.Wrap(err, "get file for owner")
 	}
 
-	caption := bot.renderOwnedFileCaption(doc)
+	caption := bot.renderOwnedFileCaption(file)
 
 	edit := tgbotapi.NewEditMessageCaption(
 		cbq.Message.Chat.ID,
@@ -278,7 +284,7 @@ func (bot *Bot) onFileRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuer
 	)
 
 	edit.ParseMode = mdv2
-	replyMarkup := bot.renderOwnedFileReplyMarkup(doc)
+	replyMarkup := bot.renderOwnedFileReplyMarkup(file)
 	edit.ReplyMarkup = &replyMarkup
 
 	if err := bot.send(ctx, edit); err != nil {
@@ -299,7 +305,9 @@ func (bot *Bot) onFileDeleteCBQ(
 	id int,
 ) error {
 	file, err := bot.getFileForOwner(ctx, cbq, id)
-	if err != nil {
+	if errors.Is(err, core.ErrFileNotFound) {
+		return nil
+	} else if err != nil {
 		return errors.Wrap(err, "get file for owner")
 	}
 
@@ -343,12 +351,16 @@ func (bot *Bot) onFileDeleteConfirmCBQ(
 	id int,
 ) error {
 	user := getUserCtx(ctx)
-	docID := core.FileID(id)
 
-	if err := bot.fileSrv.DeleteFile(ctx, user, docID); err == core.ErrFileNotFound {
-		return bot.answerCallbackQuery(ctx, cbq, "Файл не найден")
+	file, err := bot.getFileForOwner(ctx, cbq, id)
+	if errors.Is(err, core.ErrFileNotFound) {
+		return nil
 	} else if err != nil {
-		return errors.Wrap(err, "service delete file")
+		return errors.Wrap(err, "get file for owner")
+	}
+
+	if err := bot.fileSrv.DeleteFile(ctx, user, file.ID); err != nil {
+		return errors.Wrap(err, "delete file")
 	}
 
 	go func() {
@@ -363,14 +375,16 @@ func (bot *Bot) onFileRestrictionsCBQ(
 	cbq *tgbotapi.CallbackQuery,
 	fid int,
 ) error {
+	file, err := bot.getFileForOwner(ctx, cbq, fid)
+	if errors.Is(err, core.ErrFileNotFound) {
+		return nil
+	} else if err != nil {
+		return errors.Wrap(err, "get file for owner")
+	}
+
 	go func() {
 		_ = bot.answerCallbackQuery(ctx, cbq, "")
 	}()
-
-	file, err := bot.getFileForOwner(ctx, cbq, fid)
-	if err != nil {
-		return errors.Wrap(err, "get file for owner")
-	}
 
 	user := getUserCtx(ctx)
 
