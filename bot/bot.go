@@ -124,6 +124,11 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	// handle message
 	if msg := update.Message; msg != nil {
 
+		if msg.Text == textButtonAbout {
+			answer := bot.newAnswerMsg(msg, textStart)
+			return bot.send(ctx, answer)
+		}
+
 		userState, err := bot.state.Get(ctx, user.ID)
 		if err != nil {
 			return errors.Wrap(err, "get state")

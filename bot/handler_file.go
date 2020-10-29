@@ -19,13 +19,15 @@ const (
 	callbackFileRestrictions          = "file:%d:restrictions"
 	callbackFileRestrictionsChat      = "file:%d:restrictions:chat-subscription:%d:toggl"
 	callbackFileRestrictionsChatCheck = "file:%d:restrictions:chat:check"
+
+	textButtonAbout = "Что это за бот?"
 )
 
 var (
 	textFileRestrictions = dedent.Dedent(`
 		С помощью данного инструмента вы можете ограничить доступ к файлу только подписчикам вашего канала / супергруппы\.
 		Перед каждым скачиванием бот будет проверять наличие подписки и только после этого выдавать доступ к файлу\. 
-		
+
 		_Для подключения каналов перейдите в настройки \(/settings\)\._
 	`)
 
@@ -36,13 +38,22 @@ var (
 )
 
 func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, file *core.File) tgbotapi.Chattable {
+	kb := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Что это за бот?"),
+		),
+	)
+
+	kb.OneTimeKeyboard = true
+	kb.ResizeKeyboard = true
+
 	return bot.renderGenericFile(
 		msg.Chat.ID,
 		file.Kind,
 		file.TelegramID,
 		escapeMarkdown(file.Caption.String),
 		mdv2,
-		nil,
+		kb,
 	)
 }
 
