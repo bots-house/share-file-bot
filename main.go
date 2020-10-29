@@ -86,39 +86,8 @@ func main() {
 		cancel()
 	}()
 
-	// parse config
-	var cfg Config
-
-	// parse flags
-	var (
-		flagHealth bool
-		flagConfig string
-	)
-
-	flag.BoolVar(&flagHealth, "health", false, "run health check")
-	flag.StringVar(&flagConfig, "config", "", "load env from file")
-
-	flag.Parse()
-
-	if flagHealth {
-		health.Check(ctx, cfg.Addr)
-		cancel()
-		//nolint: gocritic
-		os.Exit(1)
-	}
-
-	// parse config
-	cfg, err := parseConfig(flagConfig)
-	if err != nil {
-		cancel()
-		//nolint: gocritic
-		os.Exit(1)
-	}
-
-	ctx = setupLogging(ctx, cfg)
-
-	if err := run(ctx, cfg); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("fatal error")
+	if err := run(ctx); err != nil {
+		log.Error().Err(err).Msg("fatal error")
 		cancel()
 		//nolint: gocritic
 		os.Exit(1)
@@ -178,7 +147,33 @@ func newSentry(ctx context.Context, cfg Config, release string) error {
 
 const envPrefix = "SFB"
 
-func run(ctx context.Context, cfg Config) error {
+func run(ctx context.Context) error {
+	// parse config
+	var cfg Config
+
+	// parse flags
+	var (
+		flagHealth bool
+		flagConfig string
+	)
+
+	flag.BoolVar(&flagHealth, "health", false, "run health check")
+	flag.StringVar(&flagConfig, "config", "", "load env from file")
+
+	flag.Parse()
+
+	if flagHealth {
+		return health.Check(ctx, cfg.Addr)
+	}
+
+	// parse config
+	cfg, err := parseConfig(flagConfig)
+	if err != nil {
+		return err
+	}
+
+	ctx = setupLogging(ctx, cfg)
+
 	log.Ctx(ctx).Info().Str("revision", revision).Msg("start")
 	if err := newSentry(ctx, cfg, revision); err != nil {
 		return errors.Wrap(err, "init sentry")
