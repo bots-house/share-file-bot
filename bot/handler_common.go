@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"strings"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/friendsofgo/errors"
@@ -22,7 +23,7 @@ func (bot *Bot) onHelp(ctx context.Context, msg *tgbotapi.Message) error {
 }
 
 func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
-	if args := msg.CommandArguments(); args != "" {
+	if args := msg.CommandArguments(); args != "" && !strings.HasPrefix(args, refDeepLinkPrefix) {
 		user := getUserCtx(ctx)
 
 		log.Ctx(ctx).Debug().Str("public_id", args).Msg("query file")

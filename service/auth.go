@@ -20,6 +20,7 @@ type UserInfo struct {
 	LastName     string
 	Username     string
 	LanguageCode string
+	Ref          string
 }
 
 func (srv *Auth) createUser(ctx context.Context, info *UserInfo) (*core.User, error) {
@@ -30,6 +31,10 @@ func (srv *Auth) createUser(ctx context.Context, info *UserInfo) (*core.User, er
 		info.Username,
 		info.LanguageCode,
 	)
+
+	if info.Ref != "" {
+		user.Ref = null.StringFrom(info.Ref)
+	}
 
 	log.Ctx(ctx).Info().Msg("create new user")
 	if err := srv.UserStore.Add(ctx, user); err != nil {
@@ -54,6 +59,12 @@ func (srv *Auth) updateUserIfNeed(ctx context.Context, user *core.User, info *Us
 
 	if user.Username.String != info.Username {
 		user.Username = null.NewString(info.Username, info.Username != "")
+		update = true
+	}
+
+	// update ref only if provided
+	if info.Ref != "" && user.Ref.String != info.Ref {
+		user.Ref = null.NewString(info.Ref, info.Ref != "")
 		update = true
 	}
 

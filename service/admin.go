@@ -12,12 +12,16 @@ type Admin struct {
 	User     core.UserStore
 	File     core.FileStore
 	Download core.DownloadStore
+	Chat     core.ChatStore
 }
 
 type AdminSummaryStats struct {
 	Users     int
 	Files     int
 	Downloads int
+	Chats     int
+
+	UsersByRefs core.UserRefStats
 }
 
 var ErrUserIsNotAdmin = errors.New("user is not admin")
@@ -41,7 +45,7 @@ func (srv *Admin) getStats(ctx context.Context) (*AdminSummaryStats, error) {
 	wg.Go(func() error {
 		docs, err := srv.File.Query().Count(ctx)
 		if err != nil {
-			return errors.Wrap(err, "count docs")
+			return errors.Wrap(err, "count files")
 		}
 
 		stats.Files = docs
@@ -52,10 +56,32 @@ func (srv *Admin) getStats(ctx context.Context) (*AdminSummaryStats, error) {
 	wg.Go(func() error {
 		dwns, err := srv.Download.Query().Count(ctx)
 		if err != nil {
-			return errors.Wrap(err, "count docs")
+			return errors.Wrap(err, "count downloads")
 		}
 
 		stats.Downloads = dwns
+
+		return nil
+	})
+
+	wg.Go(func() error {
+		chats, err := srv.Chat.Query().Count(ctx)
+		if err != nil {
+			return errors.Wrap(err, "count chats")
+		}
+
+		stats.Chats = chats
+
+		return nil
+	})
+
+	wg.Go(func() error {
+		refs, err := srv.User.RefStats(ctx)
+		if err != nil {
+			return errors.Wrap(err, "count user refs")
+		}
+
+		stats.UsersByRefs = refs
 
 		return nil
 	})
