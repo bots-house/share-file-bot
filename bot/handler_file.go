@@ -202,7 +202,7 @@ func (bot *Bot) deleteMessage(ctx context.Context, msg *tgbotapi.Message) error 
 		msg.Chat.ID,
 		msg.MessageID,
 	)); err != nil {
-		log.Ctx(ctx).Warn().Int("chat_id", int(msg.Chat.ID)).Int("msg_id", int(msg.MessageID)).Msg("can't delete incoming message")
+		log.Ctx(ctx).Warn().Int64("chat_id", msg.Chat.ID).Int("msg_id", msg.MessageID).Msg("can't delete incoming message")
 		return err
 	}
 

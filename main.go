@@ -95,6 +95,8 @@ func main() {
 	// parse config
 	cfg, err := parseConfig(flagConfig)
 	if err != nil {
+		cancel()
+		//nolint: gocritic
 		os.Exit(1)
 	}
 

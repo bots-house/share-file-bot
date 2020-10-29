@@ -47,7 +47,7 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 			case update.ChannelPost != nil && update.ChannelPost.NewChatTitle != "":
 				tgUser = nil
 			default:
-				log.Ctx(ctx).Warn().Int("id", int(update.UpdateID)).Msg("unsupported update")
+				log.Ctx(ctx).Warn().Int("id", update.UpdateID).Msg("unsupported update")
 				return nil
 			}
 
