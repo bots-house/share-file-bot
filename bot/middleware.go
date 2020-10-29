@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/fatih/structs"
@@ -37,9 +38,11 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 
 			if tgUser != nil {
 				if tgUser.UserName != "" {
-					ctx = log.Ctx(ctx).WithContext(ctx)
+					logger := log.Ctx(ctx).With().Str("user", fmt.Sprintf("%s#%d", tgUser.UserName, tgUser.ID)).Logger()
+					ctx = logger.WithContext(ctx)
 				} else {
-					ctx = log.Ctx(ctx).WithContext(ctx)
+					logger := log.Ctx(ctx).With().Str("user", fmt.Sprintf("#%d", tgUser.ID)).Logger()
+					ctx = logger.WithContext(ctx)
 				}
 
 				user, err := srv.Auth(ctx, &service.UserInfo{
