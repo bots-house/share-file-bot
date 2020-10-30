@@ -391,7 +391,6 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 	case err == service.ErrChatAlreadyConnected:
 		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectChatAlreadyConnected)
 	case err != nil:
-		log.Error(ctx, err.Error())
 		return errors.Wrap(err, "add chat")
 	}
 	log.Error(ctx, err.Error())
