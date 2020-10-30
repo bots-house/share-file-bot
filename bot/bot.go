@@ -146,8 +146,10 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			return bot.onStart(ctx, msg)
 		case "help":
 			return bot.onHelp(ctx, msg)
-		case "admin":
-			return bot.onAdmin(ctx, msg)
+		case "admin_stats":
+			return bot.onAdminStats(ctx, msg)
+		case "admin_stats_ref":
+			return bot.onAdminStatsRef(ctx, msg)
 		case "settings":
 			return bot.onSettings(ctx, msg)
 		case "version":

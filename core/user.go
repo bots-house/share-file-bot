@@ -44,6 +44,14 @@ type User struct {
 	UpdatedAt null.Time
 }
 
+type SummaryRefStats struct {
+	ClickedOnStart int
+	ConnectedChat  int
+	UploadedFile   int
+	SetRestriction int
+	DownloadCount  int
+}
+
 func (user *User) Patch(do func(*User)) bool {
 	newUser := *user
 
@@ -113,6 +121,8 @@ type UserStore interface {
 	Update(ctx context.Context, user *User) error
 
 	RefStats(ctx context.Context) (UserRefStats, error)
+
+	SummaryRefStats(ctx context.Context, ref string) (*SummaryRefStats, error)
 
 	Query() UserStoreQuery
 }

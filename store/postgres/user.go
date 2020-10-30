@@ -123,6 +123,26 @@ func (usq *userStoreQuery) Count(ctx context.Context) (int, error) {
 	return int(count), nil
 }
 
+func (store *UserStore) CountUsersByRef(ctx context.Context, ref string) (count *int, err error) {
+	const query = `
+	select
+		count(*)
+	from 
+		"user"
+	where ref = $1
+	`
+
+	executor := store.getExecutor(ctx)
+
+	if err = executor.QueryRowContext(ctx, query, ref).Scan(
+		&count,
+	); err != nil {
+		return nil, errors.Wrap(err, "count users by ref")
+	}
+
+	return count, nil
+}
+
 func (store *UserStore) RefStats(ctx context.Context) (core.UserRefStats, error) {
 	const query = `
 		select 

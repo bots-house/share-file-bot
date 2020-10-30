@@ -24,7 +24,10 @@ type AdminSummaryStats struct {
 	UsersByRefs core.UserRefStats
 }
 
-var ErrUserIsNotAdmin = errors.New("user is not admin")
+var (
+	ErrUserIsNotAdmin = errors.New("user is not admin")
+	ErrArgsAreEmpty   = errors.New("command args are empty")
+)
 
 func (srv *Admin) getStats(ctx context.Context) (*AdminSummaryStats, error) {
 	stats := &AdminSummaryStats{}
@@ -93,6 +96,25 @@ func (srv *Admin) getStats(ctx context.Context) (*AdminSummaryStats, error) {
 	return stats, nil
 }
 
+func (srv *Admin) getRefStats(ctx context.Context, ref string) (*AdminSummaryRefStats, error) {
+	refStats := &AdminSummaryRefStats{}
+
+	wg, ctx := errgroup.WithContext(ctx)
+
+	wg.Go(func() error {
+		users, err := srv.User.CountUsersByRef(ctx, ref)
+		if err != nil {
+			return errors.Wrap(err, "count users by ref")
+		}
+		print(*users)
+		refStats.ClickedOnStart = *users
+
+		return nil
+	})
+
+	return refStats, nil
+}
+
 func (srv *Admin) isHasPermissions(_ context.Context, user *core.User) error {
 	if !user.IsAdmin {
 		return ErrUserIsNotAdmin
@@ -112,4 +134,17 @@ func (srv *Admin) SummaryStats(ctx context.Context, user *core.User) (*AdminSumm
 	}
 
 	return stats, nil
+}
+
+func (srv *Admin) SummaryRefStats(ctx context.Context, user *core.User, ref string) (*AdminSummaryRefStats, error) {
+	if err := srv.isHasPermissions(ctx, user); err != nil {
+		return nil, err
+	}
+
+	refStats, err := srv.getRefStats(ctx, ref)
+	if err != nil {
+		return nil, errors.Wrap(err, "get ref stats")
+	}
+
+	return refStats, nil
 }

@@ -10,7 +10,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func (bot *Bot) onAdmin(ctx context.Context, msg *tgbotapi.Message) error {
+func (bot *Bot) onAdminStats(ctx context.Context, msg *tgbotapi.Message) error {
 	user := getUserCtx(ctx)
 
 	stats, err := bot.adminSrv.SummaryStats(ctx, user)
@@ -52,4 +52,17 @@ func (bot *Bot) onAdmin(ctx context.Context, msg *tgbotapi.Message) error {
 	out.ParseMode = mdv2
 
 	return bot.send(ctx, out)
+}
+
+func (bot *Bot) onAdminStatsRef(ctx context.Context, msg *tgbotapi.Message) error {
+	user := getUserCtx(ctx)
+
+	ref := msg.CommandArguments()
+	if ref == "" {
+		return service.ErrArgsAreEmpty
+	}
+
+	_, err := bot.adminSrv.SummaryRefStats(ctx, user, ref)
+
+	return err
 }
