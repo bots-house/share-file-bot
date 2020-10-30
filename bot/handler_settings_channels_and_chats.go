@@ -64,6 +64,7 @@ var (
 	textSettingsChannelsAndChatsConnectBotIsNotAdmin         = "⚠️ Бот не установлен администратором чата или канала, добавьте его в администраторы с правами «Добавление подписчиков» (Add User)"
 	textSettingsChannelsAndChatsConnectUserIsNotAdmin        = "⚠️ Ты не являешся администратором данного чата / канала"
 	textSettingsChannelsAndChatsConnectBotIsNotEnoughRights  = "⚠️ Бот установлен администратором чата / канала, но ему не хватает прав «Добавление подписчиков» (Add User)"
+	textSettingsChannelsAndChatsConnectChatAlreadyConnected  = "⚠️ Канал / чат уже подключен"
 
 	textSettingsChannelsAndChatsConnectNotValidButtonCancel = "Я передумал"
 	textSettingsChannelsAndChatsButtonConnect               = "+ Подключить"
@@ -385,6 +386,8 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectBotIsNotEnoughRights)
 	case err == service.ErrUserIsNotChatAdmin:
 		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectUserIsNotAdmin)
+	case err == service.ErrChatAlreadyConnected:
+		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectChatAlreadyConnected)
 	case err != nil:
 		return errors.Wrap(err, "add chat")
 	}

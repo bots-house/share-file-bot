@@ -40,6 +40,7 @@ var (
 	ErrBotIsNotChatAdmin           = errors.New("bot is not admin")
 	ErrBotNotEnoughRights          = errors.New("bot not has rights")
 	ErrUserIsNotChatAdmin          = errors.New("user is not admin")
+	ErrChatAlreadyConnected        = errors.New("chat already connected")
 )
 
 func (srv *Chat) UpdateTitle(ctx context.Context, chatID int64, title string) error {
@@ -128,6 +129,9 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 	)
 
 	if err := srv.Chat.Add(ctx, chat); err != nil {
+		if err == ErrChatAlreadyConnected {
+			return nil, ErrChatAlreadyConnected
+		}
 		return nil, errors.Wrap(err, "add chat to store")
 	}
 
