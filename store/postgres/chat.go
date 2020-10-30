@@ -5,8 +5,10 @@ import (
 	"database/sql"
 
 	"github.com/bots-house/share-file-bot/core"
+	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres/dal"
 	"github.com/friendsofgo/errors"
+	"github.com/lib/pq"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
@@ -61,6 +63,11 @@ func (store *ChatStore) fromRowSlice(rows dal.ChatSlice) ([]*core.Chat, error) {
 func (store *ChatStore) Add(ctx context.Context, chat *core.Chat) error {
 	row := store.toRow(chat)
 	if err := store.insertOne(ctx, row); err != nil {
+		if err, ok := errors.Cause(err).(*pq.Error); ok {
+			if err.Constraint == "chat_owner_id_telegram_id_key" {
+				return service.ErrChatAlreadyConnected
+			}
+		}
 		return errors.Wrap(err, "insert query")
 	}
 
