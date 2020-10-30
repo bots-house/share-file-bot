@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bots-house/share-file-bot/pkg/log"
-
 	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/tg"
@@ -393,7 +391,6 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 	case err != nil:
 		return errors.Wrap(err, "add chat")
 	}
-	log.Error(ctx, err.Error())
 
 	out := tgbotapi.NewMessage(
 		msg.Chat.ID,
