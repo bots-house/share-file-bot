@@ -123,8 +123,10 @@ func (usq *userStoreQuery) Count(ctx context.Context) (int, error) {
 	return int(count), nil
 }
 
-func (store *UserStore) CountUsersByRef(ctx context.Context, ref string) (count *int, err error) {
-	const query = `
+func (store *UserStore) SummaryRefStats(ctx context.Context, ref string) (*core.SummaryRefStats, error) {
+	summary := &core.SummaryRefStats{}
+
+	const userQuery = `
 	select
 		count(*)
 	from 
@@ -134,13 +136,77 @@ func (store *UserStore) CountUsersByRef(ctx context.Context, ref string) (count 
 
 	executor := store.getExecutor(ctx)
 
-	if err = executor.QueryRowContext(ctx, query, ref).Scan(
-		&count,
+	if err := executor.QueryRow(userQuery, ref).Scan(
+		&summary.ClickedOnStart,
 	); err != nil {
 		return nil, errors.Wrap(err, "count users by ref")
 	}
 
-	return count, nil
+	const connChatQuery = `
+	select 
+		count(*) 
+	from 
+		chat
+	inner join "user" on chat.owner_id = "user".id
+	where "user".ref = $1 and not "user".is_admin
+	`
+
+	if err := executor.QueryRow(connChatQuery, ref).Scan(
+		&summary.ConnectedChat,
+	); err != nil {
+		return nil, errors.Wrap(err, "count conn chats by ref")
+	}
+
+	const downloadQuery = `
+	select 
+		count(*) 
+	from 
+		file
+	inner join "user" on file.owner_id = "user".id
+	where "user".ref = $1 and not "user".is_admin
+	`
+
+	if err := executor.QueryRow(downloadQuery, ref).Scan(
+		&summary.DownloadCount,
+	); err != nil {
+		return nil, errors.Wrap(err, "count download files")
+	}
+
+	const restrictionQuery = `
+	select 
+		count(*) 
+	from 
+		file 
+	inner join chat on chat.id = file.restrictions_chat_id
+	inner join "user" on chat.owner_id = "user".id
+	where "user".ref = $1 and not "user".is_admin
+	`
+
+	if err := executor.QueryRow(restrictionQuery, ref).Scan(
+		&summary.SetRestriction,
+	); err != nil {
+		return nil, errors.Wrap(err, "count chat restrictions")
+	}
+
+	const uploadQuery = `
+	select 
+		count(*) 
+	from download 
+	where file_id in (
+		select file.id 
+		from file
+		inner join "user" on file.owner_id = "user".id
+		where "user".ref = $1 and not "user".is_admin
+	)	
+	`
+
+	if err := executor.QueryRow(uploadQuery, ref).Scan(
+		&summary.UploadedFile,
+	); err != nil {
+		return nil, errors.Wrap(err, "count uploads")
+	}
+
+	return summary, nil
 }
 
 func (store *UserStore) RefStats(ctx context.Context) (core.UserRefStats, error) {

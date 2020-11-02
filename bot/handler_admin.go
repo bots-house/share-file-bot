@@ -62,7 +62,25 @@ func (bot *Bot) onAdminStatsRef(ctx context.Context, msg *tgbotapi.Message) erro
 		return service.ErrArgsAreEmpty
 	}
 
-	_, err := bot.adminSrv.SummaryRefStats(ctx, user, ref)
+	summary, err := bot.adminSrv.SummaryRefStats(ctx, user, ref)
+	if err != nil {
+		return errors.Wrap(err, "get summary ref stats")
+	}
 
-	return err
+	lines := []string{
+		fmt.Sprintf("*__%s__*", ref),
+		"",
+		fmt.Sprintf("*Регистрации*: `%d`", summary.ClickedOnStart),
+		fmt.Sprintf("*Подключили чат*: `%d`", summary.ConnectedChat),
+		fmt.Sprintf("*Загрузили файл*: `%d`", summary.DownloadCount),
+		fmt.Sprintf("*Установили ограничение на загрузку*: `%d`", summary.SetRestriction),
+		fmt.Sprintf("*Получили загрузок*: `%d`", summary.UploadedFile),
+	}
+
+	text := strings.Join(lines, "\n")
+
+	out := tgbotapi.NewMessage(msg.Chat.ID, text)
+	out.ParseMode = mdv2
+
+	return bot.send(ctx, out)
 }
