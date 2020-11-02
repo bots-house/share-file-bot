@@ -70,11 +70,11 @@ func (bot *Bot) onAdminStatsRef(ctx context.Context, msg *tgbotapi.Message) erro
 	lines := []string{
 		fmt.Sprintf("*__%s__*", ref),
 		"",
-		fmt.Sprintf("*Регистрации*: `%d`", summary.ClickedOnStart),
-		fmt.Sprintf("*Подключили чат*: `%d`", summary.ConnectedChat),
+		fmt.Sprintf("*Нажали старт*: `%d`", summary.ClickedOnStart),
+		fmt.Sprintf("*Подключили канал*: `%d`", summary.ConnectedChat),
 		fmt.Sprintf("*Загрузили файл*: `%d`", summary.DownloadCount),
 		fmt.Sprintf("*Установили ограничение на загрузку*: `%d`", summary.SetRestriction),
-		fmt.Sprintf("*Получили загрузок*: `%d`", summary.UploadedFile),
+		fmt.Sprintf("*Их файлы скачали*: `%d`", summary.UploadedFile),
 	}
 
 	text := strings.Join(lines, "\n")
