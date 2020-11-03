@@ -506,7 +506,7 @@ func (bot *Bot) onFileRestrictionsChatCheck(
 	}
 
 	if !status.Ok {
-		return bot.answerCallbackQueryAlert(ctx, cbq, "Я не наблюдаю тебе в подписчиках, подпишись чтобы получить доступ к файлу")
+		return bot.answerCallbackQueryAlert(ctx, cbq, "Я не наблюдаю тебя в подписчиках, подпишись чтобы получить доступ к файлу")
 	}
 
 	go func() {
