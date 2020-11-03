@@ -14,7 +14,7 @@ generate:  generate-dal
 generate-dal: .bin/sqlboiler .bin/sqlboiler-psql
 	.bin/sqlboiler .bin/sqlboiler-psql
 
-generate-domain: core/kind_string.go core/chattype_string.go
+generate-domain: core/kind_string.go core/chattype_string.go bot/state/state_string.go
 
 
 core/kind_string.go: core/kind.go
@@ -22,6 +22,9 @@ core/kind_string.go: core/kind.go
 
 core/chattype_string.go: core/chat.go
 	cd core && stringer -type ChatType -trimprefix ChatType
+
+bot/state/state_string.go: bot/state/state.go
+	cd bot/state && stringer -type State
 
 .bin/golangci-lint:
 	mkdir -p .bin

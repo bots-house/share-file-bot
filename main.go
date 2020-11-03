@@ -133,9 +133,10 @@ func newSentry(ctx context.Context, cfg Config, release string) error {
 	}
 
 	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:         cfg.SentryDSN,
-		Environment: cfg.Env,
-		Release:     release,
+		Dsn:              cfg.SentryDSN,
+		Environment:      cfg.Env,
+		Release:          release,
+		AttachStacktrace: true,
 	}); err != nil {
 		return errors.Wrap(err, "init sentry")
 	}
@@ -175,6 +176,7 @@ func run(ctx context.Context) error {
 	if err := newSentry(ctx, cfg, revision); err != nil {
 		return errors.Wrap(err, "init sentry")
 	}
+	defer sentry.Flush(time.Second * 5)
 
 	log.Info(ctx, "open db", "dsn", cfg.Database)
 

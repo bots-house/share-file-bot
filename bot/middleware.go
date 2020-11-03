@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -45,9 +46,33 @@ func extractRefFromMsg(msg *tgbotapi.Message) string {
 	return ""
 }
 
+func serializeStruct(v interface{}) map[string]interface{} {
+	body, err := json.Marshal(v)
+	if err != nil {
+		return structs.Map(v)
+	}
+
+	result := map[string]interface{}{}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return structs.Map(v)
+	}
+
+	return result
+}
+
 func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 	return func(next tg.Handler) tg.Handler {
 		return tg.HandlerFunc(func(ctx context.Context, update *tgbotapi.Update) error {
+			withSentryHub(ctx, func(hub *sentry.Hub) {
+				hub.AddBreadcrumb(&sentry.Breadcrumb{
+					Message:  "Update",
+					Level:    sentry.LevelInfo,
+					Data:     serializeStruct(update),
+					Category: "middleware",
+				}, nil)
+			})
+
 			var (
 				tgUser *tgbotapi.User
 			)
@@ -88,23 +113,32 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 					return errors.Wrap(err, "auth service")
 				}
 
-				sentry.AddBreadcrumb(&sentry.Breadcrumb{
-					Message: "Authenticated",
-					Level:   sentry.LevelInfo,
-					Data:    structs.Map(user),
-				})
+				withSentryHub(ctx, func(hub *sentry.Hub) {
+					ctx = withUser(ctx, user)
 
-				ctx = withUser(ctx, user)
+					hub.AddBreadcrumb(&sentry.Breadcrumb{
+						Message:  "User",
+						Level:    sentry.LevelInfo,
+						Data:     serializeStruct(user),
+						Category: "auth",
+					}, nil)
 
-				sentry.ConfigureScope(func(scope *sentry.Scope) {
-					scope.SetUser(sentry.User{
-						ID:       strconv.Itoa(int(user.ID)),
-						Username: user.Username.String,
+					hub.ConfigureScope(func(scope *sentry.Scope) {
+						scope.SetUser(sentry.User{
+							ID:       strconv.Itoa(int(user.ID)),
+							Username: user.Username.String,
+						})
 					})
 				})
 			}
 
 			return next.HandleUpdate(ctx, update)
 		})
+	}
+}
+
+func withSentryHub(ctx context.Context, do func(hub *sentry.Hub)) {
+	if hub := sentry.GetHubFromContext(ctx); hub != nil {
+		do(hub)
 	}
 }
