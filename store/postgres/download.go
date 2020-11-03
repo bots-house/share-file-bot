@@ -66,14 +66,20 @@ func (store *DownloadStore) GetFileStats(ctx context.Context, id core.FileID) (*
 
 	executor := store.getExecutor(ctx)
 
+	newSub := null.Int{}
+	withSub := null.Int{}
+
 	if err := executor.QueryRowContext(ctx, query, id).Scan(
 		&result.Total,
 		&result.Unique,
-		&result.NewSubscription,
-		&result.WithSubscription,
+		&newSub,
+		&withSub,
 	); err != nil {
 		return nil, errors.Wrap(err, "count downloads query")
 	}
+
+	result.NewSubscription = newSub.Int
+	result.WithSubscription = withSub.Int
 
 	return result, nil
 }
@@ -95,12 +101,18 @@ func (store *DownloadStore) GetChatStats(ctx context.Context, id core.ChatID) (*
 
 	executor := store.getExecutor(ctx)
 
+	newSub := null.Int{}
+	withSub := null.Int{}
+
 	if err := executor.QueryRowContext(ctx, query, id).Scan(
-		&result.NewSubscription,
-		&result.WithSubscription,
+		&newSub,
+		&withSub,
 	); err != nil {
 		return nil, errors.Wrap(err, "count downloads query")
 	}
+
+	result.NewSubscription = newSub.Int
+	result.WithSubscription = withSub.Int
 
 	return result, nil
 }
