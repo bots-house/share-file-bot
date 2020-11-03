@@ -18,13 +18,28 @@ import (
 
 const refDeepLinkPrefix = "ref_"
 
-func getRefFromMessage(msg *tgbotapi.Message) string {
+func extractRefFromMsg(msg *tgbotapi.Message) string {
 	if msg != nil && msg.Command() == "start" {
 		args := msg.CommandArguments()
 
-		if strings.HasPrefix(args, refDeepLinkPrefix) {
-			return strings.TrimPrefix(args, refDeepLinkPrefix)
+		if !strings.HasPrefix(args, refDeepLinkPrefix) {
+			return ""
 		}
+
+		ref := strings.TrimPrefix(args, refDeepLinkPrefix)
+
+		if !strings.Contains(ref, "-") {
+			msg.Text = "/start"
+			return ref
+		}
+
+		items := strings.Split(ref, "-")
+
+		if len(items) > 1 {
+			msg.Text = "/start " + items[1]
+		}
+
+		return items[0]
 	}
 
 	return ""
@@ -58,13 +73,15 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 					ctx = log.With(ctx, "user", fmt.Sprintf("#%d", tgUser.ID))
 				}
 
+				ref := extractRefFromMsg(update.Message)
+
 				user, err := srv.Auth(ctx, &service.UserInfo{
 					ID:           tgUser.ID,
 					FirstName:    tgUser.FirstName,
 					LastName:     tgUser.LastName,
 					Username:     tgUser.UserName,
 					LanguageCode: tgUser.LanguageCode,
-					Ref:          getRefFromMessage(update.Message),
+					Ref:          ref,
 				})
 
 				if err != nil {
