@@ -5,7 +5,7 @@ go 1.15
 
 require (
 	github.com/DATA-DOG/go-txdb v0.1.3
-	github.com/brianvoe/gofakeit/v5 v5.10.0
+	github.com/brianvoe/gofakeit/v5 v5.10.1
 	github.com/fatih/structs v1.1.0
 	github.com/friendsofgo/errors v0.9.2
 	github.com/getsentry/sentry-go v0.7.0
