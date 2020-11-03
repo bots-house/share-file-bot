@@ -317,7 +317,6 @@ func (bot *Bot) onSettingsChannelsAndChatsDetails(
 }
 
 func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg *tgbotapi.Message) error {
-
 	var identity service.ChatIdentity
 
 	switch {
@@ -333,14 +332,14 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 	// handle @username
 	case msg.Entities != nil && getFirstMentionEntity(*msg.Entities) != nil:
 		entity := getFirstMentionEntity(*msg.Entities)
-		username := msg.Text[entity.Offset:entity.Length]
+		username := msg.Text[entity.Offset : entity.Offset+entity.Length]
 
 		identity = service.NewChatIdentityFromUsername(username)
 
 	// handle join link
 	case msg.Entities != nil && getFirstLinkEntity(*msg.Entities) != nil:
 		entity := getFirstLinkEntity(*msg.Entities)
-		url := string([]rune(msg.Text)[entity.Offset:entity.Length])
+		url := string([]rune(msg.Text)[entity.Offset : entity.Offset+entity.Length])
 
 		encodedPayload := tg.ParseJoinLink(url)
 

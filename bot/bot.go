@@ -14,7 +14,6 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
-	"github.com/fatih/structs"
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -133,6 +132,18 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 		if err != nil {
 			return errors.Wrap(err, "get state")
 		}
+
+		withSentryHub(ctx, func(hub *sentry.Hub) {
+			hub.AddBreadcrumb(&sentry.Breadcrumb{
+				Category: "bot",
+				Level:    sentry.LevelInfo,
+				Data: map[string]interface{}{
+					"name":  userState.String(),
+					"value": userState,
+				},
+				Message: "State",
+			}, nil)
+		})
 
 		//nolint:gocritic
 		switch userState {
@@ -322,12 +333,7 @@ func (bot *Bot) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (bot *Bot) onError(ctx context.Context, update *tgbotapi.Update, er error) {
 	log.Error(ctx, "handle update failed", "update_id", update.UpdateID, "err", er)
 
-	sentry.AddBreadcrumb(&sentry.Breadcrumb{
-		Message:  "Update",
-		Level:    sentry.LevelInfo,
-		Data:     structs.Map(update),
-		Category: "bot",
+	withSentryHub(ctx, func(hub *sentry.Hub) {
+		hub.CaptureException(er)
 	})
-
-	sentry.CaptureException(er)
 }
