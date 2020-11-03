@@ -123,6 +123,10 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	// handle message
 	if msg := update.Message; msg != nil {
 
+		if msg.Chat.IsSuperGroup() || msg.Chat.IsGroup() || msg.Chat.IsChannel() {
+			return nil
+		}
+
 		if msg.Text == textButtonAbout {
 			answer := bot.newAnswerMsg(msg, textStart)
 			return bot.send(ctx, answer)

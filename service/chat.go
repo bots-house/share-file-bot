@@ -93,7 +93,7 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 		SuperGroupUsername: identity.Username,
 	})
 
-	if tg.IsMemberListIsInaccessible(err) || tg.IsBotIsNotMemberOfChat(err) {
+	if tg.IsMemberListIsInaccessible(err) || tg.IsBotIsNotMember(err) {
 		return nil, ErrBotIsNotChatAdmin
 	} else if err != nil {
 		return nil, errors.Wrap(err, "get chat admins")
