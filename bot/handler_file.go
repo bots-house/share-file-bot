@@ -109,7 +109,7 @@ func (bot *Bot) renderSubRequest(msg *tgbotapi.Message, sub *service.ChatSubRequ
 	if sub.Username != "" {
 		link = fmt.Sprintf("[@%s](https://t.me/%s)", escapeMarkdown(sub.Username), sub.Username)
 	} else {
-		link = fmt.Sprintf("[%s](%s)", sub.Title, sub.JoinLink)
+		link = fmt.Sprintf("[%s](%s)", escapeMarkdown(sub.Title), sub.JoinLink)
 	}
 
 	text := fmt.Sprintf(textFileSubRequest, link)
