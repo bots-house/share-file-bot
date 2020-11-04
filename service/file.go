@@ -124,7 +124,7 @@ func (srv *File) checkFileRestrictionsChat(
 			ChatID: chat.TelegramID,
 		})
 
-		if tgChat.UserName == "" {
+		if tgChat.UserName == "" && tgChat.InviteLink == "" {
 			link, err := srv.Telegram.GetInviteLink(tgbotapi.ChatConfig{
 				ChatID: tgChat.ID,
 			})
