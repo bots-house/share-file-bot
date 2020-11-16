@@ -25,49 +25,52 @@ import (
 
 // File is an object representing the database table.
 type File struct {
-	ID                 int         `boil:"id" json:"id" toml:"id" yaml:"id"`
-	FileID             string      `boil:"file_id" json:"file_id" toml:"file_id" yaml:"file_id"`
-	Caption            null.String `boil:"caption" json:"caption,omitempty" toml:"caption" yaml:"caption,omitempty"`
-	MimeType           null.String `boil:"mime_type" json:"mime_type,omitempty" toml:"mime_type" yaml:"mime_type,omitempty"`
-	Size               int         `boil:"size" json:"size" toml:"size" yaml:"size"`
-	Name               string      `boil:"name" json:"name" toml:"name" yaml:"name"`
-	OwnerID            int         `boil:"owner_id" json:"owner_id" toml:"owner_id" yaml:"owner_id"`
-	CreatedAt          time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	PublicID           string      `boil:"public_id" json:"public_id" toml:"public_id" yaml:"public_id"`
-	Kind               string      `boil:"kind" json:"kind" toml:"kind" yaml:"kind"`
-	Metadata           types.JSON  `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
-	RestrictionsChatID null.Int    `boil:"restrictions_chat_id" json:"restrictions_chat_id,omitempty" toml:"restrictions_chat_id" yaml:"restrictions_chat_id,omitempty"`
+	ID                  int         `boil:"id" json:"id" toml:"id" yaml:"id"`
+	FileID              string      `boil:"file_id" json:"file_id" toml:"file_id" yaml:"file_id"`
+	Caption             null.String `boil:"caption" json:"caption,omitempty" toml:"caption" yaml:"caption,omitempty"`
+	MimeType            null.String `boil:"mime_type" json:"mime_type,omitempty" toml:"mime_type" yaml:"mime_type,omitempty"`
+	Size                int         `boil:"size" json:"size" toml:"size" yaml:"size"`
+	Name                string      `boil:"name" json:"name" toml:"name" yaml:"name"`
+	OwnerID             int         `boil:"owner_id" json:"owner_id" toml:"owner_id" yaml:"owner_id"`
+	CreatedAt           time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	PublicID            string      `boil:"public_id" json:"public_id" toml:"public_id" yaml:"public_id"`
+	Kind                string      `boil:"kind" json:"kind" toml:"kind" yaml:"kind"`
+	Metadata            types.JSON  `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
+	RestrictionsChatID  null.Int    `boil:"restrictions_chat_id" json:"restrictions_chat_id,omitempty" toml:"restrictions_chat_id" yaml:"restrictions_chat_id,omitempty"`
+	IsViolatesCopyright null.Bool   `boil:"is_violates_copyright" json:"is_violates_copyright,omitempty" toml:"is_violates_copyright" yaml:"is_violates_copyright,omitempty"`
 
 	R *fileR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L fileL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var FileColumns = struct {
-	ID                 string
-	FileID             string
-	Caption            string
-	MimeType           string
-	Size               string
-	Name               string
-	OwnerID            string
-	CreatedAt          string
-	PublicID           string
-	Kind               string
-	Metadata           string
-	RestrictionsChatID string
+	ID                  string
+	FileID              string
+	Caption             string
+	MimeType            string
+	Size                string
+	Name                string
+	OwnerID             string
+	CreatedAt           string
+	PublicID            string
+	Kind                string
+	Metadata            string
+	RestrictionsChatID  string
+	IsViolatesCopyright string
 }{
-	ID:                 "id",
-	FileID:             "file_id",
-	Caption:            "caption",
-	MimeType:           "mime_type",
-	Size:               "size",
-	Name:               "name",
-	OwnerID:            "owner_id",
-	CreatedAt:          "created_at",
-	PublicID:           "public_id",
-	Kind:               "kind",
-	Metadata:           "metadata",
-	RestrictionsChatID: "restrictions_chat_id",
+	ID:                  "id",
+	FileID:              "file_id",
+	Caption:             "caption",
+	MimeType:            "mime_type",
+	Size:                "size",
+	Name:                "name",
+	OwnerID:             "owner_id",
+	CreatedAt:           "created_at",
+	PublicID:            "public_id",
+	Kind:                "kind",
+	Metadata:            "metadata",
+	RestrictionsChatID:  "restrictions_chat_id",
+	IsViolatesCopyright: "is_violates_copyright",
 }
 
 // Generated where
@@ -117,31 +120,33 @@ func (w whereHelpertypes_JSON) GTE(x types.JSON) qm.QueryMod {
 }
 
 var FileWhere = struct {
-	ID                 whereHelperint
-	FileID             whereHelperstring
-	Caption            whereHelpernull_String
-	MimeType           whereHelpernull_String
-	Size               whereHelperint
-	Name               whereHelperstring
-	OwnerID            whereHelperint
-	CreatedAt          whereHelpertime_Time
-	PublicID           whereHelperstring
-	Kind               whereHelperstring
-	Metadata           whereHelpertypes_JSON
-	RestrictionsChatID whereHelpernull_Int
+	ID                  whereHelperint
+	FileID              whereHelperstring
+	Caption             whereHelpernull_String
+	MimeType            whereHelpernull_String
+	Size                whereHelperint
+	Name                whereHelperstring
+	OwnerID             whereHelperint
+	CreatedAt           whereHelpertime_Time
+	PublicID            whereHelperstring
+	Kind                whereHelperstring
+	Metadata            whereHelpertypes_JSON
+	RestrictionsChatID  whereHelpernull_Int
+	IsViolatesCopyright whereHelpernull_Bool
 }{
-	ID:                 whereHelperint{field: "\"file\".\"id\""},
-	FileID:             whereHelperstring{field: "\"file\".\"file_id\""},
-	Caption:            whereHelpernull_String{field: "\"file\".\"caption\""},
-	MimeType:           whereHelpernull_String{field: "\"file\".\"mime_type\""},
-	Size:               whereHelperint{field: "\"file\".\"size\""},
-	Name:               whereHelperstring{field: "\"file\".\"name\""},
-	OwnerID:            whereHelperint{field: "\"file\".\"owner_id\""},
-	CreatedAt:          whereHelpertime_Time{field: "\"file\".\"created_at\""},
-	PublicID:           whereHelperstring{field: "\"file\".\"public_id\""},
-	Kind:               whereHelperstring{field: "\"file\".\"kind\""},
-	Metadata:           whereHelpertypes_JSON{field: "\"file\".\"metadata\""},
-	RestrictionsChatID: whereHelpernull_Int{field: "\"file\".\"restrictions_chat_id\""},
+	ID:                  whereHelperint{field: "\"file\".\"id\""},
+	FileID:              whereHelperstring{field: "\"file\".\"file_id\""},
+	Caption:             whereHelpernull_String{field: "\"file\".\"caption\""},
+	MimeType:            whereHelpernull_String{field: "\"file\".\"mime_type\""},
+	Size:                whereHelperint{field: "\"file\".\"size\""},
+	Name:                whereHelperstring{field: "\"file\".\"name\""},
+	OwnerID:             whereHelperint{field: "\"file\".\"owner_id\""},
+	CreatedAt:           whereHelpertime_Time{field: "\"file\".\"created_at\""},
+	PublicID:            whereHelperstring{field: "\"file\".\"public_id\""},
+	Kind:                whereHelperstring{field: "\"file\".\"kind\""},
+	Metadata:            whereHelpertypes_JSON{field: "\"file\".\"metadata\""},
+	RestrictionsChatID:  whereHelpernull_Int{field: "\"file\".\"restrictions_chat_id\""},
+	IsViolatesCopyright: whereHelpernull_Bool{field: "\"file\".\"is_violates_copyright\""},
 }
 
 // FileRels is where relationship names are stored.
@@ -171,8 +176,8 @@ func (*fileR) NewStruct() *fileR {
 type fileL struct{}
 
 var (
-	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "metadata", "restrictions_chat_id"}
-	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "restrictions_chat_id"}
+	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "metadata", "restrictions_chat_id", "is_violates_copyright"}
+	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "restrictions_chat_id", "is_violates_copyright"}
 	fileColumnsWithDefault    = []string{"id", "metadata"}
 	filePrimaryKeyColumns     = []string{"id"}
 )

@@ -57,6 +57,9 @@ type File struct {
 	// Contains restrictions for download
 	Restriction DownloadRestrictions
 
+	// If true, file violates copyright and is not available
+	IsViolatesCopyright null.Bool
+
 	// Metadata contains metadata of file depends by kind.
 	Metadata Metadata
 

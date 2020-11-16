@@ -24,18 +24,19 @@ func (store *FileStore) toRow(file *core.File) (*dal.File, error) {
 	}
 
 	return &dal.File{
-		ID:                 int(file.ID),
-		FileID:             file.TelegramID,
-		PublicID:           file.PublicID,
-		Caption:            file.Caption,
-		MimeType:           file.MIMEType,
-		Kind:               file.Kind.String(),
-		RestrictionsChatID: null.NewInt(int(file.Restriction.ChatID), file.Restriction.ChatID != 0),
-		Metadata:           metadata,
-		Size:               file.Size,
-		Name:               file.Name,
-		OwnerID:            int(file.OwnerID),
-		CreatedAt:          file.CreatedAt,
+		ID:                  int(file.ID),
+		FileID:              file.TelegramID,
+		PublicID:            file.PublicID,
+		Caption:             file.Caption,
+		MimeType:            file.MIMEType,
+		Kind:                file.Kind.String(),
+		RestrictionsChatID:  null.NewInt(int(file.Restriction.ChatID), file.Restriction.ChatID != 0),
+		Metadata:            metadata,
+		Size:                file.Size,
+		Name:                file.Name,
+		IsViolatesCopyright: file.IsViolatesCopyright,
+		OwnerID:             int(file.OwnerID),
+		CreatedAt:           file.CreatedAt,
 	}, nil
 }
 
@@ -62,10 +63,11 @@ func (store *FileStore) fromRow(row *dal.File) (*core.File, error) {
 		Restriction: core.DownloadRestrictions{
 			ChatID: core.ChatID(row.RestrictionsChatID.Int),
 		},
-		Size:      row.Size,
-		Name:      row.Name,
-		OwnerID:   core.UserID(row.OwnerID),
-		CreatedAt: row.CreatedAt,
+		Size:                row.Size,
+		Name:                row.Name,
+		OwnerID:             core.UserID(row.OwnerID),
+		IsViolatesCopyright: row.IsViolatesCopyright,
+		CreatedAt:           row.CreatedAt,
 	}, nil
 }
 

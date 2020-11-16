@@ -5,6 +5,7 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/bots-house/share-file-bot/service"
 	"github.com/friendsofgo/errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/lithammer/dedent"
@@ -41,7 +42,10 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 		log.Debug(ctx, "query file", "public_id", args)
 		result, err := bot.fileSrv.GetFileByPublicID(ctx, user, args)
 		if errors.Cause(err) == core.ErrFileNotFound {
-			answer := bot.newAnswerMsg(msg, "😐Ничего не знаю о таком файле, проверь ссылку...")
+			answer := bot.newAnswerMsg(msg, "😐 Ничего не знаю о таком файле, проверь ссылку...")
+			return bot.send(ctx, answer)
+		} else if errors.Is(err, service.ErrFileViolatesCopyright) {
+			answer := bot.newAnswerMsg(msg, "😐 К сожалению на данный файл поступила жалоба от правообладателей и мы были вынужденны его удалить.")
 			return bot.send(ctx, answer)
 		} else if err != nil {
 			return errors.Wrap(err, "download file")

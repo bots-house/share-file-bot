@@ -307,17 +307,23 @@ func (srv *File) GetFileByID(
 	return srv.toDownloadResult(ctx, user, doc)
 }
 
+var ErrFileViolatesCopyright = errors.New("file violates copyright")
+
 func (srv *File) GetFileByPublicID(
 	ctx context.Context,
 	user *core.User,
 	publicID string,
 ) (*DownloadResult, error) {
-	doc, err := srv.File.Query().PublicID(publicID).One(ctx)
+	file, err := srv.File.Query().PublicID(publicID).One(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "find file by public id")
 	}
 
-	return srv.toDownloadResult(ctx, user, doc)
+	if file.IsViolatesCopyright.Valid && file.IsViolatesCopyright.Bool {
+		return nil, ErrFileViolatesCopyright
+	}
+
+	return srv.toDownloadResult(ctx, user, file)
 }
 
 func (srv *File) DeleteFile(
