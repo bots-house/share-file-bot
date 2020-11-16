@@ -26,7 +26,7 @@ func (dr *DownloadRestrictions) Any() bool {
 }
 
 // File represents shared file.
-type File struct {
+type File struct { //nolint:maligned
 	// Unique ID of File.
 	ID FileID
 
@@ -36,8 +36,8 @@ type File struct {
 	// Public File ID
 	PublicID string
 
-	// Telegram Unique File ID
-	// UniqueFileID string
+	// If true, file violates copyright and is not available
+	IsViolatesCopyright null.Bool
 
 	// Caption of file
 	Caption null.String
@@ -56,9 +56,6 @@ type File struct {
 
 	// Contains restrictions for download
 	Restriction DownloadRestrictions
-
-	// If true, file violates copyright and is not available
-	IsViolatesCopyright null.Bool
 
 	// Metadata contains metadata of file depends by kind.
 	Metadata Metadata

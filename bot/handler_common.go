@@ -41,13 +41,15 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 
 		log.Debug(ctx, "query file", "public_id", args)
 		result, err := bot.fileSrv.GetFileByPublicID(ctx, user, args)
-		if errors.Cause(err) == core.ErrFileNotFound {
+
+		switch {
+		case errors.Is(err, core.ErrFileNotFound):
 			answer := bot.newAnswerMsg(msg, "😐 Ничего не знаю о таком файле, проверь ссылку...")
 			return bot.send(ctx, answer)
-		} else if errors.Is(err, service.ErrFileViolatesCopyright) {
+		case errors.Is(err, service.ErrFileViolatesCopyright):
 			answer := bot.newAnswerMsg(msg, "😐 К сожалению на данный файл поступила жалоба от правообладателей и мы были вынужденны его удалить.")
 			return bot.send(ctx, answer)
-		} else if err != nil {
+		case err != nil:
 			return errors.Wrap(err, "download file")
 		}
 
