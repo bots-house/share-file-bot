@@ -6,7 +6,7 @@ on:
 jobs:
   lint-docker:
     name: Lint Docker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Lint Dockerfile
@@ -16,7 +16,7 @@ jobs:
 
   lint-go:
     name: Lint Go
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: golangci-lint
@@ -26,7 +26,7 @@ jobs:
 
   build-and-test:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     services:
       redis:
@@ -91,9 +91,9 @@ jobs:
 
   deploy-production:
     name: Deploy Production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [build-and-test, lint-docker, lint-go]
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/fix-ci' # TODO: change to master
     steps:
       - uses: actions/checkout@v2
 
@@ -103,8 +103,14 @@ jobs:
 
       - name: Get Revision
         run: |
-          revision=${GITHUB_REF##*/}-${GITHUB_SHA::7}-$(date +'%Y%m%d%H%M')
+          revision_ref=${GITHUB_REF##*/}
+          revision_sha=${GITHUB_SHA::7}
+          revision_dt=$(date +'%Y%m%d%H%M')
+
+          revision=$revision_ref-$revision_sha-$revision_dt
           echo "revision=$revision" >> $GITHUB_ENV
+
+          echo $revision
 
       # In this step, this action saves a list of existing images,
       # the cache is created without them in the post run.
@@ -125,6 +131,6 @@ jobs:
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision
 
-      - name: Call Deploy Hooks
-        run: |
-          curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
+      # - name: Call Deploy Hooks
+      #   run: |
+      #     curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
