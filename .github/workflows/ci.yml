@@ -110,8 +110,6 @@ jobs:
           revision=$revision_ref-$revision_sha-$revision_dt
           echo "revision=$revision" >> $GITHUB_ENV
 
-          echo $revision
-
       # In this step, this action saves a list of existing images,
       # the cache is created without them in the post run.
       # It also restores the cache if it exists.
@@ -121,7 +119,7 @@ jobs:
       - name: Build the Docker image
         run: |
           docker build \
-            --build-arg REVISION=${REVISION} \
+            --build-arg REVISION=$revision \
             --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
             --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision \
             .
