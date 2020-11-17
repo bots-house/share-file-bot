@@ -19,7 +19,6 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"github.com/volatiletech/sqlboiler/v4/queries/qmhelper"
-	"github.com/volatiletech/sqlboiler/v4/types"
 	"github.com/volatiletech/strmangle"
 )
 
@@ -33,7 +32,7 @@ type User struct {
 	IsAdmin      bool        `boil:"is_admin" json:"is_admin" toml:"is_admin" yaml:"is_admin"`
 	JoinedAt     time.Time   `boil:"joined_at" json:"joined_at" toml:"joined_at" yaml:"joined_at"`
 	UpdatedAt    null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
-	Settings     types.JSON  `boil:"settings" json:"settings" toml:"settings" yaml:"settings"`
+	Settings     string      `boil:"settings" json:"settings" toml:"settings" yaml:"settings"`
 	Ref          null.String `boil:"ref" json:"ref,omitempty" toml:"ref" yaml:"ref,omitempty"`
 
 	R *userR `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -84,7 +83,7 @@ var UserWhere = struct {
 	IsAdmin      whereHelperbool
 	JoinedAt     whereHelpertime_Time
 	UpdatedAt    whereHelpernull_Time
-	Settings     whereHelpertypes_JSON
+	Settings     whereHelperstring
 	Ref          whereHelpernull_String
 }{
 	ID:           whereHelperint{field: "\"user\".\"id\""},
@@ -95,7 +94,7 @@ var UserWhere = struct {
 	IsAdmin:      whereHelperbool{field: "\"user\".\"is_admin\""},
 	JoinedAt:     whereHelpertime_Time{field: "\"user\".\"joined_at\""},
 	UpdatedAt:    whereHelpernull_Time{field: "\"user\".\"updated_at\""},
-	Settings:     whereHelpertypes_JSON{field: "\"user\".\"settings\""},
+	Settings:     whereHelperstring{field: "\"user\".\"settings\""},
 	Ref:          whereHelpernull_String{field: "\"user\".\"ref\""},
 }
 

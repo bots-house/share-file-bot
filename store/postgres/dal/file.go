@@ -19,7 +19,6 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"github.com/volatiletech/sqlboiler/v4/queries/qmhelper"
-	"github.com/volatiletech/sqlboiler/v4/types"
 	"github.com/volatiletech/strmangle"
 )
 
@@ -35,7 +34,7 @@ type File struct {
 	CreatedAt           time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	PublicID            string      `boil:"public_id" json:"public_id" toml:"public_id" yaml:"public_id"`
 	Kind                string      `boil:"kind" json:"kind" toml:"kind" yaml:"kind"`
-	Metadata            types.JSON  `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
+	Metadata            string      `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
 	RestrictionsChatID  null.Int    `boil:"restrictions_chat_id" json:"restrictions_chat_id,omitempty" toml:"restrictions_chat_id" yaml:"restrictions_chat_id,omitempty"`
 	IsViolatesCopyright null.Bool   `boil:"is_violates_copyright" json:"is_violates_copyright,omitempty" toml:"is_violates_copyright" yaml:"is_violates_copyright,omitempty"`
 
@@ -98,27 +97,6 @@ func (w whereHelpernull_String) GTE(x null.String) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.GTE, x)
 }
 
-type whereHelpertypes_JSON struct{ field string }
-
-func (w whereHelpertypes_JSON) EQ(x types.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.EQ, x)
-}
-func (w whereHelpertypes_JSON) NEQ(x types.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.NEQ, x)
-}
-func (w whereHelpertypes_JSON) LT(x types.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpertypes_JSON) LTE(x types.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpertypes_JSON) GT(x types.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpertypes_JSON) GTE(x types.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
 var FileWhere = struct {
 	ID                  whereHelperint
 	FileID              whereHelperstring
@@ -130,7 +108,7 @@ var FileWhere = struct {
 	CreatedAt           whereHelpertime_Time
 	PublicID            whereHelperstring
 	Kind                whereHelperstring
-	Metadata            whereHelpertypes_JSON
+	Metadata            whereHelperstring
 	RestrictionsChatID  whereHelpernull_Int
 	IsViolatesCopyright whereHelpernull_Bool
 }{
@@ -144,7 +122,7 @@ var FileWhere = struct {
 	CreatedAt:           whereHelpertime_Time{field: "\"file\".\"created_at\""},
 	PublicID:            whereHelperstring{field: "\"file\".\"public_id\""},
 	Kind:                whereHelperstring{field: "\"file\".\"kind\""},
-	Metadata:            whereHelpertypes_JSON{field: "\"file\".\"metadata\""},
+	Metadata:            whereHelperstring{field: "\"file\".\"metadata\""},
 	RestrictionsChatID:  whereHelpernull_Int{field: "\"file\".\"restrictions_chat_id\""},
 	IsViolatesCopyright: whereHelpernull_Bool{field: "\"file\".\"is_violates_copyright\""},
 }

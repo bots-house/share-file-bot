@@ -16,3 +16,11 @@ wipe = true
   blacklist = [
     "schema_migrations"
   ]
+
+[[types]]
+  [types.match]
+    type = "types.JSON"
+    #nullable = true
+  [types.replace]
+    type = "string"
+

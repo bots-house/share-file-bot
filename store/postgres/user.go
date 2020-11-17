@@ -28,7 +28,7 @@ func (store *UserStore) toRow(user *core.User) (*dal.User, error) {
 		Username:     user.Username,
 		LanguageCode: user.LanguageCode,
 		IsAdmin:      user.IsAdmin,
-		Settings:     settings,
+		Settings:     string(settings),
 		Ref:          user.Ref,
 		JoinedAt:     user.JoinedAt,
 		UpdatedAt:    user.UpdatedAt,
@@ -38,7 +38,7 @@ func (store *UserStore) toRow(user *core.User) (*dal.User, error) {
 func (store *UserStore) fromRow(row *dal.User) (*core.User, error) {
 	var settings core.UserSettings
 
-	if err := json.Unmarshal(row.Settings, &settings); err != nil {
+	if err := json.Unmarshal([]byte(row.Settings), &settings); err != nil {
 		return nil, errors.Wrap(err, "ummarshal settings")
 	}
 

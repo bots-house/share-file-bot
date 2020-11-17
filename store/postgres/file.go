@@ -31,7 +31,7 @@ func (store *FileStore) toRow(file *core.File) (*dal.File, error) {
 		MimeType:            file.MIMEType,
 		Kind:                file.Kind.String(),
 		RestrictionsChatID:  null.NewInt(int(file.Restriction.ChatID), file.Restriction.ChatID != 0),
-		Metadata:            metadata,
+		Metadata:            string(metadata),
 		Size:                file.Size,
 		Name:                file.Name,
 		IsViolatesCopyright: file.IsViolatesCopyright,
@@ -48,7 +48,7 @@ func (store *FileStore) fromRow(row *dal.File) (*core.File, error) {
 
 	var metadata core.Metadata
 
-	if err := row.Metadata.Unmarshal(&metadata); err != nil {
+	if err := json.Unmarshal([]byte(row.Metadata), &metadata); err != nil {
 		return nil, errors.Wrap(err, "unmarshal metadata")
 	}
 
