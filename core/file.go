@@ -60,6 +60,9 @@ type File struct { //nolint:maligned
 	// Metadata contains metadata of file depends by kind.
 	Metadata Metadata
 
+	// It's URI of post with tg:// scheme.
+	LinkedPostURI null.String
+
 	// Reference to user who uploads file.
 	OwnerID UserID
 

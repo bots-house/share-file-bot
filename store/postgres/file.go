@@ -36,6 +36,7 @@ func (store *FileStore) toRow(file *core.File) (*dal.File, error) {
 		Name:                file.Name,
 		IsViolatesCopyright: file.IsViolatesCopyright,
 		OwnerID:             int(file.OwnerID),
+		LinkedPostURI:       file.LinkedPostURI,
 		CreatedAt:           file.CreatedAt,
 	}, nil
 }
@@ -67,6 +68,7 @@ func (store *FileStore) fromRow(row *dal.File) (*core.File, error) {
 		Name:                row.Name,
 		OwnerID:             core.UserID(row.OwnerID),
 		IsViolatesCopyright: row.IsViolatesCopyright,
+		LinkedPostURI:       row.LinkedPostURI,
 		CreatedAt:           row.CreatedAt,
 	}, nil
 }

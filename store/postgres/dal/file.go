@@ -37,6 +37,7 @@ type File struct {
 	Metadata            string      `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
 	RestrictionsChatID  null.Int    `boil:"restrictions_chat_id" json:"restrictions_chat_id,omitempty" toml:"restrictions_chat_id" yaml:"restrictions_chat_id,omitempty"`
 	IsViolatesCopyright null.Bool   `boil:"is_violates_copyright" json:"is_violates_copyright,omitempty" toml:"is_violates_copyright" yaml:"is_violates_copyright,omitempty"`
+	LinkedPostURI       null.String `boil:"linked_post_uri" json:"linked_post_uri,omitempty" toml:"linked_post_uri" yaml:"linked_post_uri,omitempty"`
 
 	R *fileR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L fileL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -56,6 +57,7 @@ var FileColumns = struct {
 	Metadata            string
 	RestrictionsChatID  string
 	IsViolatesCopyright string
+	LinkedPostURI       string
 }{
 	ID:                  "id",
 	FileID:              "file_id",
@@ -70,6 +72,7 @@ var FileColumns = struct {
 	Metadata:            "metadata",
 	RestrictionsChatID:  "restrictions_chat_id",
 	IsViolatesCopyright: "is_violates_copyright",
+	LinkedPostURI:       "linked_post_uri",
 }
 
 // Generated where
@@ -111,6 +114,7 @@ var FileWhere = struct {
 	Metadata            whereHelperstring
 	RestrictionsChatID  whereHelpernull_Int
 	IsViolatesCopyright whereHelpernull_Bool
+	LinkedPostURI       whereHelpernull_String
 }{
 	ID:                  whereHelperint{field: "\"file\".\"id\""},
 	FileID:              whereHelperstring{field: "\"file\".\"file_id\""},
@@ -125,6 +129,7 @@ var FileWhere = struct {
 	Metadata:            whereHelperstring{field: "\"file\".\"metadata\""},
 	RestrictionsChatID:  whereHelpernull_Int{field: "\"file\".\"restrictions_chat_id\""},
 	IsViolatesCopyright: whereHelpernull_Bool{field: "\"file\".\"is_violates_copyright\""},
+	LinkedPostURI:       whereHelpernull_String{field: "\"file\".\"linked_post_uri\""},
 }
 
 // FileRels is where relationship names are stored.
@@ -154,8 +159,8 @@ func (*fileR) NewStruct() *fileR {
 type fileL struct{}
 
 var (
-	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "metadata", "restrictions_chat_id", "is_violates_copyright"}
-	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "restrictions_chat_id", "is_violates_copyright"}
+	fileAllColumns            = []string{"id", "file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "metadata", "restrictions_chat_id", "is_violates_copyright", "linked_post_uri"}
+	fileColumnsWithoutDefault = []string{"file_id", "caption", "mime_type", "size", "name", "owner_id", "created_at", "public_id", "kind", "restrictions_chat_id", "is_violates_copyright", "linked_post_uri"}
 	fileColumnsWithDefault    = []string{"id", "metadata"}
 	filePrimaryKeyColumns     = []string{"id"}
 )
