@@ -81,7 +81,7 @@ func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity
 		SuperGroupUsername: identity.Username,
 	})
 
-	if tg.IsChatNotFoundError(err) {
+	if tg.IsChatNotFoundError(err) || tg.IsBotIsNotMember(err) {
 		return nil, ErrChatNotFoundOrBotIsNotAdmin
 	} else if err != nil {
 		return nil, errors.Wrap(err, "get chat")
