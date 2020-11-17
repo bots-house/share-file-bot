@@ -56,15 +56,13 @@ var (
 		Это действие нельзя будет отменить\. 
 	`)
 
-	textSettingsChannelsAndChatsConnectForwardNotFromChannel = "⚠️ Пересланное сообщение не является сообщением из канала, для подключения группы или супергруппы отправь мне ее @username или приватную ссылку"
-	textSettingsChannelsAndChatsConnectNotJoinLink           = "⚠️ Ссылка не является пригласительной, она должна выглядить как-то так: `t.me/joinchat/...`"
-	textSettingsChannelsAndChatsConnectNotValid              = "⚠️ Для подключения канала или чата отправь мне его @username, приватную ссылку или перешли мне любое сообщение из канала"
-	textSettingsChannelsAndChatsConnectIsPrivate             = "⚠️ Нужно отправить @username или приватную ссылку на канал или чат, ты скинул пользователя :)"
-	textSettingsChannelsAndChatsConnectNotFound              = "⚠️ Чат не найден или бот не является админом, добавь бота в администраторы и повтори запрос"
-	textSettingsChannelsAndChatsConnectBotIsNotAdmin         = "⚠️ Бот не установлен администратором чата или канала, добавьте его в администраторы с правами «Добавление подписчиков» (Add User)"
-	textSettingsChannelsAndChatsConnectUserIsNotAdmin        = "⚠️ Ты не являешся администратором данного чата / канала"
-	textSettingsChannelsAndChatsConnectBotIsNotEnoughRights  = "⚠️ Бот установлен администратором чата / канала, но ему не хватает прав «Добавление подписчиков» (Add User)"
-	textSettingsChannelsAndChatsConnectChatAlreadyConnected  = "⚠️ Канал / чат уже подключен"
+	textSettingsChannelsAndChatsConnectNotValid             = "⚠️ Для подключения канала или чата отправь мне его @username, приватную ссылку или перешли мне любое сообщение из канала"
+	textSettingsChannelsAndChatsConnectIsPrivate            = "⚠️ Нужно отправить @username или приватную ссылку на канал или чат, ты скинул пользователя :)"
+	textSettingsChannelsAndChatsConnectNotFound             = "⚠️ Чат не найден или бот не является админом, добавь бота в администраторы и повтори запрос"
+	textSettingsChannelsAndChatsConnectBotIsNotAdmin        = "⚠️ Бот не установлен администратором чата или канала, добавьте его в администраторы с правами «Добавление подписчиков» (Add User)"
+	textSettingsChannelsAndChatsConnectUserIsNotAdmin       = "⚠️ Ты не являешся администратором данного чата / канала"
+	textSettingsChannelsAndChatsConnectBotIsNotEnoughRights = "⚠️ Бот установлен администратором чата / канала, но ему не хватает прав «Добавление подписчиков» (Add User)"
+	textSettingsChannelsAndChatsConnectChatAlreadyConnected = "👌 Канал / чат уже подключен"
 
 	textSettingsChannelsAndChatsConnectNotValidButtonCancel = "Я передумал"
 	textSettingsChannelsAndChatsButtonConnect               = "+ Подключить"
@@ -319,42 +317,40 @@ func (bot *Bot) onSettingsChannelsAndChatsDetails(
 func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg *tgbotapi.Message) error {
 	var identity service.ChatIdentity
 
+	user := getUserCtx(ctx)
+
 	switch {
 	// handle forward
 	case msg.ForwardDate != 0:
 		if msg.ForwardFromChat == nil {
-			reply := bot.newReplyMsg(msg, textSettingsChannelsAndChatsConnectForwardNotFromChannel)
-			return bot.send(ctx, reply)
+			return bot.sendText(
+				ctx,
+				user.ID,
+				"⚠️ Пересланное сообщение не является сообщением из канала, для подключения группы или супергруппы отправь мне ее @username или приватную ссылку",
+			)
+
 		}
 
 		identity = service.NewChatIdentityFromID(msg.ForwardFromChat.ID)
 
-	// handle @username
-	case msg.Entities != nil && getFirstMentionEntity(*msg.Entities) != nil:
-		entity := getFirstMentionEntity(*msg.Entities)
-		username := msg.Text[entity.Offset : entity.Offset+entity.Length]
+	// handle username and join link
+	case msg.Text != "":
+		query := strings.TrimSpace(msg.Text)
+		typ, val := tg.ParseChatInput(query)
 
-		identity = service.NewChatIdentityFromUsername(username)
+		switch typ {
+		case tg.ChatInputUsername:
+			identity = service.NewChatIdentityFromUsername(val)
+		case tg.ChatInputJoinLink:
+			payload, err := tg.DecodeJoinLinkPayload(val)
+			if err != nil {
+				return bot.sendText(ctx, user.ID, "⚠️ Не могу декодировать приватную ссылку попробуйте переслать сообщение из канала")
+			}
 
-	// handle join link
-	case msg.Entities != nil && getFirstLinkEntity(*msg.Entities) != nil:
-		entity := getFirstLinkEntity(*msg.Entities)
-		url := string([]rune(msg.Text)[entity.Offset : entity.Offset+entity.Length])
-
-		encodedPayload := tg.ParseJoinLink(url)
-
-		if encodedPayload == "" {
-			reply := bot.newReplyMsg(msg, textSettingsChannelsAndChatsConnectNotJoinLink)
-			return bot.send(ctx, reply)
+			identity = service.NewChatIdentityFromID(payload.BotChatID())
+		default:
+			return bot.sendText(ctx, user.ID, "⚠️ Для подключения канала отправьте ссылку или @username канала / супергруппы, так же вы можете переслать сообщение с канала")
 		}
-
-		payload, err := tg.DecodeJoinLinkPayload(encodedPayload)
-		if err != nil {
-			return errors.Wrap(err, "decode join link payload")
-		}
-
-		identity.ID = payload.BotChatID()
-
 	// unknown input
 	default:
 		answ := bot.newAnswerMsg(msg, textSettingsChannelsAndChatsConnectNotValid)
@@ -370,8 +366,6 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 		return bot.send(ctx, answ)
 	}
 
-	user := getUserCtx(ctx)
-
 	_, err := bot.chatSrv.Add(ctx, user, identity)
 
 	switch {
@@ -386,6 +380,10 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 	case err == service.ErrUserIsNotChatAdmin:
 		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectUserIsNotAdmin)
 	case err == service.ErrChatAlreadyConnected:
+		if err := bot.state.Set(ctx, user.ID, state.Empty); err != nil {
+			return errors.Wrap(err, "update state")
+		}
+
 		return bot.sendText(ctx, user.ID, textSettingsChannelsAndChatsConnectChatAlreadyConnected)
 	case err != nil:
 		return errors.Wrap(err, "add chat")
@@ -393,7 +391,7 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 
 	out := tgbotapi.NewMessage(
 		msg.Chat.ID,
-		fmt.Sprintln("Канал / супергруппа подключена!"),
+		fmt.Sprintln("Канал / супергруппа подключена! Теперь вы можете установить ограничение на скачивание для всех существующих и новых файлов."),
 	)
 
 	out.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
@@ -401,6 +399,10 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 			tgbotapi.NewInlineKeyboardButtonData(textCommonBack, callbackSettingsChannelsAndChats),
 		),
 	)
+
+	if err := bot.state.Set(ctx, user.ID, state.Empty); err != nil {
+		return errors.Wrap(err, "update state")
+	}
 
 	return bot.send(ctx, out)
 }

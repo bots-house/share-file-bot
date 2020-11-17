@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
@@ -31,6 +32,9 @@ func NewChatIdentityFromID(id int64) ChatIdentity {
 }
 
 func NewChatIdentityFromUsername(un string) ChatIdentity {
+	if !strings.HasPrefix(un, "@") {
+		un = "@" + un
+	}
 	return ChatIdentity{Username: un}
 }
 
