@@ -234,6 +234,15 @@ func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message) error {
 		return core.ErrInvalidKind
 	}
 
+	if inputFile.Kind == core.KindAudio {
+		_ = bot.sendText(ctx,
+			user.ID,
+			"⚠️ Упс, я не могу добавить этот файл, так как поддержка аудио временно отключена",
+		)
+
+		return nil
+	}
+
 	// delete user message for avoid trash in history
 	go func() {
 		_ = bot.deleteMessage(ctx, msg)
