@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 
+	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
@@ -38,6 +39,11 @@ func (bot *Bot) onHelp(ctx context.Context, msg *tgbotapi.Message) error {
 func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 	if args := msg.CommandArguments(); args != "" {
 		user := getUserCtx(ctx)
+
+		// reset state
+		if err := bot.state.Set(ctx, user.ID, state.Empty); err != nil {
+			return errors.Wrap(err, "update state")
+		}
 
 		log.Debug(ctx, "query file", "public_id", args)
 		result, err := bot.fileSrv.GetFileByPublicID(ctx, user, args)
