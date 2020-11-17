@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v1
+        uses: golangci/golangci-lint-action@v2
         with:
           version: v1.31
 
@@ -103,7 +103,8 @@ jobs:
 
       - name: Get Revision
         run: |
-          echo ::set-env name=REVISION::${GITHUB_REF##*/}-${GITHUB_SHA::7}-$(date +'%Y%m%d%H%M')
+          revision=${GITHUB_REF##*/}-${GITHUB_SHA::7}-$(date +'%Y%m%d%H%M')
+          echo "revision=$revision" >> $GITHUB_ENV
 
       # In this step, this action saves a list of existing images,
       # the cache is created without them in the post run.
@@ -116,13 +117,13 @@ jobs:
           docker build \
             --build-arg REVISION=${REVISION} \
             --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
-            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:${REVISION} \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision \
             .
 
       - name: Push image to GitHub Packages
         run: |
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
-          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:${REVISION}
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision
 
       - name: Call Deploy Hooks
         run: |
