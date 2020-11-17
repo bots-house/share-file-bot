@@ -104,9 +104,10 @@ var ErrFileNotFound = errors.New("file not found")
 type FileStoreQuery interface {
 	ID(id FileID) FileStoreQuery
 	OwnerID(id UserID) FileStoreQuery
-	PublicID(id string) FileStoreQuery
+	PublicID(ids ...string) FileStoreQuery
 	RestrictionChatID(id ChatID) FileStoreQuery
 
+	All(ctx context.Context) ([]*File, error)
 	One(ctx context.Context) (*File, error)
 	Delete(ctx context.Context) error
 	Count(ctx context.Context) (int, error)

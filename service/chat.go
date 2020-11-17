@@ -2,6 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/bots-house/share-file-bot/core"
@@ -284,4 +288,113 @@ func (srv *Chat) disconnectChat(
 	}
 
 	return nil
+}
+
+type ChannelPostInfo struct {
+	ChatID       int64
+	ChatUsername string
+	PostID       int
+}
+
+// ProcessChannelPostURIes called on each channel post and should scan for backlinks to bot.
+//
+// Flow:
+//   - resolve chat, if chat is not found finish without error
+//   - extract bot /start uries
+//   - query files by public link and restrction chat id
+//   - update files
+func (srv *Chat) ProcessChannelPostURIes(
+	ctx context.Context,
+	postInfo *ChannelPostInfo,
+	uries []string,
+) error {
+	chat, err := srv.Chat.Query().TelegramID(postInfo.ChatID).One(ctx)
+	if errors.Is(err, core.ErrChatNotFound) {
+		return nil
+	} else if err != nil {
+		return errors.Wrap(err, "query chat")
+	}
+
+	ids, err := ExtractDeepLinkPublicID(srv.Telegram.Self.UserName, uries)
+	if err != nil {
+		return errors.Wrap(err, "extract deep links payload")
+	}
+
+	files, err := srv.File.Query().
+		PublicID(ids...).
+		RestrictionChatID(chat.ID).
+		All(ctx)
+
+	if err != nil {
+		return errors.Wrap(err, "query files")
+	}
+
+	if err := srv.Txier(ctx, func(ctx context.Context) error {
+		for i, file := range files {
+			action := "tg://resolve?domain=tolko_pokypka&post=94828"
+
+			args := url.Values{}
+
+			if postInfo.ChatUsername != "" {
+				args.Set("domain", postInfo.ChatUsername)
+			} else {
+				peerID := tg.BotToMTProtoID(postInfo.ChatID)
+				args.Set("domain", strconv.FormatInt(peerID, 10))
+			}
+
+			args.Set("post", strconv.Itoa(postInfo.PostID))
+
+			link := fmt.Sprintf("%s?%s", action, args.Encode())
+
+			file.LinkedPostURI.SetValid(link)
+
+			if err := srv.File.Update(ctx, file); err != nil {
+				return errors.Wrapf(err, "update file #%d", i)
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "update files")
+	}
+
+	return nil
+}
+
+// ExtractDeepLinkPublicID extract payload from something like{botUsername}?start={payload}
+func ExtractDeepLinkPublicID(botUsername string, uries []string) ([]string, error) {
+	re := fmt.Sprintf(`%s\?start=([A-Za-z_0-9-]+)`, botUsername)
+
+	linkRegepx, err := regexp.Compile(re)
+	if err != nil {
+		return nil, errors.Wrap(err, "compile regexp")
+	}
+
+	payloads := make([]string, 0, len(uries))
+	for _, uri := range uries {
+		match := linkRegepx.FindStringSubmatch(uri)
+		if match != nil {
+			payloads = append(payloads, match[1])
+		}
+	}
+
+	publicIDs := make([]string, 0, len(payloads))
+
+	for _, payload := range payloads {
+		if strings.HasPrefix(payload, "ref_") {
+			idx := strings.Index(payload, "-")
+
+			// it's just ref link without file id
+			if idx == -1 {
+				continue
+			}
+
+			// all after -
+			payload = payload[idx+1:]
+		}
+
+		publicIDs = append(publicIDs, payload)
+	}
+
+	return publicIDs, nil
 }

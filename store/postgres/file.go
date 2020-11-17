@@ -41,6 +41,20 @@ func (store *FileStore) toRow(file *core.File) (*dal.File, error) {
 	}, nil
 }
 
+func (store *FileStore) fromRows(rows []*dal.File) ([]*core.File, error) {
+	result := make([]*core.File, len(rows))
+
+	for i, row := range rows {
+		chat, err := store.fromRow(row)
+		if err != nil {
+			return nil, errors.Wrapf(err, "from row #%d", i)
+		}
+		result[i] = chat
+	}
+
+	return result, nil
+}
+
 func (store *FileStore) fromRow(row *dal.File) (*core.File, error) {
 	kind, err := core.ParseKind(row.Kind)
 	if err != nil {
@@ -143,8 +157,8 @@ func (fsq *fileStoreQuery) RestrictionChatID(id core.ChatID) core.FileStoreQuery
 	return fsq
 }
 
-func (fsq *fileStoreQuery) PublicID(id string) core.FileStoreQuery {
-	fsq.mods = append(fsq.mods, dal.FileWhere.PublicID.EQ(id))
+func (fsq *fileStoreQuery) PublicID(ids ...string) core.FileStoreQuery {
+	fsq.mods = append(fsq.mods, dal.FileWhere.PublicID.IN(ids))
 	return fsq
 }
 
@@ -164,6 +178,15 @@ func (fsq *fileStoreQuery) One(ctx context.Context) (*core.File, error) {
 	}
 
 	return fsq.store.fromRow(file)
+}
+
+func (fsq *fileStoreQuery) All(ctx context.Context) ([]*core.File, error) {
+	executor := fsq.store.getExecutor(ctx)
+	rows, err := dal.Files(fsq.mods...).All(ctx, executor)
+	if err != nil {
+		return nil, err
+	}
+	return fsq.store.fromRows(rows)
 }
 
 func (fsq *fileStoreQuery) Delete(ctx context.Context) error {

@@ -108,6 +108,8 @@ var (
 	cbqSettingsChannelsAndChatsDeleteConfirm = regexp.MustCompile(`^settings:channels-and-chats:(\d+):delete:confirm$`)
 )
 
+func parseURLsFromChannelPost(post *tgbotapi.Message) []string {}
+
 // i known, we should rewrite it
 // nolint:gocyclo
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
@@ -119,6 +121,11 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 	}
 
 	user := getUserCtx(ctx)
+
+	// handle channel post
+	if post := update.ChannelPost; post != nil {
+
+	}
 
 	// handle message
 	if msg := update.Message; msg != nil {
