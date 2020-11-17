@@ -12,7 +12,7 @@ import (
 	"github.com/friendsofgo/errors"
 
 	// import postgresq driver
-	_ "github.com/jackc/pgx/v4/stdlib"
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -43,7 +43,7 @@ func createTestDB(dsn string) (string, error) {
 
 	testDatabaseName := strings.TrimPrefix(u.Path, "/") + "_test"
 
-	db, err := sql.Open("pgx", dsn)
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return "", errors.Wrap(err, "open db")
 	}

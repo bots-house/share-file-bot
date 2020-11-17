@@ -181,7 +181,7 @@ func run(ctx context.Context) error {
 	log.Info(ctx, "open db", "dsn", cfg.Database)
 
 	// open and ping db
-	db, err := sql.Open("pgx", cfg.Database)
+	db, err := sql.Open("postgres", cfg.Database)
 	if err != nil {
 		return errors.Wrap(err, "open db")
 	}

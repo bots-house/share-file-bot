@@ -13,10 +13,8 @@ require (
 	github.com/go-redis/redis/v8 v8.3.4
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
-	github.com/jackc/pgconn v1.7.2
-	github.com/jackc/pgx/v4 v4.9.2
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/lib/pq v1.8.0 // indirect
+	github.com/lib/pq v1.8.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/matoous/go-nanoid v1.5.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect

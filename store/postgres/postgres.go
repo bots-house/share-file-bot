@@ -13,7 +13,7 @@ import (
 	"github.com/friendsofgo/errors"
 
 	// import postgresq driver
-	_ "github.com/jackc/pgx/v4/stdlib"
+	_ "github.com/lib/pq"
 )
 
 type Postgres struct {
