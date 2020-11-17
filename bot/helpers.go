@@ -2,37 +2,11 @@ package bot
 
 import (
 	"context"
-	"strings"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/service"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
-
-var escapeMarkdownReplacer = strings.NewReplacer(
-	"_", `\_`,
-	"*", `\*`,
-	"[", `\[`,
-	"]", `\]`,
-	"(", `\(`,
-	")", `\)`,
-	"~", `\~`,
-	"`", "\\`",
-	">", `\>`,
-	"#", `\#`,
-	"+", `\+`,
-	"-", `\-`,
-	"=", `\=`,
-	"|", `\|`,
-	"{", `\{`,
-	"}", `\}`,
-	".", `\.`,
-	"!", `\!`,
-)
-
-func escapeMarkdown(txt string) string {
-	return escapeMarkdownReplacer.Replace(txt)
-}
 
 func getFirstMentionEntity(entities []tgbotapi.MessageEntity) *tgbotapi.MessageEntity {
 	for _, entity := range entities {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/friendsofgo/errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -51,7 +52,7 @@ func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, file *core.File) tgbot
 		msg.Chat.ID,
 		file.Kind,
 		file.TelegramID,
-		escapeMarkdown(file.Caption.String),
+		tg.EscapeMD(file.Caption.String),
 		mdv2,
 		kb,
 	)
@@ -65,7 +66,7 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 		rows = append(rows,
 			"💬 __Описание__",
 			"",
-			escapeMarkdown(file.Caption.String),
+			tg.EscapeMD(file.Caption.String),
 			"",
 		)
 	}
@@ -74,9 +75,9 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 		"🔗 __Публичная ссылка__",
 		"",
 		fmt.Sprintf("https://%s/%s?start\\=%s",
-			escapeMarkdown(tgDomain),
-			escapeMarkdown(bot.client.Self.UserName),
-			escapeMarkdown(file.PublicID),
+			tg.EscapeMD(tgDomain),
+			tg.EscapeMD(bot.client.Self.UserName),
+			tg.EscapeMD(file.PublicID),
 		),
 		"",
 	)
@@ -107,9 +108,9 @@ func (bot *Bot) renderSubRequest(msg *tgbotapi.Message, sub *service.ChatSubRequ
 	var link string
 
 	if sub.Username != "" {
-		link = fmt.Sprintf("[@%s](https://t.me/%s)", escapeMarkdown(sub.Username), sub.Username)
+		link = fmt.Sprintf("[@%s](https://t.me/%s)", tg.EscapeMD(sub.Username), sub.Username)
 	} else {
-		link = fmt.Sprintf("[%s](%s)", escapeMarkdown(sub.Title), sub.JoinLink)
+		link = fmt.Sprintf("[%s](%s)", tg.EscapeMD(sub.Title), sub.JoinLink)
 	}
 
 	text := fmt.Sprintf(textFileSubRequest, link)

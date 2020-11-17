@@ -134,7 +134,7 @@ func (bot *Bot) onSettingsChannelsAndChats(ctx context.Context, cbq *tgbotapi.Ca
 }
 
 func (bot *Bot) newSettingsChannelsAndChatsConnectEdit(cid int64, mid int) tgbotapi.EditMessageTextConfig {
-	text := fmt.Sprintf(textSettingsChannelsAndChatsConnect, escapeMarkdown(bot.client.Self.UserName))
+	text := fmt.Sprintf(textSettingsChannelsAndChatsConnect, tg.EscapeMD(bot.client.Self.UserName))
 	answ := tgbotapi.NewEditMessageText(cid, mid, text)
 
 	markup := tgbotapi.NewInlineKeyboardMarkup(
@@ -188,7 +188,7 @@ func (bot *Bot) newSettingsChannelsAndChatsDetailsEdit(
 
 	text := fmt.Sprintf(
 		textSettingsChannelsAndChatsDetails,
-		escapeMarkdown(chat.Title),
+		tg.EscapeMD(chat.Title),
 		chat.TelegramID,
 		getChatTypeRussian(chat.Type),
 		chat.Files,
@@ -269,7 +269,7 @@ func (bot *Bot) newSettingsChannelsAndChatsDeleteEdit(
 	mid int,
 	chat *service.FullChat,
 ) tgbotapi.EditMessageTextConfig {
-	text := fmt.Sprintf(textSettingsChannelsAndChatsDelete, escapeMarkdown(chat.Title))
+	text := fmt.Sprintf(textSettingsChannelsAndChatsDelete, tg.EscapeMD(chat.Title))
 	answ := tgbotapi.NewEditMessageText(
 		cid,
 		mid,
