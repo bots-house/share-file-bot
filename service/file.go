@@ -7,6 +7,7 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/friendsofgo/errors"
 	"github.com/go-redis/redis/v8"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -100,7 +101,8 @@ type DownloadResult struct {
 }
 
 var (
-	ErrInvalidID = errors.New("invalid file id")
+	ErrInvalidID           = errors.New("invalid file id")
+	ErrCantCheckMembership = errors.New("can't check membership of user")
 )
 
 func (srv *File) checkFileRestrictionsChat(
@@ -150,7 +152,9 @@ func (srv *File) checkFileRestrictionsChat(
 		return err
 	})
 
-	if err := g.Wait(); err != nil {
+	if err := g.Wait(); tg.IsCantCheckChatMember(err) {
+		return nil, ErrCantCheckMembership
+	} else if err != nil {
 		return nil, errors.Wrap(err, "one of call failed")
 	}
 
@@ -283,7 +287,9 @@ func (srv *File) CheckFileRestrictionsChat(
 		UserID: int(user.ID),
 	})
 
-	if err != nil {
+	if tg.IsCantCheckChatMember(err) {
+		return nil, ErrCantCheckMembership
+	} else if err != nil {
 		return nil, errors.Wrap(err, "get chat member")
 	}
 

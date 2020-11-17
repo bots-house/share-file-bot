@@ -53,7 +53,11 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 			answer := bot.newAnswerMsg(msg, "😐 Ничего не знаю о таком файле, проверь ссылку...")
 			return bot.send(ctx, answer)
 		case errors.Is(err, service.ErrFileViolatesCopyright):
-			answer := bot.newAnswerMsg(msg, "😐 К сожалению на данный файл поступила жалоба от правообладателей и мы были вынужденны его удалить.")
+			answer := bot.newAnswerMsg(msg, "😐 К сожалению, на данный файл поступила жалоба от правообладателей и мы были вынужденны его удалить.")
+			return bot.send(ctx, answer)
+		case errors.Is(err, service.ErrCantCheckMembership):
+			//nolint:stylecheck
+			answer := bot.newAnswerMsg(msg, "🙅‍♂️‍ Я не могу выдать тебе файл, так как больше не являюсь админом канала на который требовалась подписка, свяжись с владельцем файла и передавай от меня привет!")
 			return bot.send(ctx, answer)
 		case err != nil:
 			return errors.Wrap(err, "download file")
