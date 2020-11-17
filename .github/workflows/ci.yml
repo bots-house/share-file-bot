@@ -93,7 +93,7 @@ jobs:
     name: Deploy Production
     runs-on: ubuntu-20.04
     needs: [build-and-test, lint-docker, lint-go]
-    if: github.ref == 'refs/heads/fix-ci' # TODO: change to master
+    if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v2
 
@@ -131,6 +131,6 @@ jobs:
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision
 
-      # - name: Call Deploy Hooks
-      #   run: |
-      #     curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
+      - name: Call Deploy Hooks
+        run: |
+          curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
