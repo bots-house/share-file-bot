@@ -3,6 +3,7 @@
 [![Telegram](https://img.shields.io/badge/telegram-%40share__file__bot-%232e87ca)](https://t.me/share_file_bot)
 [![GitHub](https://img.shields.io/github/license/bots-house/share-file-bot)](https://github.com/bots-house/share-file-bot/blob/master/LICENSE)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/bots-house/share-file-bot/CI)](https://github.com/bots-house/share-file-bot/actions)
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=bots-house/share-file-bot)](https://dependabot.com)
 
 Easy way to share files with your audience without leaving Telegram.
 
