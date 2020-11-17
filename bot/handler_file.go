@@ -511,10 +511,14 @@ func (bot *Bot) onFileRestrictionsChatCheck(
 	user := getUserCtx(ctx)
 
 	status, err := bot.fileSrv.CheckFileRestrictionsChat(ctx, user, fileID)
-	if errors.Is(err, service.ErrCantCheckMembership) {
+	switch {
+	case errors.Is(err, service.ErrCantCheckMembership):
 		//nolint:stylecheck
 		return bot.answerCallbackQueryAlert(ctx, cbq, "🙅‍♂️ Я не могу выдать тебе файл, так как больше не являюсь админом канала на который требовалась подписка, свяжись с владельцем файла и передавай от меня привет!")
-	} else if err != nil {
+	case errors.Is(err, core.ErrFileNotFound):
+		//nolint:stylecheck
+		return bot.answerCallbackQueryAlert(ctx, cbq, "🙅‍♂️ Файл был удален владельцем")
+	case err != nil:
 		return errors.Wrap(err, "check file restrictions chat")
 	}
 
