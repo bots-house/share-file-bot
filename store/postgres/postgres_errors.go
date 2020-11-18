@@ -8,7 +8,7 @@ import (
 func isConstraintError(err error, constraint string) bool {
 	var pgErr *pq.Error
 
-	if errors.As(err, pgErr) {
+	if errors.As(err, &pgErr) {
 		return pgErr.Constraint == constraint
 	}
 
