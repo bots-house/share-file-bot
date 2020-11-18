@@ -7,7 +7,7 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/lithammer/dedent"
 )
 

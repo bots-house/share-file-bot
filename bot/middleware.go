@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/fatih/structs"
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
@@ -84,7 +84,7 @@ func newAuthMiddleware(srv *service.Auth) tg.Middleware {
 				tgUser = update.EditedMessage.From
 			case update.CallbackQuery != nil:
 				tgUser = update.CallbackQuery.From
-			case update.ChannelPost != nil && update.ChannelPost.NewChatTitle != "":
+			case update.ChannelPost != nil:
 				tgUser = nil
 			default:
 				log.Warn(ctx, "unsupported update", "id", update.UpdateID)

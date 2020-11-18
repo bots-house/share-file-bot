@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/bots-house/share-file-bot/service"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 func (bot *Bot) onAdmin(ctx context.Context, msg *tgbotapi.Message) error {

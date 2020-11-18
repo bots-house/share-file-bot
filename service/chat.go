@@ -10,10 +10,11 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/bots-house/share-file-bot/pkg/snip"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/store"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -308,6 +309,8 @@ func (srv *Chat) ProcessChannelPostURIes(
 	postInfo *ChannelPostInfo,
 	uries []string,
 ) error {
+	uries = snip.UniqueizeStrings(uries)
+
 	chat, err := srv.Chat.Query().TelegramID(postInfo.ChatID).One(ctx)
 	if errors.Is(err, core.ErrChatNotFound) {
 		return nil
@@ -330,22 +333,22 @@ func (srv *Chat) ProcessChannelPostURIes(
 	}
 
 	if err := srv.Txier(ctx, func(ctx context.Context) error {
+		action := "tg://resolve"
+
+		args := url.Values{}
+
+		if postInfo.ChatUsername != "" {
+			args.Set("domain", postInfo.ChatUsername)
+		} else {
+			peerID := tg.BotToMTProtoID(postInfo.ChatID)
+			args.Set("domain", strconv.FormatInt(peerID, 10))
+		}
+
+		args.Set("post", strconv.Itoa(postInfo.PostID))
+
+		link := fmt.Sprintf("%s?%s", action, args.Encode())
+
 		for i, file := range files {
-			action := "tg://resolve?domain=tolko_pokypka&post=94828"
-
-			args := url.Values{}
-
-			if postInfo.ChatUsername != "" {
-				args.Set("domain", postInfo.ChatUsername)
-			} else {
-				peerID := tg.BotToMTProtoID(postInfo.ChatID)
-				args.Set("domain", strconv.FormatInt(peerID, 10))
-			}
-
-			args.Set("post", strconv.Itoa(postInfo.PostID))
-
-			link := fmt.Sprintf("%s?%s", action, args.Encode())
-
 			file.LinkedPostURI.SetValid(link)
 
 			if err := srv.File.Update(ctx, file); err != nil {

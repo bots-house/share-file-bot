@@ -5,8 +5,41 @@ import (
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/service"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 )
+
+func getURLsFromMessageEntities(entities *[]tgbotapi.MessageEntity) []string {
+	if entities == nil {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(*entities))
+
+	for _, entity := range *entities {
+		if entity.Type == "text_link" {
+			result = append(result, entity.URL)
+		}
+	}
+
+	return result
+}
+
+func getURLsFromMessageReplyMarkup(rm *tgbotapi.InlineKeyboardMarkup) []string {
+	if rm == nil {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(rm.InlineKeyboard))
+	for _, row := range rm.InlineKeyboard {
+		for _, btn := range row {
+			if btn.URL != nil {
+				result = append(result, *btn.URL)
+			}
+		}
+	}
+
+	return result
+}
 
 func (bot *Bot) send(_ context.Context, s tgbotapi.Chattable) error {
 	// spew.Dump(msg)

@@ -9,8 +9,8 @@ import (
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/lithammer/dedent"
 )
 

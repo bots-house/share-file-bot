@@ -3,7 +3,7 @@ package tg
 import (
 	"context"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 )
 
 type Handler interface {
