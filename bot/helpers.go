@@ -57,7 +57,7 @@ func (bot *Bot) newAnswerMsg(msg *tgbotapi.Message, text string) *tgbotapi.Messa
 		text,
 	)
 
-	result.ParseMode = tgbotapi.ModeMarkdown
+	result.ParseMode = mdv2
 
 	return &result
 }

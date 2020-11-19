@@ -20,7 +20,7 @@ import (
 const refDeepLinkPrefix = "ref_"
 
 func extractRefFromMsg(msg *tgbotapi.Message) string {
-	if msg != nil && msg.Command() == "start" {
+	if msg != nil && msg.Command() == cmdStart {
 		args := msg.CommandArguments()
 
 		if !strings.HasPrefix(args, refDeepLinkPrefix) {

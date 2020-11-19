@@ -15,12 +15,13 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
 	tgbotapi "github.com/bots-house/telegram-bot-api"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	"github.com/tomasen/realip"
 	"mvdan.cc/xurls/v2"
 )
+
+const cmdStart = "start"
 
 type Bot struct {
 	revision string
@@ -131,9 +132,6 @@ func parseURLsFromChannelPost(post *tgbotapi.Message) []string {
 // i known, we should rewrite it
 // nolint:gocyclo
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
-
-	spew.Dump(update)
-
 	// handle channel post
 	if post := update.ChannelPost; post != nil {
 		if post.NewChatTitle != "" {
@@ -154,6 +152,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 		if msg.Text == textButtonAbout {
 			answer := bot.newAnswerMsg(msg, textStart)
+			answer.ParseMode = mdv2
 			return bot.send(ctx, answer)
 		}
 
@@ -182,7 +181,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 		// handle command
 		switch msg.Command() {
-		case "start":
+		case cmdStart:
 			return bot.onStart(ctx, msg)
 		case "help":
 			return bot.onHelp(ctx, msg)
@@ -325,6 +324,8 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onSettingsChannelsAndChatsDeleteConfirm(ctx, user, cbq, core.ChatID(id))
+		case data == cmdStart:
+			return bot.onPublicFileHelp(ctx, cbq)
 		default:
 			// spew.Dump(cbq)
 		}
