@@ -37,14 +37,14 @@ func (bot *Bot) onHelp(ctx context.Context, msg *tgbotapi.Message) error {
 }
 
 func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
+	user := getUserCtx(ctx)
+
+	// reset state
+	if err := bot.state.Set(ctx, user.ID, state.Empty); err != nil {
+		return errors.Wrap(err, "update state")
+	}
+
 	if args := msg.CommandArguments(); args != "" {
-		user := getUserCtx(ctx)
-
-		// reset state
-		if err := bot.state.Set(ctx, user.ID, state.Empty); err != nil {
-			return errors.Wrap(err, "update state")
-		}
-
 		log.Debug(ctx, "query file", "public_id", args)
 		result, err := bot.fileSrv.GetFileByPublicID(ctx, user, args)
 

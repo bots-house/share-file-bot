@@ -149,12 +149,6 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}, nil)
 		})
 
-		//nolint:gocritic
-		switch userState {
-		case state.SettingsChannelsAndChatsConnect:
-			return bot.onSettingsChannelsAndChatsConnectState(ctx, msg)
-		}
-
 		// handle command
 		switch msg.Command() {
 		case "start":
@@ -167,6 +161,12 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			return bot.onSettings(ctx, msg)
 		case "version":
 			return bot.onVersion(ctx, msg)
+		}
+
+		//nolint:gocritic
+		switch userState {
+		case state.SettingsChannelsAndChatsConnect:
+			return bot.onSettingsChannelsAndChatsConnectState(ctx, msg)
 		}
 
 		// handle other
