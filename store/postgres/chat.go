@@ -145,11 +145,11 @@ func (csq *ChatStoreQuery) One(ctx context.Context) (*core.Chat, error) {
 
 // All query items from store.
 func (csq *ChatStoreQuery) All(ctx context.Context) ([]*core.Chat, error) {
-	row, err := dal.Chats(csq.Mods...).All(ctx, csq.Store.getExecutor(ctx))
+	rows, err := dal.Chats(csq.Mods...).All(ctx, csq.Store.getExecutor(ctx))
 	if err != nil {
 		return nil, err
 	}
-	return csq.Store.fromRowSlice(row)
+	return csq.Store.fromRowSlice(rows)
 }
 
 // Count items in store.

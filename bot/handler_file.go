@@ -9,8 +9,8 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/lithammer/dedent"
 )
 
@@ -39,14 +39,30 @@ var (
 )
 
 func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, file *core.File) tgbotapi.Chattable {
-	kb := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("Что это за бот?"),
-		),
-	)
 
-	kb.OneTimeKeyboard = true
-	kb.ResizeKeyboard = true
+	var replyMarkup interface{}
+
+	if file.LinkedPostURI.String != "" {
+		replyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL("« Пост в канале", file.LinkedPostURI.String),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("Что это за бот?", cmdStart),
+			),
+		)
+	} else {
+		kb := tgbotapi.NewReplyKeyboard(
+			tgbotapi.NewKeyboardButtonRow(
+				tgbotapi.NewKeyboardButton("Что это за бот?"),
+			),
+		)
+
+		kb.OneTimeKeyboard = true
+		kb.ResizeKeyboard = true
+
+		replyMarkup = kb
+	}
 
 	return bot.renderGenericFile(
 		msg.Chat.ID,
@@ -54,7 +70,7 @@ func (bot *Bot) renderNotOwnedFile(msg *tgbotapi.Message, file *core.File) tgbot
 		file.TelegramID,
 		tg.EscapeMD(file.Caption.String),
 		mdv2,
-		kb,
+		replyMarkup,
 	)
 }
 
@@ -81,6 +97,19 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 		),
 		"",
 	)
+
+	if file.HasLinkedPostURI() && file.Restriction.HasChatID() {
+		path, err := humanizePostURI(file.LinkedPostURI.String)
+		if err == nil {
+			rows = append(rows,
+				fmt.Sprintf("Связанный файл: [%s](%s)",
+					tg.EscapeMD(path),
+					file.LinkedPostURI.String,
+				),
+				"",
+			)
+		}
+	}
 
 	rows = append(rows,
 		"📈 __Статистика__",
@@ -309,8 +338,11 @@ func (bot *Bot) onFileRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuer
 	edit.ReplyMarkup = &replyMarkup
 
 	if err := bot.send(ctx, edit); err != nil {
-		if err, ok := err.(tgbotapi.Error); ok {
-			if strings.Contains(err.Message, "message is not modified:") {
+		var tgErr *tgbotapi.Error
+
+		if errors.As(err, &tgErr) {
+			// TODO: use tg.IsErr...
+			if strings.Contains(tgErr.Message, "message is not modified:") {
 				return bot.answerCallbackQuery(ctx, cbq, "🤷 Ничего не изменилось")
 			}
 		}
@@ -537,4 +569,10 @@ func (bot *Bot) onFileRestrictionsChatCheck(
 	}
 
 	return bot.send(ctx, bot.renderNotOwnedFile(cbq.Message, result.File))
+}
+
+func (bot *Bot) onPublicFileHelp(ctx context.Context, cbq *tgbotapi.CallbackQuery) error {
+	answer := tgbotapi.NewMessage(cbq.Message.Chat.ID, textStart)
+	answer.ParseMode = mdv2
+	return bot.send(ctx, answer)
 }

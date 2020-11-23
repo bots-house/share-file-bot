@@ -60,11 +60,22 @@ type File struct { //nolint:maligned
 	// Metadata contains metadata of file depends by kind.
 	Metadata Metadata
 
+	// It's URI of post with tg:// scheme.
+	LinkedPostURI null.String
+
 	// Reference to user who uploads file.
 	OwnerID UserID
 
 	// Time when file was created.
 	CreatedAt time.Time
+}
+
+func (file *File) HasLinkedPostURI() bool {
+	return file.LinkedPostURI.Valid
+}
+
+func (file *File) SetLinkedPostURI(v string) {
+	file.LinkedPostURI.SetValid(v)
 }
 
 func (file *File) RegenPublicID() {
@@ -101,9 +112,10 @@ var ErrFileNotFound = errors.New("file not found")
 type FileStoreQuery interface {
 	ID(id FileID) FileStoreQuery
 	OwnerID(id UserID) FileStoreQuery
-	PublicID(id string) FileStoreQuery
+	PublicID(ids ...string) FileStoreQuery
 	RestrictionChatID(id ChatID) FileStoreQuery
 
+	All(ctx context.Context) ([]*File, error)
 	One(ctx context.Context) (*File, error)
 	Delete(ctx context.Context) error
 	Count(ctx context.Context) (int, error)

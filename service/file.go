@@ -8,9 +8,9 @@ import (
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
 	"github.com/go-redis/redis/v8"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"golang.org/x/sync/errgroup"
 )
 

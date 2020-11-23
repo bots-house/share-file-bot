@@ -14,11 +14,14 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/tomasen/realip"
+	"mvdan.cc/xurls/v2"
 )
+
+const cmdStart = "start"
 
 type Bot struct {
 	revision string
@@ -108,14 +111,34 @@ var (
 	cbqSettingsChannelsAndChatsDeleteConfirm = regexp.MustCompile(`^settings:channels-and-chats:(\d+):delete:confirm$`)
 )
 
+func parseURLsFromChannelPost(post *tgbotapi.Message) []string {
+	urls := []string{}
+
+	urls = append(urls, getURLsFromMessageEntities(post.Entities)...)
+	urls = append(urls, getURLsFromMessageEntities(post.CaptionEntities)...)
+	urls = append(urls, getURLsFromMessageReplyMarkup(post.ReplyMarkup)...)
+
+	parser := xurls.Relaxed()
+
+	if post.Text != "" {
+		urls = append(urls, parser.FindAllString(post.Text, -1)...)
+	} else if post.Caption != "" {
+		urls = append(urls, parser.FindAllString(post.Caption, -1)...)
+	}
+
+	return urls
+}
+
 // i known, we should rewrite it
 // nolint:gocyclo
 func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
-
-	if msg := update.ChannelPost; msg != nil {
-		if msg.NewChatTitle != "" {
-			return bot.onChatNewTitle(ctx, msg)
+	// handle channel post
+	if post := update.ChannelPost; post != nil {
+		if post.NewChatTitle != "" {
+			return bot.onChatNewTitle(ctx, post)
 		}
+
+		return bot.onChatNewPost(ctx, post)
 	}
 
 	user := getUserCtx(ctx)
@@ -129,6 +152,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 		if msg.Text == textButtonAbout {
 			answer := bot.newAnswerMsg(msg, textStart)
+			answer.ParseMode = mdv2
 			return bot.send(ctx, answer)
 		}
 
@@ -151,7 +175,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 
 		// handle command
 		switch msg.Command() {
-		case "start":
+		case cmdStart:
 			return bot.onStart(ctx, msg)
 		case "help":
 			return bot.onHelp(ctx, msg)
@@ -300,6 +324,8 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 			}
 
 			return bot.onSettingsChannelsAndChatsDeleteConfirm(ctx, user, cbq, core.ChatID(id))
+		case data == cmdStart:
+			return bot.onPublicFileHelp(ctx, cbq)
 		default:
 			// spew.Dump(cbq)
 		}

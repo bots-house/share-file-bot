@@ -18,11 +18,11 @@ import (
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
 	"github.com/bots-house/share-file-bot/store/postgres"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	redis "github.com/go-redis/redis/v8"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/subosito/gotenv"

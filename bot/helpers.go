@@ -2,11 +2,46 @@ package bot
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/service"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/bots-house/telegram-bot-api"
+	"github.com/friendsofgo/errors"
 )
+
+func getURLsFromMessageEntities(entities *[]tgbotapi.MessageEntity) []string {
+	if entities == nil {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(*entities))
+
+	for _, entity := range *entities {
+		if entity.Type == "text_link" {
+			result = append(result, entity.URL)
+		}
+	}
+
+	return result
+}
+
+func getURLsFromMessageReplyMarkup(rm *tgbotapi.InlineKeyboardMarkup) []string {
+	if rm == nil {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(rm.InlineKeyboard))
+	for _, row := range rm.InlineKeyboard {
+		for _, btn := range row {
+			if btn.URL != nil {
+				result = append(result, *btn.URL)
+			}
+		}
+	}
+
+	return result
+}
 
 func (bot *Bot) send(_ context.Context, s tgbotapi.Chattable) error {
 	// spew.Dump(msg)
@@ -24,7 +59,7 @@ func (bot *Bot) newAnswerMsg(msg *tgbotapi.Message, text string) *tgbotapi.Messa
 		text,
 	)
 
-	result.ParseMode = tgbotapi.ModeMarkdown
+	result.ParseMode = mdv2
 
 	return &result
 }
@@ -132,4 +167,27 @@ func (bot *Bot) extractInputFileFromMessage(msg *tgbotapi.Message) *service.Inpu
 	default:
 		return nil
 	}
+}
+
+func humanizePostURI(uri string) (string, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return "", errors.Wrap(err, "parse uri")
+	}
+
+	q := u.Query()
+
+	var chat string
+
+	if _, ok := q["domain"]; ok {
+		chat = q.Get("domain")
+	} else if _, ok := q["channel"]; ok {
+		chat = q.Get("channel")
+	} else {
+		return "", errors.New("chat not found")
+	}
+
+	postID := q.Get("post")
+
+	return chat + "/" + postID, nil
 }
