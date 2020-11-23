@@ -7,7 +7,6 @@ require (
 	github.com/DATA-DOG/go-txdb v0.1.3
 	github.com/bots-house/telegram-bot-api v1.0.1-0.20201118162257-7fc66cc9f4c9
 	github.com/brianvoe/gofakeit/v5 v5.10.1
-	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/structs v1.1.0
 	github.com/friendsofgo/errors v0.9.2
 	github.com/getsentry/sentry-go v0.8.0
