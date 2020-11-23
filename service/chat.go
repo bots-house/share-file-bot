@@ -297,6 +297,24 @@ type ChannelPostInfo struct {
 	PostID       int
 }
 
+// Link returns tg:// deeplink to post
+func (info *ChannelPostInfo) Link() string {
+	action := "tg://resolve"
+
+	args := url.Values{}
+
+	if info.ChatUsername != "" {
+		args.Set("domain", info.ChatUsername)
+	} else {
+		peerID := tg.BotToMTProtoID(info.ChatID)
+		args.Set("domain", strconv.FormatInt(peerID, 10))
+	}
+
+	args.Set("post", strconv.Itoa(info.PostID))
+
+	return fmt.Sprintf("%s?%s", action, args.Encode())
+}
+
 // ProcessChannelPostURIes called on each channel post and should scan for backlinks to bot.
 //
 // Flow:
@@ -333,20 +351,7 @@ func (srv *Chat) ProcessChannelPostURIes(
 	}
 
 	if err := srv.Txier(ctx, func(ctx context.Context) error {
-		action := "tg://resolve"
-
-		args := url.Values{}
-
-		if postInfo.ChatUsername != "" {
-			args.Set("domain", postInfo.ChatUsername)
-		} else {
-			peerID := tg.BotToMTProtoID(postInfo.ChatID)
-			args.Set("domain", strconv.FormatInt(peerID, 10))
-		}
-
-		args.Set("post", strconv.Itoa(postInfo.PostID))
-
-		link := fmt.Sprintf("%s?%s", action, args.Encode())
+		link := postInfo.Link()
 
 		for i, file := range files {
 			file.LinkedPostURI.SetValid(link)
