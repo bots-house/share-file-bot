@@ -102,7 +102,7 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 		path, err := humanizePostURI(file.LinkedPostURI.String)
 		if err == nil {
 			rows = append(rows,
-				fmt.Sprintf("Связанный файл: [%s](%s)",
+				fmt.Sprintf("Связанный пост: [%s](%s)",
 					tg.EscapeMD(path),
 					file.LinkedPostURI.String,
 				),
