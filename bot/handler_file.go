@@ -98,6 +98,19 @@ func (bot *Bot) renderOwnedFileCaption(file *service.OwnedFile) string {
 		"",
 	)
 
+	if file.HasLinkedPostURI() && file.Restriction.HasChatID() {
+		path, err := humanizePostURI(file.LinkedPostURI.String)
+		if err == nil {
+			rows = append(rows,
+				fmt.Sprintf("Связанный файл: [%s](%s)",
+					tg.EscapeMD(path),
+					file.LinkedPostURI.String,
+				),
+				"",
+			)
+		}
+	}
+
 	rows = append(rows,
 		"📈 __Статистика__",
 		"",
@@ -325,8 +338,11 @@ func (bot *Bot) onFileRefreshCBQ(ctx context.Context, cbq *tgbotapi.CallbackQuer
 	edit.ReplyMarkup = &replyMarkup
 
 	if err := bot.send(ctx, edit); err != nil {
-		if err, ok := err.(tgbotapi.Error); ok {
-			if strings.Contains(err.Message, "message is not modified:") {
+		var tgErr *tgbotapi.Error
+
+		if errors.As(err, &tgErr) {
+			// TODO: use tg.IsErr...
+			if strings.Contains(tgErr.Message, "message is not modified:") {
 				return bot.answerCallbackQuery(ctx, cbq, "🤷 Ничего не изменилось")
 			}
 		}

@@ -2,10 +2,12 @@ package bot
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/service"
 	tgbotapi "github.com/bots-house/telegram-bot-api"
+	"github.com/friendsofgo/errors"
 )
 
 func getURLsFromMessageEntities(entities *[]tgbotapi.MessageEntity) []string {
@@ -165,4 +167,27 @@ func (bot *Bot) extractInputFileFromMessage(msg *tgbotapi.Message) *service.Inpu
 	default:
 		return nil
 	}
+}
+
+func humanizePostURI(uri string) (string, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return "", errors.Wrap(err, "parse uri")
+	}
+
+	q := u.Query()
+
+	var chat string
+
+	if _, ok := q["domain"]; ok {
+		chat = q.Get("domain")
+	} else if _, ok := q["channel"]; ok {
+		chat = q.Get("channel")
+	} else {
+		return "", errors.New("chat not found")
+	}
+
+	postID := q.Get("post")
+
+	return chat + "/" + postID, nil
 }

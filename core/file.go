@@ -70,6 +70,14 @@ type File struct { //nolint:maligned
 	CreatedAt time.Time
 }
 
+func (file *File) HasLinkedPostURI() bool {
+	return file.LinkedPostURI.Valid
+}
+
+func (file *File) SetLinkedPostURI(v string) {
+	file.LinkedPostURI.SetValid(v)
+}
+
 func (file *File) RegenPublicID() {
 	file.PublicID = secretid.Generate(secretid.IsLong(file.PublicID))
 }
