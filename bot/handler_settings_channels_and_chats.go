@@ -366,7 +366,7 @@ func (bot *Bot) onSettingsChannelsAndChatsConnectState(ctx context.Context, msg 
 		return bot.send(ctx, answ)
 	}
 
-	_, err := bot.chatSrv.Add(ctx, user, identity)
+	_, err := bot.chatSrv.Connect(ctx, user, identity)
 
 	switch {
 	case err == service.ErrChatIsUser:

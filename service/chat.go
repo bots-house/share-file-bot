@@ -79,8 +79,8 @@ func (srv *Chat) UpdateTitle(ctx context.Context, chatID int64, title string) er
 
 }
 
-// Add links chat to Share File Bot.
-func (srv *Chat) Add(ctx context.Context, user *core.User, identity ChatIdentity) (*FullChat, error) {
+// Connect links chat to Share File Bot.
+func (srv *Chat) Connect(ctx context.Context, user *core.User, identity ChatIdentity) (*FullChat, error) {
 	chatInfo, err := srv.Telegram.GetChat(tgbotapi.ChatConfig{
 		ChatID:             identity.ID,
 		SuperGroupUsername: identity.Username,
