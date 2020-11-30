@@ -129,10 +129,10 @@ func (bsq *botStoreQuery) Delete(ctx context.Context) error {
 	return nil
 }
 
-func (usq *botStoreQuery) Count(ctx context.Context) (int, error) {
+func (bsq *botStoreQuery) Count(ctx context.Context) (int, error) {
 	count, err := dal.
-		Users(usq.mods...).
-		Count(ctx, usq.store.getExecutor(ctx))
+		Bots(bsq.mods...).
+		Count(ctx, bsq.store.getExecutor(ctx))
 	if err != nil {
 		return 0, errors.Wrap(err, "count query")
 	}

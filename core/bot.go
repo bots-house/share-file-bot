@@ -32,7 +32,7 @@ var (
 	ErrBotNotFound = errors.New("bot not found")
 )
 
-// BotStore define persistance for bots.
+// BotStore define persistence for bots.
 type BotStore interface {
 	// Add bot to store.
 	Add(ctx context.Context, bot *Bot) error
