@@ -100,10 +100,12 @@ var UserWhere = struct {
 
 // UserRels is where relationship names are stored.
 var UserRels = struct {
+	OwnerBots  string
 	OwnerChats string
 	Downloads  string
 	OwnerFiles string
 }{
+	OwnerBots:  "OwnerBots",
 	OwnerChats: "OwnerChats",
 	Downloads:  "Downloads",
 	OwnerFiles: "OwnerFiles",
@@ -111,6 +113,7 @@ var UserRels = struct {
 
 // userR is where relationships are stored.
 type userR struct {
+	OwnerBots  BotSlice      `boil:"OwnerBots" json:"OwnerBots" toml:"OwnerBots" yaml:"OwnerBots"`
 	OwnerChats ChatSlice     `boil:"OwnerChats" json:"OwnerChats" toml:"OwnerChats" yaml:"OwnerChats"`
 	Downloads  DownloadSlice `boil:"Downloads" json:"Downloads" toml:"Downloads" yaml:"Downloads"`
 	OwnerFiles FileSlice     `boil:"OwnerFiles" json:"OwnerFiles" toml:"OwnerFiles" yaml:"OwnerFiles"`
@@ -222,6 +225,27 @@ func (q userQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	return count > 0, nil
 }
 
+// OwnerBots retrieves all the bot's Bots with an executor via owner_id column.
+func (o *User) OwnerBots(mods ...qm.QueryMod) botQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"bot\".\"owner_id\"=?", o.ID),
+	)
+
+	query := Bots(queryMods...)
+	queries.SetFrom(query.Query, "\"bot\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"bot\".*"})
+	}
+
+	return query
+}
+
 // OwnerChats retrieves all the chat's Chats with an executor via owner_id column.
 func (o *User) OwnerChats(mods ...qm.QueryMod) chatQuery {
 	var queryMods []qm.QueryMod
@@ -283,6 +307,97 @@ func (o *User) OwnerFiles(mods ...qm.QueryMod) fileQuery {
 	}
 
 	return query
+}
+
+// LoadOwnerBots allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (userL) LoadOwnerBots(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+	var slice []*User
+	var object *User
+
+	if singular {
+		object = maybeUser.(*User)
+	} else {
+		slice = *maybeUser.(*[]*User)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &userR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`bot`),
+		qm.WhereIn(`bot.owner_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load bot")
+	}
+
+	var resultSlice []*Bot
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice bot")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on bot")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for bot")
+	}
+
+	if singular {
+		object.R.OwnerBots = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &botR{}
+			}
+			foreign.R.Owner = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.OwnerID {
+				local.R.OwnerBots = append(local.R.OwnerBots, foreign)
+				if foreign.R == nil {
+					foreign.R = &botR{}
+				}
+				foreign.R.Owner = local
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadOwnerChats allows an eager lookup of values, cached into the
@@ -555,6 +670,59 @@ func (userL) LoadOwnerFiles(ctx context.Context, e boil.ContextExecutor, singula
 		}
 	}
 
+	return nil
+}
+
+// AddOwnerBots adds the given related objects to the existing relationships
+// of the user, optionally inserting them as new records.
+// Appends related to o.R.OwnerBots.
+// Sets related.R.Owner appropriately.
+func (o *User) AddOwnerBots(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Bot) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.OwnerID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"bot\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"owner_id"}),
+				strmangle.WhereClause("\"", "\"", 2, botPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.OwnerID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &userR{
+			OwnerBots: related,
+		}
+	} else {
+		o.R.OwnerBots = append(o.R.OwnerBots, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &botR{
+				Owner: o,
+			}
+		} else {
+			rel.R.Owner = o
+		}
+	}
 	return nil
 }
 
