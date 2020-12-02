@@ -41,6 +41,7 @@ github.com/bots-house/telegram-bot-api v1.0.1-0.20201118162257-7fc66cc9f4c9 h1:n
 github.com/bots-house/telegram-bot-api v1.0.1-0.20201118162257-7fc66cc9f4c9/go.mod h1:BVy5GfeB5jvufnjgYiU1QCRtfVtADlTbXN0H+AhRG08=
 github.com/brianvoe/gofakeit/v5 v5.10.1 h1:XamPDOAIoxcjEaeE+B4VvRsXk/g5OXm4gReH2fJCxNU=
 github.com/brianvoe/gofakeit/v5 v5.10.1/go.mod h1:/ZENnKqX+XrN8SORLe/fu5lZDIo1tuPncWuRD+eyhSI=
+github.com/brianvoe/gofakeit/v5 v5.11.0/go.mod h1:/ZENnKqX+XrN8SORLe/fu5lZDIo1tuPncWuRD+eyhSI=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
