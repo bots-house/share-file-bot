@@ -11,7 +11,7 @@ require (
 	github.com/friendsofgo/errors v0.9.2
 	github.com/getsentry/sentry-go v0.8.0
 	github.com/go-kit/kit v0.10.0
-	github.com/go-redis/redis/v8 v8.4.0
+	github.com/go-redis/redis/v8 v8.4.2
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.8.0
