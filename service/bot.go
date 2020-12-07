@@ -7,15 +7,19 @@ import (
 	"time"
 
 	"github.com/bots-house/share-file-bot/core"
+	"github.com/bots-house/share-file-bot/store"
 	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
 )
 
+// WebhookBuilder define function signature for build URL of bot webhook
 type WebhookBuilder func(token string) string
 
 // BotService it's manager of user bot.
 type BotService struct {
-	BotStore       core.BotStore
+	Bot   core.BotStore
+	Txier store.Txier
+
 	WebhookBuilder WebhookBuilder
 }
 
@@ -24,7 +28,7 @@ func (srv *BotService) GetBots(
 	ctx context.Context,
 	user *core.User,
 ) ([]*core.Bot, error) {
-	bots, err := srv.BotStore.Query().OwnerID(user.ID).All(ctx)
+	bots, err := srv.Bot.Query().OwnerID(user.ID).All(ctx)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "query user bots")
@@ -33,14 +37,17 @@ func (srv *BotService) GetBots(
 	return bots, nil
 }
 
+// FullBot define details representation of bot.
 type FullBot struct {
 	*core.Bot
 }
 
 var (
+	// ErrBotAlreadyConnected returned by BotService.Connect method when bot is already connect.
 	ErrBotAlreadyConnected = errors.New("bot already connected")
 )
 
+// BotAlreadyUsedError returned by BotService.Connect method when bot is already used by another service.
 type BotAlreadyUsedError struct {
 	// Host contains webhook host of domain
 	Host string
@@ -70,7 +77,7 @@ func (srv *BotService) Connect(
 	me := api.Self
 
 	// check if bot is not already connected
-	total, err := srv.BotStore.Query().ID(core.BotID(me.ID)).Count(ctx)
+	total, err := srv.Bot.Query().ID(core.BotID(me.ID)).Count(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "count bots with same id")
 	}
@@ -98,10 +105,7 @@ func (srv *BotService) Connect(
 
 	// set webhook of bot
 	newWebhook := tgbotapi.NewWebhook(srv.WebhookBuilder(token))
-	_, err = api.SetWebhook(newWebhook)
-	if err != nil {
-		return nil, errors.Wrap(err, "set webhook")
-	}
+	newWebhook.MaxConnections = 100
 
 	bot := &core.Bot{
 		ID:       core.BotID(me.ID),
@@ -111,11 +115,22 @@ func (srv *BotService) Connect(
 		LinkedAt: time.Now(),
 	}
 
-	if err := srv.BotStore.Add(ctx, bot); err != nil {
-		return nil, errors.Wrap(err, "add to store")
+	if err := srv.Txier(ctx, func(ctx context.Context) error {
+		if err := srv.Bot.Add(ctx, bot); err != nil {
+			return errors.Wrap(err, "add to store")
+		}
+
+		_, err = api.SetWebhook(newWebhook)
+		if err != nil {
+			return errors.Wrap(err, "set webhook")
+		}
+
+		return err
+	}); err != nil {
+		return nil, err
 	}
 
-	return nil, nil
+	return &FullBot{Bot: bot}, nil
 }
 
 // normalizeWebhookURL return u with protocol for correct parsing.

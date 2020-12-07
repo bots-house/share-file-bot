@@ -3,7 +3,7 @@ sqlboiler_download_url = https://api.github.com/repos/volatiletech/sqlboiler/tar
 
 golangci_lint_version = 1.31.0
 
-run:
+run: services
 	go run main.go -config .env.local
 
 lint: .bin/golangci-lint
@@ -16,6 +16,8 @@ generate-dal: .bin/sqlboiler .bin/sqlboiler-psql
 
 generate-domain: core/kind_string.go core/chattype_string.go bot/state/state_string.go
 
+services:
+	docker-compose up --no-recreate --detach postgres redis 
 
 core/kind_string.go: core/kind.go
 	cd core && stringer -type Kind -trimprefix Kind

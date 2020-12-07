@@ -21,3 +21,4 @@
 share-file-bot
 .env.local
 .bin
+.DS_Store
