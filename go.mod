@@ -9,7 +9,7 @@ require (
 	github.com/brianvoe/gofakeit/v5 v5.10.1
 	github.com/fatih/structs v1.1.0
 	github.com/friendsofgo/errors v0.9.2
-	github.com/getsentry/sentry-go v0.8.0
+	github.com/getsentry/sentry-go v0.9.0
 	github.com/go-kit/kit v0.10.0
 	github.com/go-redis/redis/v8 v8.4.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
