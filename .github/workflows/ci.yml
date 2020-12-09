@@ -23,8 +23,7 @@ jobs:
       with:
         filters: |
           docker:
-            - 'Dockerfile'
-            - '.dockerignore'
+            - Dockerfile
           go: 
             - '*.go'
             - 'go.*'
@@ -37,7 +36,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Lint Dockerfile
-
         uses: brpaz/hadolint-action@master
         with:
           dockerfile: "Dockerfile"
@@ -46,7 +44,7 @@ jobs:
     name: Lint Go
     runs-on: ubuntu-20.04
     needs: [changes]
-    if: ${{ needs.changes.outputs.docker }}
+    if: ${{ needs.changes.outputs.go }}
     steps:
       - uses: actions/checkout@v2
       - name: golangci-lint
@@ -78,7 +76,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-20.04
-
+    needs: [changes]
+    if: ${{ needs.changes.outputs.go }}
     services:
       redis:
         image: redis:6
