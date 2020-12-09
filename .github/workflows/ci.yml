@@ -3,13 +3,7 @@ name: CI
 on:
   push:
     paths-ignore:
-      - '**.md'
-      - '**.toml'
-      - Procfile
-      - Makefile
-      - docker-compose.yml
-      - .gitignore
-      - '.env.*'
+      - CHANGELOG.md
   release:
     types: [published]
 
@@ -20,7 +14,9 @@ jobs:
       backend: ${{ steps.filter.outputs.docker }}
       frontend: ${{ steps.filter.outputs.go }}
     steps:
-    # For pull requests it's not necessary to checkout the code
+    - name: Checkout
+      uses: actions/checkout@v2
+
     - uses: dorny/paths-filter@v2
       id: filter
       with:
