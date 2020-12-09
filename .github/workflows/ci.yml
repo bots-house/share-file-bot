@@ -154,19 +154,33 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
+      - name: Calculate build args
+        run: |
+          build_ref=$(git rev-parse --short "$GITHUB_SHA")
+          echo "build_ref=$build_ref" >> $GITHUB_ENV
+
+          build_version=${GITHUB_REF##*/}
+          echo "build_version=$build_version" >> $GITHUB_ENV
+
+          build_time=$(date --utc +%FT%TZ)
+          echo "build_time=$build_time" >> $GITHUB_ENV
+
       - name: Build the Docker image
         run: |
+
           docker build \
-            --build-arg REVISION=${GITHUB_REF##*/} \
+            --build-arg BUILD_REF=$build_ref \
+            --build-arg BUILD_VERSION=$build_version \
+            --build-arg BUILD_TIME=$build_time \
             --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
-            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:${GITHUB_REF##*/} \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:$build_version \
             .
 
       - name: Push image to GitHub Packages
         run: |
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
-          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:${GITHUB_REF##*/}
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:$build_version
 
-      - name: Call Deploy Hooks
-        run: |
-          curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
+      # - name: Call Deploy Hooks
+      #   run: |
+      #     curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
