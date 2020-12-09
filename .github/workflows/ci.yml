@@ -2,11 +2,38 @@ name: CI
 
 on:
   push:
+    paths-ignore:
+      - CHANGELOG.md
+  release:
+    types: [published]
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-20.04
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
+      go: ${{ steps.filter.outputs.go }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        base: ${{ github.ref }}
+        filters: |
+          docker:
+            - Dockerfile
+          go: 
+            - '*.go'
+            - 'go.*'
+          
   lint-docker:
     name: Lint Docker
     runs-on: ubuntu-20.04
+    needs: [changes]
+    if: ${{ needs.changes.outputs.docker == 'true' }}
     steps:
       - uses: actions/checkout@v2
       - name: Lint Dockerfile
@@ -17,6 +44,8 @@ jobs:
   lint-go:
     name: Lint Go
     runs-on: ubuntu-20.04
+    needs: [changes]
+    if: ${{ needs.changes.outputs.go == 'true' }}
     steps:
       - uses: actions/checkout@v2
       - name: golangci-lint
@@ -24,10 +53,32 @@ jobs:
         with:
           version: v1.31
 
-  build-and-test:
-    name: Build and Test
+  lint-go-security:
+    name: Lint Go / CodeQL
     runs-on: ubuntu-20.04
+    needs: [changes]
+    if: ${{ needs.changes.outputs.go == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          # We must fetch at least the immediate parents so that if this is
+          # a pull request then we can checkout the head.
+          fetch-depth: 2
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: go
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
+
+  test:
+    name: Test
+    runs-on: ubuntu-20.04
+    needs: [changes]
+    if: ${{ needs.changes.outputs.go == 'true' }}
     services:
       redis:
         image: redis:6
@@ -54,7 +105,9 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout 
+        uses: actions/checkout@v2
+
       - name: Install Go
         uses: actions/setup-go@v2
         with:
@@ -92,8 +145,8 @@ jobs:
   deploy-production:
     name: Deploy Production
     runs-on: ubuntu-20.04
-    needs: [build-and-test, lint-docker, lint-go]
-    if: github.ref == 'refs/heads/master'
+    needs: [test, lint-docker, lint-go, lint-go-security]
+    if: ${{ github.event_name == 'release' }}
     steps:
       - uses: actions/checkout@v2
 
@@ -101,33 +154,32 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
-      - name: Get Revision
+      - name: Calculate build args
         run: |
-          revision_ref=${GITHUB_REF##*/}
-          revision_sha=${GITHUB_SHA::7}
-          revision_dt=$(date +'%Y%m%d%H%M')
+          build_ref=$(git rev-parse --short "$GITHUB_SHA")
+          echo "build_ref=$build_ref" >> $GITHUB_ENV
 
-          revision=$revision_ref-$revision_sha-$revision_dt
-          echo "revision=$revision" >> $GITHUB_ENV
+          build_version=${GITHUB_REF##*/}
+          echo "build_version=$build_version" >> $GITHUB_ENV
 
-      # In this step, this action saves a list of existing images,
-      # the cache is created without them in the post run.
-      # It also restores the cache if it exists.
-      # - uses: satackey/action-docker-layer-caching@v0.0.8
-      #   continue-on-error: true
+          build_time=$(date --utc +%FT%TZ)
+          echo "build_time=$build_time" >> $GITHUB_ENV
 
       - name: Build the Docker image
         run: |
+
           docker build \
-            --build-arg REVISION=$revision \
+            --build-arg BUILD_REF=$build_ref \
+            --build-arg BUILD_VERSION=$build_version \
+            --build-arg BUILD_TIME=$build_time \
             --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
-            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:$build_version \
             .
 
       - name: Push image to GitHub Packages
         run: |
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
-          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:$build_version
 
       - name: Call Deploy Hooks
         run: |
