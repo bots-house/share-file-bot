@@ -14,12 +14,33 @@ on:
     types: [published]
 
 jobs:
+  changes:
+    runs-on: ubuntu-20.04
+    outputs:
+      backend: ${{ steps.filter.outputs.docker }}
+      frontend: ${{ steps.filter.outputs.go }}
+    steps:
+    # For pull requests it's not necessary to checkout the code
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          docker:
+            - 'Dockerfile'
+            - '.dockerignore'
+          go: 
+            - '*.go'
+            - 'go.*'
+          
   lint-docker:
     name: Lint Docker
     runs-on: ubuntu-20.04
+    needs: [changes]
+    if: ${{ needs.changes.outputs.docker }}
     steps:
       - uses: actions/checkout@v2
       - name: Lint Dockerfile
+
         uses: brpaz/hadolint-action@master
         with:
           dockerfile: "Dockerfile"
@@ -27,6 +48,8 @@ jobs:
   lint-go:
     name: Lint Go
     runs-on: ubuntu-20.04
+    needs: [changes]
+    if: ${{ needs.changes.outputs.docker }}
     steps:
       - uses: actions/checkout@v2
       - name: golangci-lint
@@ -37,6 +60,8 @@ jobs:
   lint-go-security:
     name: Lint Go / CodeQL
     runs-on: ubuntu-20.04
+    needs: [changes]
+    if: ${{ needs.changes.outputs.go }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
