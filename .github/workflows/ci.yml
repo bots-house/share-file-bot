@@ -2,6 +2,16 @@ name: CI
 
 on:
   push:
+    paths-ignore:
+      - '**.md'
+      - '**.toml'
+      - Procfile
+      - Makefile
+      - docker-compose.yml
+      - .gitignore
+      - '.env.*'
+  release:
+    types: [published]
 
 jobs:
   lint-docker:
@@ -93,7 +103,7 @@ jobs:
     name: Deploy Production
     runs-on: ubuntu-20.04
     needs: [build-and-test, lint-docker, lint-go]
-    if: github.ref == 'refs/heads/master'
+    if: ${{ github.event_name == 'release' }}
     steps:
       - uses: actions/checkout@v2
 
@@ -101,33 +111,18 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
-      - name: Get Revision
-        run: |
-          revision_ref=${GITHUB_REF##*/}
-          revision_sha=${GITHUB_SHA::7}
-          revision_dt=$(date +'%Y%m%d%H%M')
-
-          revision=$revision_ref-$revision_sha-$revision_dt
-          echo "revision=$revision" >> $GITHUB_ENV
-
-      # In this step, this action saves a list of existing images,
-      # the cache is created without them in the post run.
-      # It also restores the cache if it exists.
-      # - uses: satackey/action-docker-layer-caching@v0.0.8
-      #   continue-on-error: true
-
       - name: Build the Docker image
         run: |
           docker build \
-            --build-arg REVISION=$revision \
+            --build-arg REVISION=${GITHUB_REF##*/} \
             --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest \
-            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision \
+            --tag docker.pkg.github.com/${{ github.repository }}/share-file-bot:${GITHUB_REF##*/} \
             .
 
       - name: Push image to GitHub Packages
         run: |
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
-          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:$revision
+          docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:${GITHUB_REF##*/}
 
       - name: Call Deploy Hooks
         run: |
