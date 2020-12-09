@@ -34,6 +34,30 @@ jobs:
         with:
           version: v1.31
 
+  lint-go-security:
+    name: Lint Go / CodeQL
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          # We must fetch at least the immediate parents so that if this is
+          # a pull request then we can checkout the head.
+          fetch-depth: 2
+
+      # If this run was triggered by a pull request event, then checkout
+      # the head of the pull request instead of the merge commit.
+      - run: git checkout HEAD^2
+        if: ${{ github.event_name == 'pull_request' }}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: go
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
+
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-20.04
@@ -64,7 +88,9 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout 
+        uses: actions/checkout@v2
+
       - name: Install Go
         uses: actions/setup-go@v2
         with:
@@ -102,7 +128,7 @@ jobs:
   deploy-production:
     name: Deploy Production
     runs-on: ubuntu-20.04
-    needs: [build-and-test, lint-docker, lint-go]
+    needs: [build-and-test, lint-docker, lint-go, lint-go-security]
     if: ${{ github.event_name == 'release' }}
     steps:
       - uses: actions/checkout@v2
