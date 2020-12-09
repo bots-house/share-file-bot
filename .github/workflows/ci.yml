@@ -181,6 +181,6 @@ jobs:
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:latest
           docker push docker.pkg.github.com/${{ github.repository }}/share-file-bot:$build_version
 
-      # - name: Call Deploy Hooks
-      #   run: |
-      #     curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
+      - name: Call Deploy Hooks
+        run: |
+          curl -X POST -i ${{ secrets.DEPLOY_HOOK }}
