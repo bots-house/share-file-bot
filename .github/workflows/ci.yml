@@ -9,6 +9,7 @@ on:
 
 jobs:
   changes:
+    name: Find Changes
     runs-on: ubuntu-20.04
     outputs:
       backend: ${{ steps.filter.outputs.docker }}

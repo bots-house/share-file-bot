@@ -15,4 +15,5 @@ func TestConfigGetEnv(t *testing.T) {
 
 	cfg = Config{Env: EnvProduction}
 	assert.Equal(t, EnvProduction, cfg.getEnv())
+
 }
