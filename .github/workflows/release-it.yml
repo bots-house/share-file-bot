@@ -61,7 +61,7 @@ jobs:
 
     - name: Create tag/release, update CHANGELOG.md
       run: |
-        release-it --config .github/release-it.json --ci --increment=$increment
+        release-it --verbose --config .github/release-it.json --ci --increment=$increment
 
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
