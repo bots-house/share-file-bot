@@ -11,6 +11,7 @@ import (
 
 	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/core"
+	"github.com/bots-house/share-file-bot/pkg"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
@@ -24,7 +25,7 @@ import (
 const cmdStart = "start"
 
 type Bot struct {
-	revision string
+	buildInfo pkg.BuildInfo
 
 	client *tgbotapi.BotAPI
 	state  state.Store
@@ -41,12 +42,12 @@ func (bot *Bot) Self() tgbotapi.User {
 	return bot.client.Self
 }
 
-func New(revision string, client *tgbotapi.BotAPI, state state.Store, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin, chatSrv *service.Chat) (*Bot, error) {
+func New(buildInfo pkg.BuildInfo, client *tgbotapi.BotAPI, state state.Store, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin, chatSrv *service.Chat) (*Bot, error) {
 
 	bot := &Bot{
-		revision: revision,
-		client:   client,
-		state:    state,
+		buildInfo: buildInfo,
+		client:    client,
+		state:     state,
 
 		authSrv:  authSrv,
 		fileSrv:  docSrv,

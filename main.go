@@ -14,6 +14,7 @@ import (
 
 	"github.com/bots-house/share-file-bot/bot"
 	"github.com/bots-house/share-file-bot/bot/state"
+	"github.com/bots-house/share-file-bot/pkg"
 	"github.com/bots-house/share-file-bot/pkg/health"
 	"github.com/bots-house/share-file-bot/pkg/log"
 	"github.com/bots-house/share-file-bot/service"
@@ -66,7 +67,11 @@ func (cfg Config) getEnv() string {
 
 var logger = log.NewLogger(true, true)
 
-var revision = "unknown"
+var (
+	buildVersion = "unknown"
+	buildRef     = "unknown"
+	buildTime    = "unknown"
+)
 
 func main() {
 	ctx := context.Background()
@@ -147,6 +152,12 @@ func newSentry(ctx context.Context, cfg Config, release string) error {
 const envPrefix = "SFB"
 
 func run(ctx context.Context) error {
+	buildInfo := pkg.BuildInfo{
+		Version: buildVersion,
+		Ref:     buildRef,
+		Time:    buildTime,
+	}
+
 	// parse config
 	var cfg Config
 
@@ -171,9 +182,13 @@ func run(ctx context.Context) error {
 		return health.Check(ctx, cfg.Addr)
 	}
 
-	log.Info(ctx, "start", "revision", revision)
+	log.Info(ctx, "start",
+		"version", buildInfo.Version,
+		"ref", buildInfo.Ref,
+		"time", buildInfo.Time,
+	)
 
-	if err := newSentry(ctx, cfg, revision); err != nil {
+	if err := newSentry(ctx, cfg, buildInfo.Version); err != nil {
 		return errors.Wrap(err, "init sentry")
 	}
 	defer sentry.Flush(time.Second * 5)
@@ -258,7 +273,7 @@ func run(ctx context.Context) error {
 		Download: pg.Download(),
 	}
 
-	tgBot, err := bot.New(revision, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv)
+	tgBot, err := bot.New(buildInfo, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}

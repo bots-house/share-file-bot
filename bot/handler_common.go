@@ -2,10 +2,13 @@ package bot
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/bots-house/share-file-bot/bot/state"
 	"github.com/bots-house/share-file-bot/core"
 	"github.com/bots-house/share-file-bot/pkg/log"
+	"github.com/bots-house/share-file-bot/pkg/tg"
 	"github.com/bots-house/share-file-bot/service"
 	tgbotapi "github.com/bots-house/telegram-bot-api"
 	"github.com/friendsofgo/errors"
@@ -87,6 +90,13 @@ func (bot *Bot) onUnsupportedFileKind(ctx context.Context, msg *tgbotapi.Message
 }
 
 func (bot *Bot) onVersion(ctx context.Context, msg *tgbotapi.Message) error {
-	answer := bot.newReplyMsg(msg, "`"+bot.revision+"`")
+	text := strings.Join([]string{
+		fmt.Sprintf("**Version**: `%s`", tg.EscapeMD(bot.buildInfo.Version)),
+		fmt.Sprintf("**Ref**: `%s`", tg.EscapeMD(bot.buildInfo.Ref)),
+		fmt.Sprintf("**Time**: `%s`", tg.EscapeMD(bot.buildInfo.Time)),
+	}, "\n")
+
+	answer := bot.newReplyMsg(msg, text)
+
 	return bot.send(ctx, answer)
 }

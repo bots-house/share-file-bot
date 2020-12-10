@@ -15,11 +15,18 @@ RUN go mod download
 COPY . .
 
 # git tag 
-ARG BULD_VERSION
+ARG BUILD_VERSION
+
+# git commit sha
+ARG BUILD_REF
+
+# build time 
+ARG BUILD_TIME
 
 # compile 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-      -ldflags="-w -s -extldflags \"-static\" -X \"main.revision=${BULD_VERSION}\"" -a \
+      -ldflags="-w -s -extldflags \"-static\" -X \"main.buildVersion=${BUILD_VERSION}\" -X \"main.buildRef=${BUILD_REF}\" -X \"main.buildTime=${BUILD_TIME}\"" \
+      -a \
       -tags timetzdata \
       -o /bin/share-file-bot .
 
