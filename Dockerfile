@@ -17,17 +17,12 @@ COPY . .
 # git tag 
 ARG BULD_VERSION
 
-# git commit sha
-ARG BUILD_REF
-
-# build time 
-ARG BUILD_TIME
-
 # compile 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
       -ldflags="-w -s -extldflags \"-static\" -X \"main.revision=${BULD_VERSION}\"" -a \
       -tags timetzdata \
       -o /bin/share-file-bot .
+
 
 # run 
 FROM scratch
@@ -40,17 +35,26 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD [ "/b
 
 EXPOSE 8000
 
+# git tag 
+ARG BULD_VERSION
+
+# git commit sha
+ARG BUILD_REF
+
+# build time 
+ARG BUILD_TIME
+
 # Reference: http://label-schema.org/rc1/
-LABEL org.label-schema.schema-version = "1.0" \
-      org.label-schema.build-date = $BUILD_TIME \
-      org.label-schema.name = "share-file-bot" \
-      org.label-schema.description = "Share files using Telegram as Cloud" \
-      org.label-schema.url = "https://t.me/share_file_bot" \ 
-      org.label-schema.vcs-url = "https://github.com/bots-house/share-file-bot" \
-      org.label-schema.vcs-ref = $BUILD_REF \
-      org.label-schema.vendor = "Bots House" \
-      org.label-schema.version = $BUILD_VERSION \ 
-      docker.cmd.help = "docker run --rm docker.pkg.github.com/bots-house/share-file-bot/share-file-bot --help"
+LABEL org.label-schema.schema-version="1.0" \
+      org.label-schema.build-date=${BUILD_TIME} \
+      org.label-schema.name="share-file-bot" \
+      org.label-schema.description="Share files using Telegram as Cloud" \
+      org.label-schema.url="https://t.me/share_file_bot" \ 
+      org.label-schema.vcs-url="https://github.com/bots-house/share-file-bot" \
+      org.label-schema.vcs-ref=${BUILD_REF} \
+      org.label-schema.vendor="Bots House" \
+      org.label-schema.version=${BUILD_VERSION} \ 
+      docker.cmd.help="docker run --rm docker.pkg.github.com/bots-house/share-file-bot/share-file-bot --help"
 
 
 ENTRYPOINT [ "/bin/share-file-bot" ]
