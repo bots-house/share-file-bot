@@ -1,3 +1,5 @@
+## [0.0.2](https://github.com/bots-house/share-file-bot/compare/0.0.1...0.0.2) (2020-12-10)
+
 #  (2020-12-10)
 
 
