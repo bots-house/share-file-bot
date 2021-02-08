@@ -1,5 +1,5 @@
 # build static binary
-FROM golang:1.15.6-alpine3.12 as builder 
+FROM golang:1.15.8-alpine3.12 as builder 
 
 # hadolint ignore=DL3018
 RUN apk --no-cache add  \
