@@ -14,7 +14,7 @@ require (
 	github.com/go-redis/redis/v8 v8.4.4
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/lib/pq v1.9.0
+	github.com/lib/pq v1.10.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/matoous/go-nanoid v1.5.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
