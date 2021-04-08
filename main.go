@@ -54,6 +54,9 @@ type Config struct {
 	SecretIDSalt string `required:"true" split_words:"true"`
 
 	DryRun bool `default:"false" split_words:"true"`
+
+	IsUsersCanUploadFiles bool   `default:"true" split_words:"true"`
+	TextHelp              string `split_words:"true"`
 }
 
 func (cfg Config) getEnv() string {
@@ -251,11 +254,12 @@ func run(ctx context.Context) error {
 	}
 
 	fileSrv := &service.File{
-		File:     pg.File(),
-		Chat:     pg.Chat(),
-		Download: pg.Download(),
-		Telegram: tgClient,
-		Redis:    rdb,
+		File:                  pg.File(),
+		Chat:                  pg.Chat(),
+		Download:              pg.Download(),
+		Telegram:              tgClient,
+		Redis:                 rdb,
+		IsUsersCanUploadFiles: cfg.IsUsersCanUploadFiles,
 	}
 
 	adminSrv := &service.Admin{
@@ -273,7 +277,7 @@ func run(ctx context.Context) error {
 		Download: pg.Download(),
 	}
 
-	tgBot, err := bot.New(buildInfo, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv)
+	tgBot, err := bot.New(buildInfo, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv, cfg.TextHelp)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}

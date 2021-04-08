@@ -20,6 +20,8 @@ type File struct {
 	Telegram *tgbotapi.BotAPI
 	Redis    redis.UniversalClient
 	Download core.DownloadStore
+
+	IsUsersCanUploadFiles bool
 }
 
 type InputFile struct {
@@ -50,11 +52,19 @@ func (srv *File) newOwnedFile(ctx context.Context, doc *core.File) (*OwnedFile, 
 	}, nil
 }
 
+var (
+	ErrUsersCantUploadFiles = errors.New("users can't upload files")
+)
+
 func (srv *File) AddFile(
 	ctx context.Context,
 	user *core.User,
 	in *InputFile,
 ) (*OwnedFile, error) {
+	if !user.IsAdmin && !srv.IsUsersCanUploadFiles {
+		return nil, ErrUsersCantUploadFiles
+	}
+
 	doc := core.NewFile(
 		in.FileID,
 		in.Caption,
