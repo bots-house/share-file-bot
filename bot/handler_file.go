@@ -580,7 +580,7 @@ func (bot *Bot) onFileRestrictionsChatCheck(
 }
 
 func (bot *Bot) onPublicFileHelp(ctx context.Context, cbq *tgbotapi.CallbackQuery) error {
-	answer := tgbotapi.NewMessage(cbq.Message.Chat.ID, textStart)
+	answer := tgbotapi.NewMessage(cbq.Message.Chat.ID, bot.getTextStart())
 	answer.ParseMode = mdv2
 	return bot.send(ctx, answer)
 }

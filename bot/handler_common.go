@@ -21,6 +21,8 @@ const (
 )
 
 var (
+	textHello = "Привет\\! 👋\n"
+
 	textHelp = dedent.Dedent(`
 		Я помогу тебе поделиться любым медиафайлом \(фото, видео, документы, аудио, голосовые\) с подписчиками твоего канала\. 
 		Отправь любой из перечисленных файлов, а я в ответ дам тебе ссылку\. Желательно указать подпись, чтобы человек не забыл кто ему это пошарил\.
@@ -32,11 +34,27 @@ var (
 		Новости и обновления: @share\_file\_news
 	`)
 
-	textStart = "Привет\\! 👋\n" + textHelp
+	textStart = textHello + textHelp
 )
 
+func (bot *Bot) getTextStart() string {
+	if bot.textHelp != "" {
+		return textHello + bot.textHelp
+	}
+
+	return textStart
+}
+
+func (bot *Bot) getTextHelp() string {
+	if bot.textHelp != "" {
+		return bot.textHelp
+	}
+
+	return textHelp
+}
+
 func (bot *Bot) onHelp(ctx context.Context, msg *tgbotapi.Message) error {
-	answer := bot.newAnswerMsg(msg, textHelp)
+	answer := bot.newAnswerMsg(msg, bot.getTextHelp())
 	answer.ParseMode = mdv2
 	return bot.send(ctx, answer)
 }
@@ -80,7 +98,7 @@ func (bot *Bot) onStart(ctx context.Context, msg *tgbotapi.Message) error {
 		}
 	}
 
-	answer := bot.newAnswerMsg(msg, textStart)
+	answer := bot.newAnswerMsg(msg, bot.getTextStart())
 	return bot.send(ctx, answer)
 }
 

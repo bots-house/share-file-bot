@@ -35,6 +35,8 @@ type Bot struct {
 	adminSrv *service.Admin
 	chatSrv  *service.Chat
 
+	textHelp string
+
 	handler tg.Handler
 }
 
@@ -42,7 +44,16 @@ func (bot *Bot) Self() tgbotapi.User {
 	return bot.client.Self
 }
 
-func New(buildInfo pkg.BuildInfo, client *tgbotapi.BotAPI, state state.Store, authSrv *service.Auth, docSrv *service.File, adminSrv *service.Admin, chatSrv *service.Chat) (*Bot, error) {
+func New(
+	buildInfo pkg.BuildInfo,
+	client *tgbotapi.BotAPI,
+	state state.Store,
+	authSrv *service.Auth,
+	docSrv *service.File,
+	adminSrv *service.Admin,
+	chatSrv *service.Chat,
+	textHelp string,
+) (*Bot, error) {
 
 	bot := &Bot{
 		buildInfo: buildInfo,
@@ -53,6 +64,8 @@ func New(buildInfo pkg.BuildInfo, client *tgbotapi.BotAPI, state state.Store, au
 		fileSrv:  docSrv,
 		adminSrv: adminSrv,
 		chatSrv:  chatSrv,
+
+		textHelp: textHelp,
 	}
 
 	// bot.client.Debug = true
@@ -152,7 +165,7 @@ func (bot *Bot) onUpdate(ctx context.Context, update *tgbotapi.Update) error {
 		}
 
 		if msg.Text == textButtonAbout {
-			answer := bot.newAnswerMsg(msg, textStart)
+			answer := bot.newAnswerMsg(msg, bot.getTextStart())
 			answer.ParseMode = mdv2
 			return bot.send(ctx, answer)
 		}

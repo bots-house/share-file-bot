@@ -55,7 +55,8 @@ type Config struct {
 
 	DryRun bool `default:"false" split_words:"true"`
 
-	IsUsersCanUploadFiles bool `default:"true" split_words:"true"`
+	IsUsersCanUploadFiles bool   `default:"true" split_words:"true"`
+	TextHelp              string `split_words:"true"`
 }
 
 func (cfg Config) getEnv() string {
@@ -276,7 +277,7 @@ func run(ctx context.Context) error {
 		Download: pg.Download(),
 	}
 
-	tgBot, err := bot.New(buildInfo, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv)
+	tgBot, err := bot.New(buildInfo, tgClient, botState, authSrv, fileSrv, adminSrv, chatSrv, cfg.TextHelp)
 	if err != nil {
 		return errors.Wrap(err, "init bot")
 	}
