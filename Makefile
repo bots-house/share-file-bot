@@ -1,7 +1,7 @@
-sqlboiler_version = 4.3.1
+sqlboiler_version = 4.5.0
 sqlboiler_download_url = https://api.github.com/repos/volatiletech/sqlboiler/tarball/v$(sqlboiler_version)
 
-golangci_lint_version = 1.31.0
+golangci_lint_version = 1.39.0
 
 run:
 	go run main.go -config .env.local

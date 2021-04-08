@@ -30,14 +30,12 @@ linters:
     - gofmt
     - goimports
     - prealloc
-    - scopelint
     - gocritic
     - goprintffuncname
-    - maligned
     - nestif
     - rowserrcheck
-    - scopelint
     - stylecheck
+    - exportloopref
     # - wsl
     # - interfacer
     # - gomnd
