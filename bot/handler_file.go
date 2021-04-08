@@ -280,7 +280,15 @@ func (bot *Bot) onFile(ctx context.Context, msg *tgbotapi.Message) error {
 
 	file, err := bot.fileSrv.AddFile(ctx, user, inputFile)
 
-	if err != nil {
+	switch {
+	case errors.Is(err, service.ErrUsersCantUploadFiles):
+		_ = bot.sendText(ctx,
+			user.ID,
+			"✋ Загрузка файлов доступна только администраторам ботам",
+		)
+
+		return nil
+	case err != nil:
 		_ = bot.sendText(ctx,
 			user.ID,
 			"⚠️ Что-то пошло не так при добавлении файла",
