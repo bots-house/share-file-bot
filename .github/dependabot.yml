@@ -1,0 +1,55 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "03:00"
+  open-pull-requests-limit: 10
+  reviewers:
+  - mr-linch
+  assignees:
+  - mr-linch
+  ignore:
+  - dependency-name: github.com/volatiletech/sqlboiler/v4
+    versions:
+    - 4.5.0
+  - dependency-name: github.com/go-redis/redis/v8
+    versions:
+    - 8.4.11
+    - 8.5.0
+    - 8.6.0
+    - 8.7.1
+  - dependency-name: github.com/lib/pq
+    versions:
+    - 1.10.0
+  - dependency-name: github.com/volatiletech/null/v8
+    versions:
+    - 8.1.1
+    - 8.1.2
+  - dependency-name: github.com/getsentry/sentry-go
+    versions:
+    - 0.10.0
+  - dependency-name: github.com/stretchr/testify
+    versions:
+    - 1.7.0
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "03:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: golang
+    versions:
+    - 1.15.7.pre.alpine3.12
+    - 1.15.8.pre.alpine3.12
+    - 1.16.0.pre.alpine3.12
+    - 1.16.1.pre.alpine3.12
+    - 1.16.2.pre.alpine3.12
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "03:00"
+  open-pull-requests-limit: 10
