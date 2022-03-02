@@ -16,7 +16,7 @@ jobs:
       go: ${{ steps.filter.outputs.go }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - uses: dorny/paths-filter@v2
       id: filter
@@ -35,7 +35,7 @@ jobs:
     needs: [changes]
     if: ${{ needs.changes.outputs.docker == 'true' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Lint Dockerfile
         uses: brpaz/hadolint-action@master
         with:
@@ -47,7 +47,7 @@ jobs:
     needs: [changes]
     if: ${{ needs.changes.outputs.go == 'true' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
@@ -60,7 +60,7 @@ jobs:
     if: ${{ needs.changes.outputs.go == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           # We must fetch at least the immediate parents so that if this is
           # a pull request then we can checkout the head.
@@ -106,7 +106,7 @@ jobs:
 
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Go
         uses: actions/setup-go@v2
@@ -148,7 +148,7 @@ jobs:
     needs: [test, lint-docker, lint-go, lint-go-security]
     if: ${{ github.event_name == 'release' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Login to docker.pkg.github.com
         run: |
